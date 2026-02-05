@@ -9,5 +9,5 @@
 
 # Key Roles
 
-1. May is the product owner
+1. Rohit is responsible for develing the FE for submitting review!
 2. Deepsika is the Scrum Master
