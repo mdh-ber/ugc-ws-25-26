@@ -1,6 +1,5 @@
 # UGC Project with MDH Marketing Team
 
-
 # Development Rules
 
 1. Never push to the main branch
