@@ -11,3 +11,12 @@
 
 1. May is the product owner
 2. Deepsika is the Scrum Master
+3. Napat is one of the development team
+
+# The user story related to my task
+
+As a content creator, I want to have access to relevant training materials so that so I learn how to make high-quality videos
+
+# My task
+
+Create trainings frontend service
