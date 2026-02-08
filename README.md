@@ -11,3 +11,4 @@
 
 1. May is the product owner
 2. Deepsika is the Scrum Master
+3. Pantida developed the backend training data.
