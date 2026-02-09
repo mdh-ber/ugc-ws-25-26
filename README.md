@@ -1,30 +1,14 @@
-# UGC Campaign (JamSocial Simplified)
+# UGC Project with MDH Marketing Team
 
-A minimal full‑stack monorepo inspired by your JamSocial project, refocused into a **UGC campaign tracking platform**.
+# Development Rules
 
-## What it does
-- **Creators** get tracked links
-- System records **clicks → sign-ups/conversions**
-- **Rewards** calculated from performance
-- **Admins** view dashboards & campaign analytics
+1. Never push to the main branch
+2. Create your own branch (use your name for the branch)
+3. Keep your local code updated (all the time)
+4. When you push your code, create a pull request and ask one of the team members to review it
 
-## Repo layout
-- `web/` — Next.js + Tailwind (Creator & Admin dashboards)
-- `api/` — TypeScript API (auth, tracking, analytics)
-- `shared/` — shared TypeScript types/constants
+# Key Roles
 
-## Quick start (skeleton)
-This is a starter structure with placeholder files. Add your real logic where marked.
-
-```bash
-npm install
-npm run dev
-```
-
-## Key endpoints (suggested)
-- `POST /auth/login`
-- `POST /tracking/click`
-- `POST /tracking/conversion`
-- `GET  /admin/analytics`
-
-Generated: 2026-02-05
+1. May is the product owner
+2. Deepsika is the Scrum Master
+3. Pantida developed the backend training data.
