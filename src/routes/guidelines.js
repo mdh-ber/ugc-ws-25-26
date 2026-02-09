@@ -5,11 +5,11 @@ const GuidelineController = require('../controllers/guidelineController');
 // Get all guidelines
 router.get('/', GuidelineController.getAllGuidelines);
 
+// Get guidelines by category (must be before /:id route)
+router.get('/category/:category', GuidelineController.getGuidelinesByCategory);
+
 // Get guideline by ID
 router.get('/:id', GuidelineController.getGuidelineById);
-
-// Get guidelines by category
-router.get('/category/:category', GuidelineController.getGuidelinesByCategory);
 
 // Create new guideline
 router.post('/', GuidelineController.createGuideline);
