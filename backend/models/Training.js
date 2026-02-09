@@ -1,33 +1,32 @@
 const mongoose = require('mongoose');
 
 const TrainingSchema = new mongoose.Schema({
-  title: { 
-    type: String, 
-    required: [true, 'Title is required'],
-    trim: true 
-  },
-  type: { 
-    type: String, 
-    enum: ['video', 'pdf'], // VALIDATION: Only allows these two words
-    required: true 
-  },
-  url: { 
-    type: String, 
-    required: true,
-    match: [/^(http|https):\/\//, 'Must be a valid URL'] // VALIDATION: Checks for http
-  },
-  category: { 
-    type: String, 
-    enum: ['Onboarding', 'Content Tips', 'Guidelines'], 
-    default: 'Content Tips'
-  },
-  thumbnail: { 
+  title: {
     type: String,
-    default: 'https://via.placeholder.com/150' // Default image if none provided
+    required: true,
+    trim: true
   },
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
+  type: {
+    type: String,
+    enum: ['video', 'pdf'], // This restricts inputs to ONLY these two types
+    required: true
+  },
+  url: {
+    type: String,
+    required: true
+  },
+  category: {
+    type: String,
+    enum: ['Onboarding', 'Content Strategy', 'Guidelines'],
+    default: 'Content Strategy'
+  },
+  thumbnail: {
+    type: String, // URL to the image
+    default: 'https://placehold.co/600x400'
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 });
 
