@@ -13,6 +13,7 @@
 1. May is the product owner
 2. Deepsika is the Scrum Master
 
+
 # Development Stack
 1. Reactjs for front-end development
 2. Nodejs (expressjs) for back-end development
@@ -20,3 +21,4 @@
 
 # Miro
 All key discussions and decisions take place here: https://miro.com/app/board/uXjVGUDpq3s=/?share_link_id=117960929176 
+3. Pantida developed the backend training data.
