@@ -13,3 +13,7 @@ app.use("/api/trainings", require("./routes/trainingRoutes"));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+const trainingRoutes = require("./routes/trainingRoutes");
+
+app.use("/api/trainings", trainingRoutes);

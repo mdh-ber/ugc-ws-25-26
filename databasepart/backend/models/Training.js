@@ -1,33 +1,52 @@
 const mongoose = require("mongoose");
 
-const ContentSchema = new mongoose.Schema({
-  creatorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+const TrainingSchema = new mongoose.Schema({
+
+  title: {
+    type: String,
     required: true
   },
 
-  title: { type: String, required: true },
-  description: { type: String },
+  description: {
+    type: String
+  },
 
   type: {
     type: String,
-    enum: ["video", "photo"],
+    enum: ["video", "article", "course"],
+    default: "video"
+  },
+
+  category: {
+    type: String
+  },
+
+  url: {
+    type: String,
     required: true
   },
 
-  mediaUrl: { type: String, required: true },
-  thumbnail: { type: String },
-
-  category: { type: String },
-  tags: [String],
-
-  reviewSummary: {
-    avgRating: { type: Number, default: 0 },
-    totalReviews: { type: Number, default: 0 }
+  thumbnail: {
+    type: String
   },
 
-  createdAt: { type: Date, default: Date.now }
+  difficultyLevel: {
+    type: String,
+    enum: ["beginner", "intermediate", "advanced"],
+    default: "beginner"
+  },
+
+  durationMinutes: {
+    type: Number
+  },
+
+  isPublished: {
+    type: Boolean,
+    default: true
+  }
+
+}, {
+  timestamps: true
 });
 
-module.exports = mongoose.model("Content", ContentSchema);
+module.exports = mongoose.model("Training", TrainingSchema);
