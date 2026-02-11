@@ -20,6 +20,20 @@
 2. Nodejs (expressjs) for back-end development
 3. Mongodb for the database
 
+#how to connect to the database
+1. Install MongoDB on your local machine or use a cloud-based MongoDB service like MongoDB Atlas.
+2. Create a new database and collection for your project.   
+3. In your Node.js application, install the MongoDB driver using npm:
+   ```
+   npm install mongodb
+   ```
+Create a .env file in the backend folder and paste the connection string = [mongodb+srv://Training:ugc1212@cluster0.ttgmlli.mongodb.net/?appName=Cluster0]"
+
+"Run npm install dotenv mongoose."
+
+"Run node seed.js."
+ Done
+
 # Miro
 All key discussions and decisions take place here: https://miro.com/app/board/uXjVGUDpq3s=/?share_link_id=117960929176 
 
