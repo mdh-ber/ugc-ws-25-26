@@ -6,6 +6,8 @@ import Profile from "./pages/Profile";
 import ContentCreation from "./pages/ContentCreation";
 import Login from "./pages/Login";
 import Trainings from "./pages/Trainings";
+import Guidelines from "./pages/Guidelines";
+
 
 function App() {
   return (
@@ -17,6 +19,8 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/login" element={<Login />} />
         <Route path="/trainings" element={<Trainings />} />
+        <Route path="/guidelines" element={<Guidelines />} />
+
         
       </Routes>
     </Layout>
