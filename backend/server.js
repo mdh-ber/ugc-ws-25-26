@@ -3,6 +3,12 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const connectDB = require("./config/db");
+const app = express();
+connectDB();
+app.use(cors());
+app.use(express.json());
+const profileRoutes = require("./routes/profileRoutes");
+app.use("/api/profiles", profileRoutes);
 
 const app = express();
 connectDB();
