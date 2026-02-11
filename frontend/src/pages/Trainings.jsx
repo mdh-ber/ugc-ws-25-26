@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getTrainings } from "../services/trainingService";
+import Button from "../components/Button";
 
 function Trainings() {
   const [trainings, setTrainings] = useState([]);
@@ -26,26 +27,23 @@ function Trainings() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Trainings</h1>
+      <h1 className="text-2xl font-bold mb-1">Training</h1>
+      <h2 className="text-lg mb-6">Continue your learning journey</h2>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
         {trainings.map((training) => (
           <div
             key={training._id}
             className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition"
           >
-            <h3 className="font-bold text-lg">{training.title}</h3>
-            <p className="text-gray-600 mt-2">{training.description}</p>
-            {training.videoUrl && (
-              <a
-                href={training.videoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 inline-block text-primary font-medium hover:underline"
-              >
-                Watch Video
-              </a>
-            )}
+            <h3 className="font-bold">{training.title}</h3>
+            <div className="mt-4">
+              <Button 
+                text={training.type === 'video' ? 'Watch Video' : 'Read File'}
+                onClick={() => window.open(training.url, '_blank')}
+                className={training.type === 'video' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-green-500 hover:bg-green-600'}
+              />
+            </div>
           </div>
         ))}
       </div>
