@@ -1,4 +1,5 @@
-import FeedbackModal from "../pages/FeedBack";
+import React from "react";
+import FeedbackModal from "../pages/Feedback";
 const Footer = () => {    
     return    <footer className="absolute inset-x-0 bottom-0 ">  
         <p className="flex justify-end">
