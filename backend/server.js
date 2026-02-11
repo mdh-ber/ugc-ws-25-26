@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dot    env").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
