@@ -22,6 +22,7 @@ function Layout({ children }) {
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Trainings", path: "/trainings", icon: BookOpen },
     { name: "Profile", path: "/profile", icon: User },
+    { name: "Guidelines", path: "/guidelines", icon: FileText },
 
    
   ];
