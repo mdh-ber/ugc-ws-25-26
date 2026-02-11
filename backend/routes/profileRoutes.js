@@ -8,5 +8,3 @@ router.get("/:userId", auth, profileController.getProfile);
 router.put("/:userId", auth, upload.single("profilePic"), profileController.updateProfile);
 
 module.exports = router;
-
-
