@@ -12,6 +12,6 @@ const profileRoutes = require("./routes/profileRoutes");
 app.use("/api/profiles", profileRoutes);
 app.use("/api/trainings", require("./routes/trainingRoutes"));
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
