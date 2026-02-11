@@ -1,19 +1,20 @@
 const Training = require("../models/Training");
 
 exports.getTrainings = async (req, res) => {
-  try {
-    const trainings = await Training.find();
-
-   /* Training.insertOne({
-      title: "AI Security Workshop",
-      description: "Introduction to OWASP API Security",
-      type: "Video",
-      url: "https://www.youtube.com/watch?v=example",
-      thumbnail: "https://img.youtube.com/vi/example/0.jpg",
-      category: "Security"
-    });*/
-        res.json(trainings);
+  try {  
+   
+    const trainings = await Training.find();  
+    res.json(trainings);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+exports.addTrainings = async (req, res) => {
+  try {
+    const training = await Training.create(req.body);
+    res.status(201).json({ message: "Training added successfully", training });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
