@@ -1,41 +1,3 @@
-
-// const Profile = require("../models/Profile");
-
-// // ===== GET PROFILE =====
-// exports.getProfile = async (req, res) => {
-//   try {
-//     let profile = await Profile.findOne();
-
-//     if (!profile) {
-//       profile = await Profile.create({});
-//     }
-
-//     res.json(profile);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-// // ===== UPDATE PROFILE =====
-// exports.updateProfile = async (req, res) => {
-//   try {
-//     let profile = await Profile.findOne();
-//     if (!profile) profile = new Profile();
-
-//     // TEXT FIELDS
-//     Object.assign(profile, req.body);
-
-//     // IMAGE FILE
-//     if (req.file) {
-//       profile.profilePic = `/uploads/${req.file.filename}`;
-//     }
-
-//     await profile.save();
-//     res.json(profile);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
 const Profile = require("../models/Profile");
 
 // ===== GET PROFILE =====
@@ -46,8 +8,16 @@ exports.getProfile = async (req, res) => {
     if (!profile) {
       profile = await Profile.create({ userId: req.user._id });
     }
+     const profileData = profile.toObject();
 
-    res.json(profile);
+    // Convert profilePic buffer to Base64 for frontend
+    if (profile.profilePic && profile.profilePic.data) {
+      profileData.profilePic = `data:${profile.profilePic.contentType};base64,${profile.profilePic.data.toString("base64")}`;
+    } else {
+      profileData.profilePic = null;
+    }
+
+    res.json(profileData);
 
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -63,12 +33,25 @@ exports.updateProfile = async (req, res) => {
 
     Object.assign(profile, req.body);
 
+    // if (req.file) {
+    //   profile.profilePic = `/uploads/${req.file.filename}`;
+    // }
     if (req.file) {
-      profile.profilePic = `/uploads/${req.file.filename}`;
-    }
+  profile.profilePic = {
+    data: req.file.buffer,
+    contentType: req.file.mimetype,
+  };
+}
+
 
     await profile.save();
-    res.json(profile);
+     const profileData = profile.toObject();
+    if (profile.profilePic && profile.profilePic.data) {
+      profileData.profilePic = `data:${profile.profilePic.contentType};base64,${profile.profilePic.data.toString("base64")}`;
+    } else {
+      profileData.profilePic = null;
+    }
+    res.json(profileData);
 
   } catch (err) {
     res.status(500).json({ error: err.message });
