@@ -12,6 +12,10 @@
 
 1. May is the product owner
 2. Deepsika is the Scrum Master
+3. Napat is one of the development team
+4. Pantida developed the backend training data.
+
+
 
 # Development Stack
 1. Reactjs for front-end development
@@ -20,3 +24,6 @@
 
 # Miro
 All key discussions and decisions take place here: https://miro.com/app/board/uXjVGUDpq3s=/?share_link_id=117960929176 
+
+
+
