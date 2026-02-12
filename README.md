@@ -22,12 +22,12 @@
 2. Nodejs (expressjs) for back-end development
 3. Mongodb for the database
 
-#How to Connect to the Database
+# How to Connect to the Database
 1. Install MongoDB Compass
-2. Use the following connection string to connect to the database: [mongodb+srv://Training:ugc1212@cluster0.ttgmlli.mongodb.net/?appName=Cluster0]    
-"Create a .env file in the backend folder and paste the connection string that I provided."
-"Run npm install dotenv mongoose."
-"Run node seed.js."
+2. Use the following connection string to connect to the database: `mongodb+srv://Training:ugc1212@cluster0.ttgmlli.mongodb.net/?appName=Cluster0`
+3. Create a `.env` file in the backend folder and paste the connection string
+4. Run `npm install dotenv mongoose`
+5. Run `node seed.js`.
 
 # Miro
 All key discussions and decisions take place here: https://miro.com/app/board/uXjVGUDpq3s=/?share_link_id=117960929176 
