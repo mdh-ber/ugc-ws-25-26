@@ -3,7 +3,8 @@ const Profile = require("../models/Profile");
 
 module.exports = async function (req, res, next) {
   try {
-    const userId = req.headers.userid;
+    // const userId = req.headers.userid;
+    const userId = req.params.userId;
 
     if (!userId) {
       return res.status(401).json({ message: "UserId missing" });
@@ -13,11 +14,11 @@ module.exports = async function (req, res, next) {
       return res.status(400).json({ message: "Invalid UserId format" });
     }
 
-    const profile = await Profile.findOne({ userId });
+    // const profile = await Profile.findOne({ userId });
 
-    if (!profile) {
-      return res.status(401).json({ message: "User not found" });
-    }
+    // if (!profile) {
+    //   return res.status(401).json({ message: "User not found" });
+    // }
 
     req.user = { _id: userId };
     next();
