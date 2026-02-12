@@ -42,7 +42,8 @@ function Profile() {
           intake: data.intake || "",
           primaryLanguage: data.primaryLanguage || "",
           socialAccounts: data.socialAccounts?.length
-            ? data.socialAccounts[0].split(",")  // Assuming backend sends as comma-separated string            : [""]
+            ? data.socialAccounts[0].split(",")  // Assuming backend sends as comma-separated string
+            : [""]
         });
 
         if (data.profilePic) {
