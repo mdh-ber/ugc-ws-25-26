@@ -42,8 +42,7 @@ function Profile() {
           intake: data.intake || "",
           primaryLanguage: data.primaryLanguage || "",
           socialAccounts: data.socialAccounts?.length
-            ? data.socialAccounts
-            : [""]
+            ? data.socialAccounts[0].split(",")  // Assuming backend sends as comma-separated string            : [""]
         });
 
         if (data.profilePic) {
@@ -120,7 +119,13 @@ const handleSave = async () => {
     }
 
     // await updateProfile(formData);
-    await updateProfile(formData, USER_ID);
+    // await updateProfile(formData, USER_ID);
+    const updated = await updateProfile(formData, USER_ID);
+
+    //  UPDATE AVATAR FROM BACKEND (Base64 string)
+    if (updated.profilePic) {
+      setAvatar(updated.profilePic);
+    }
 
 
     alert("Profile updated");
@@ -143,13 +148,22 @@ const handleSave = async () => {
           <div className="w-28 h-28 rounded-full overflow-hidden border shadow">
             {avatar ? (
               // <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
-              <img
-src={
+//               <img
+// src={
+//     avatar instanceof File
+//       ? URL.createObjectURL(avatar)
+//       : `http://localhost:5000${avatar}`
+//   }
+//   alt="Profile"
+// />
+<img
+  src={
     avatar instanceof File
       ? URL.createObjectURL(avatar)
-      : `http://localhost:5000${avatar}`
+      : avatar   // Base64 string already complete
   }
   alt="Profile"
+  className="w-full h-full object-cover"
 />
 
             ) : (
