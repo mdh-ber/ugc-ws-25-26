@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { getTrainings } from "../services/trainingService";
 import Button from "../components/Button";
+import { useClickTracker } from "../hooks/useClickTracker";
 
 function Trainings() {
   const [trainings, setTrainings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const trackClick = useClickTracker();
 
   useEffect(() => {
     const fetchTrainings = async () => {
@@ -21,6 +23,18 @@ function Trainings() {
 
     fetchTrainings();
   }, []);
+
+  const handleTrainingClick = (training) => {
+    // Track the click
+    trackClick('training', training._id, {
+      action: 'view',
+      trainingTitle: training.title,
+      trainingType: training.type
+    });
+    
+    // Open the training
+    window.open(training.url, '_blank');
+  };
 
   if (loading) return <p>Loading trainings...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
@@ -40,7 +54,7 @@ function Trainings() {
             <div className="mt-4">
               <Button 
                 text={training.type === 'video' ? 'Watch Video' : 'Read File'}
-                onClick={() => window.open(training.url, '_blank')}
+                onClick={() => handleTrainingClick(training)}
                 className={training.type === 'video' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-green-500 hover:bg-green-600'}
               />
             </div>
