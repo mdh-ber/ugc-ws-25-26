@@ -8,9 +8,9 @@ const api = axios.create({
 });
 
 // Always attach userid automatically
-api.interceptors.request.use((config) => {
-  config.headers.userid = USER_ID;
-  return config;
-});
+// api.interceptors.request.use((config) => {
+//   config.headers.userid = USER_ID;
+//   return config;
+// });
 
 export default api;
