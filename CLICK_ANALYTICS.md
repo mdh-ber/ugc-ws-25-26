@@ -27,6 +27,10 @@ Stores click events with the following structure:
 
 ### 2. API Endpoints (`/backend/routes/clickRoutes.js`)
 
+All endpoints include rate limiting for security:
+- Click logging: 100 requests per 15 minutes per IP
+- Stats retrieval: 30 requests per 15 minutes per IP
+
 #### POST `/api/clicks`
 Log a new click event.
 

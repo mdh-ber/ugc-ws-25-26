@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   LineChart,
   Line,
@@ -38,7 +38,7 @@ function ClicksChart() {
   );
   const [resourceType, setResourceType] = useState('');
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -59,11 +59,11 @@ function ClicksChart() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate, resourceType]);
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [fetchStats]);
 
   const handleApplyFilters = () => {
     fetchStats();

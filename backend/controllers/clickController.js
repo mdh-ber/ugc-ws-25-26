@@ -21,7 +21,12 @@ exports.getClickStats = async (req, res) => {
     if (startDate || endDate) {
       filter.timestamp = {};
       if (startDate) filter.timestamp.$gte = new Date(startDate);
-      if (endDate) filter.timestamp.$lte = new Date(endDate);
+      if (endDate) {
+        // Include the entire end date by setting time to end of day
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        filter.timestamp.$lte = endDateTime;
+      }
     }
     
     if (resourceType) {
@@ -94,7 +99,12 @@ exports.getClicks = async (req, res) => {
     if (startDate || endDate) {
       filter.timestamp = {};
       if (startDate) filter.timestamp.$gte = new Date(startDate);
-      if (endDate) filter.timestamp.$lte = new Date(endDate);
+      if (endDate) {
+        // Include the entire end date by setting time to end of day
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        filter.timestamp.$lte = endDateTime;
+      }
     }
     
     if (resourceType) {
