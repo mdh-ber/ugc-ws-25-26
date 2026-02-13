@@ -6,7 +6,10 @@ import Profile from "./pages/Profile";
 import ContentCreation from "./pages/ContentCreation";
 import Login from "./pages/Login";
 import Trainings from "./pages/Trainings";
-import Guidelines from "./pages/Guidelines";
+import Guidelines from "./pages/Guidelines";     
+import UI_Guidelines from "./pages/UI_Guidelines";  
+
+
 
 
 function App() {
@@ -20,6 +23,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/trainings" element={<Trainings />} />
         <Route path="/guidelines" element={<Guidelines />} />
+        <Route path="/ui_guidelines" element={<UI_Guidelines />} />
+
 
         
       </Routes>
