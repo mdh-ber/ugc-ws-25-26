@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { getProfile, updateProfile } from "../services/profileService";
 // import { useState } from "react";
-const USER_ID = "65d4f1e2b1c2d3e4f5a67890";   // 🔴 Put your MongoDB User _id here
+const USER_ID = "65d4f1e2b1c2d3e4f5a67890";   
 function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [avatar, setAvatar] = useState(null);
@@ -42,7 +42,8 @@ function Profile() {
           intake: data.intake || "",
           primaryLanguage: data.primaryLanguage || "",
           socialAccounts: data.socialAccounts?.length
-            ? data.socialAccounts[0].split(",")  // Assuming backend sends as comma-separated string            : [""]
+            ? data.socialAccounts[0].split(",")  // Assuming backend sends as comma-separated string
+            : [""]
         });
 
         if (data.profilePic) {
