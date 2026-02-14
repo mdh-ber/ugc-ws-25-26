@@ -7,7 +7,7 @@ const Footer = () => {
          <FeedbackModal />
        
         </p>
-        <p className="text-center text-gray-500 ">© 2024 Your Company. All rights reserved.</p>
+        <p className="text-center text-gray-500 ">© 2026 Your Company. All rights reserved.</p>
       </footer>
 };
 

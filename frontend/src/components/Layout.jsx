@@ -10,6 +10,7 @@ import {
   FileText,
   Star,
   Bell,
+  ChartBar,
  NotebookPen
 } from "lucide-react";
 
@@ -26,6 +27,7 @@ function Layout({ children }) {
     { name: "Profile", path: "/profile", icon: User },
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "UU Overview", path: "/uu-overview", icon: FileText },
+    { name: "Leads", path: "/leads", icon: ChartBar },
   ];
 
   // --- Notification Placeholder Component ---

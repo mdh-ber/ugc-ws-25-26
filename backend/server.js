@@ -19,7 +19,7 @@ app.use("/api/profiles", require("./routes/profileRoutes"));
 app.use("/api/uu", require("./routes/uuRoutes"));
 
 // PORT (must be BEFORE listen)
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Start server
 app.listen(PORT, () => {

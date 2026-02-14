@@ -16,7 +16,7 @@ function ReviewForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/api/reviews", form);
+      await axios.post("http://localhost:5001/api/reviews", form);
       alert("Review Submitted Successfully!");
       setForm({
         name: "",

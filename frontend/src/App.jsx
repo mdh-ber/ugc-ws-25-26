@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Trainings from "./pages/Trainings";
 import Guidelines from "./pages/Guidelines";
 import Footer from "./components/Footer"
+import LeadsChart from "./components/LeadsChart";
 
 import Reviews from "./pages/Reviews";
 import UuOverview from "./pages/UuOverview";
@@ -27,6 +28,7 @@ function App() {
         <Route path="/guidelines" element={<Guidelines />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/uu-overview" element={<UuOverview />} />
+        <Route path="/leads" element={<LeadsChart/>} />
         
         
       </Routes>

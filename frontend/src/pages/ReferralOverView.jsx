@@ -6,7 +6,7 @@ export default function ReferralOverview() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/uu/referral/overview")
+      .get("http://localhost:5001/api/uu/referral/overview")
       .then((res) => {
         console.log(res.data);
         setData(res.data.series);
