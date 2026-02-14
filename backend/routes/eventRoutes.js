@@ -1,12 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { getEvents, createEvent, deleteEvent } = require('../controllers/eventController');
-// const { protect, marketingManager } = require('../middleware/auth'); // Uncomment if you have auth middleware
+const { getEvents, createEvent, deleteEvent, updateEvent } = require('../controllers/eventController');
+const checkRole = require('../middleware/checkRole');
 
-// Valid routes: GET to fetch, POST to create
-router.route('/').get(getEvents).post(createEvent);
+// Public Route (Everyone can see events)
+router.get('/', getEvents);
 
-// Valid route: DELETE by ID
-router.route('/:id').delete(deleteEvent);
+// Protected Routes (Only Marketing Manager can Create, Update, Delete)
+// We add 'checkRole' before the controller function
+router.post('/', checkRole, createEvent);
+router.delete('/:id', checkRole, deleteEvent);
+router.put('/:id', checkRole, updateEvent); // New Update Route
 
 module.exports = router;

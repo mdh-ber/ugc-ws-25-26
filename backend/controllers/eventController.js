@@ -50,3 +50,35 @@ exports.deleteEvent = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Add this to the existing file imports/exports
+
+// ... existing getEvents, createEvent, deleteEvent ...
+
+// @desc    Update an event
+// @route   PUT /api/events/:id
+exports.updateEvent = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Update fields
+    const { title, image, date, time, place, type, description, speakers } = req.body;
+    
+    event.title = title || event.title;
+    event.image = image || event.image;
+    event.date = date || event.date;
+    event.time = time || event.time;
+    event.place = place || event.place;
+    event.type = type || event.type;
+    event.description = description || event.description;
+    event.speakers = speakers || event.speakers;
+
+    const updatedEvent = await event.save();
+    res.json(updatedEvent);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};

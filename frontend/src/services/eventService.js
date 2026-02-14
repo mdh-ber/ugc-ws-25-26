@@ -1,23 +1,27 @@
 import api from "./api";
 
-// Get all events
-export const getEvents = async () => {
-  try {
-    const response = await api.get("/events");
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching events:", error);
-    throw error;
-  }
+// Helper to get role from local storage
+const getRoleHeader = () => {
+  const user = JSON.parse(localStorage.getItem("userInfo"));
+  return { "user-role": user?.role || "Student" };
 };
 
-// Create a new event
+export const getEvents = async () => {
+  const response = await api.get("/events");
+  return response.data;
+};
+
 export const createEvent = async (eventData) => {
-  try {
-    const response = await api.post("/events", eventData);
-    return response.data;
-  } catch (error) {
-    console.error("Error creating event:", error);
-    throw error;
-  }
+  const response = await api.post("/events", eventData, { headers: getRoleHeader() });
+  return response.data;
+};
+
+export const deleteEvent = async (id) => {
+  const response = await api.delete(`/events/${id}`, { headers: getRoleHeader() });
+  return response.data;
+};
+
+export const updateEvent = async (id, eventData) => {
+  const response = await api.put(`/events/${id}`, eventData, { headers: getRoleHeader() });
+  return response.data;
 };
