@@ -9,7 +9,8 @@ import {
   Book,
   FileText,
   Star,
-  Bell
+  Bell,
+ NotebookPen
 } from "lucide-react";
 
 function Layout({ children }) {
@@ -23,6 +24,10 @@ function Layout({ children }) {
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Trainings", path: "/trainings", icon: BookOpen },
     { name: "Profile", path: "/profile", icon: User },
+    { name: "Reviews", path: "/reviews", icon: NotebookPen },
+
+    { name: "Referee Overview", path: "/referee-overview", icon: FileText },
+ main
   ];
 
   // --- Notification Placeholder Component ---
