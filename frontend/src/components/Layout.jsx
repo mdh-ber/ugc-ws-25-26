@@ -21,10 +21,10 @@ function Layout({ children }) {
   const menuItems = [
     { name: "Home", path: "/", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-    { name: "Trainings", path: "/trainings", icon: BookOpen },
+    { name: "Trainings & Events", path: "/trainings", icon: BookOpen },
     { name: "Profile", path: "/profile", icon: User },
   ];
-
+  
   // --- Notification Placeholder Component ---
   const NotificationPlaceholder = () => (
     <div className="relative">
