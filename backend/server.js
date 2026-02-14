@@ -13,7 +13,7 @@ app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
 
 
 app.use("/api/trainings", require("./routes/trainingRoutes"));
-// app.use("/api/review-requests", require("./routes/reviewRequestRoutes")); //
+app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
 
 
 
