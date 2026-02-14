@@ -25,9 +25,7 @@ function Layout({ children }) {
     { name: "Trainings", path: "/trainings", icon: BookOpen },
     { name: "Profile", path: "/profile", icon: User },
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
-
-    { name: "Referee Overview", path: "/referee-overview", icon: FileText },
- main
+    { name: "UU Overview", path: "/uu-overview", icon: FileText },
   ];
 
   // --- Notification Placeholder Component ---
