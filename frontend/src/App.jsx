@@ -7,8 +7,9 @@ import ContentCreation from "./pages/ContentCreation";
 import Login from "./pages/Login";
 import Trainings from "./pages/Trainings";
 import Guidelines from "./pages/Guidelines";
-import RefereeOverview from "./pages/RefereeOverview";
+import Reviews from "./pages/Reviews";
 
+import RefereeOverview from "./pages/RefereeOverview";
 
 
 
@@ -23,6 +24,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/trainings" element={<Trainings />} />
         <Route path="/guidelines" element={<Guidelines />} />
+        <Route path="/reviews" element={<Reviews />} />
         <Route path="/referee-overview" element={<RefereeOverview />} />
         
 
