@@ -1,3 +1,4 @@
+// module.exports = mongoose.model("Profile", profileSchema);
 const mongoose = require("mongoose");
 
 const profileSchema = new mongoose.Schema({
@@ -20,7 +21,11 @@ const profileSchema = new mongoose.Schema({
   course: String,
   intake: String,
   primaryLanguage: String,
-  profilePic: String,
+   profilePic: {
+    data: Buffer,
+    contentType: String,
+  },
+  // profilePic: String,
   socialAccounts: [String],
 });
 
