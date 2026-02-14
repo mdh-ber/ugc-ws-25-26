@@ -7,9 +7,11 @@ import ContentCreation from "./pages/ContentCreation";
 import Login from "./pages/Login";
 import Trainings from "./pages/Trainings";
 import Guidelines from "./pages/Guidelines";
-import Footer from "./components/Footer";
+import Footer from "./components/Footer"
+
 import Reviews from "./pages/Reviews";
 import UuOverview from "./pages/UuOverview";
+
 
 function App() {
   return (
