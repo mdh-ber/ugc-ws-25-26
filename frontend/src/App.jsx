@@ -7,6 +7,9 @@ import ContentCreation from "./pages/ContentCreation";
 import Login from "./pages/Login";
 import Trainings from "./pages/Trainings";
 import Guidelines from "./pages/Guidelines";
+import RefereeOverview from "./pages/RefereeOverview";
+
+
 
 
 function App() {
@@ -20,6 +23,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/trainings" element={<Trainings />} />
         <Route path="/guidelines" element={<Guidelines />} />
+        <Route path="/referee-overview" element={<RefereeOverview />} />
+        
 
         
       </Routes>
