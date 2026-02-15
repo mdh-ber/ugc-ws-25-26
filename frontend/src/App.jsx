@@ -7,10 +7,16 @@ import ContentCreation from "./pages/ContentCreation";
 import Login from "./pages/Login";
 import Trainings from "./pages/Trainings";
 import Guidelines from "./pages/Guidelines";
+import Footer from "./components/Footer"
+
+import Reviews from "./pages/Reviews";
+import UuOverview from "./pages/UuOverview";
+import UI_Guidelines from "./pages/UI_Guidelines"
 
 
 function App() {
   return (
+    <>
     <Layout>
       <Routes>
         <Route path="/" element={<Home />} />
@@ -21,9 +27,17 @@ function App() {
         <Route path="/trainings" element={<Trainings />} />
         <Route path="/guidelines" element={<Guidelines />} />
 
+        <Route path="/ui_guidelines" element={<UI_Guidelines />} />
+
+
+        <Route path="/reviews" element={<Reviews />} />
+        <Route path="/uu-overview" element={<UuOverview />} />
+        
         
       </Routes>
     </Layout>
+    <Footer />
+    </>
   );
 }
 

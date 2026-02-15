@@ -1,8 +1,10 @@
 // In-memory store (temporary until DB is ready)
+const { randomUUID } = require("crypto");
+
 const reviewRequests = [];
 
-// Simple id generator
-const generateId = () => Date.now().toString();
+// Use UUID for unique IDs
+const generateId = () => randomUUID();
 
 const allowedStatuses = ["SUBMITTED", "IN_REVIEW", "APPROVED", "REJECTED"];
 
@@ -88,4 +90,3 @@ module.exports = {
   getReviewRequestById,
   updateReviewRequestStatus,
 };
-
