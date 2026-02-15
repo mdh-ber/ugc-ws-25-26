@@ -11,6 +11,7 @@ import Footer from "./components/Footer"
 
 import Reviews from "./pages/Reviews";
 import UuOverview from "./pages/UuOverview";
+import UI_Guidelines from "./pages/UI_Guidelines"
 
 
 function App() {
