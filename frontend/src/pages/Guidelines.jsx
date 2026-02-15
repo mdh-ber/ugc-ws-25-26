@@ -1,71 +1,102 @@
-import { useState } from "react";
+// src/components/Guidelines.js
+import { useState, useEffect } from "react";
+import api from "../services/api";
 
 const Guidelines = () => {
-  const [dos, setDos] = useState([
-    "Follow university branding rules",
-    "Use clear audio and video",
-    "Be respectful and professional",
-  ]);
-
-  const [donts, setDonts] = useState([
-    "Do not post offensive content",
-    "Do not share private information",
-    "Do not violate copyright rules",
-  ]);
+  const [dos, setDos] = useState([]);
+  const [donts, setDonts] = useState([]);
 
   const [newGuideline, setNewGuideline] = useState("");
-  const [type, setType] = useState("do");
+  const [type, setType] = useState("dos");
 
-  const [editIndex, setEditIndex] = useState(null);
+  const [editId, setEditId] = useState(null);
   const [editType, setEditType] = useState(null);
   const [editValue, setEditValue] = useState("");
 
-  // ADD
-  const handleAdd = () => {
-    if (!newGuideline.trim()) return;
+  // FETCH guidelines from backend
+  const fetchGuidelines = async () => {
+    try {
+      const dosRes = await api.get("/guidelines/category/dos");
+      const dontsRes = await api.get("/guidelines/category/donts");
 
-    if (type === "do") {
-      setDos([...dos, newGuideline]);
-    } else {
-      setDonts([...donts, newGuideline]);
+      setDos(dosRes.data.data);
+      setDonts(dontsRes.data.data);
+    } catch (error) {
+      console.error("Failed to connect to backend:", error);
+
+      // fallback
+      setDos([
+        { _id: "1", title: "Follow university branding rules" },
+        { _id: "2", title: "Use clear audio and video" },
+        { _id: "3", title: "Be respectful and professional" },
+      ]);
+
+      setDonts([
+        { _id: "4", title: "Do not post offensive content" },
+        { _id: "5", title: "Do not share private information" },
+        { _id: "6", title: "Do not violate copyright rules" },
+      ]);
     }
-
-    setNewGuideline("");
   };
 
-  // DELETE
-  const handleDelete = (index, listType) => {
-    if (listType === "do") {
-      setDos(dos.filter((_, i) => i !== index));
-    } else {
-      setDonts(donts.filter((_, i) => i !== index));
+  useEffect(() => {
+    fetchGuidelines();
+  }, []);
+
+  // ADD guideline
+  const handleAdd = async () => {
+    if (!newGuideline.trim()) return;
+
+    try {
+      const payload = {
+        title: newGuideline,
+        category: type, // dos / donts
+      };
+
+      await api.post("/guidelines", payload);
+
+      setNewGuideline("");
+      fetchGuidelines();
+    } catch (error) {
+      console.error("Error adding guideline:", error);
+    }
+  };
+
+  // DELETE guideline
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/guidelines/${id}`);
+      fetchGuidelines();
+    } catch (error) {
+      console.error("Error deleting guideline:", error);
     }
   };
 
   // START EDIT
-  const handleEditStart = (index, listType, value) => {
-    setEditIndex(index);
+  const handleEditStart = (id, listType, value) => {
+    setEditId(id);
     setEditType(listType);
     setEditValue(value);
   };
 
   // SAVE EDIT
-  const handleEditSave = () => {
+  const handleEditSave = async () => {
     if (!editValue.trim()) return;
 
-    if (editType === "do") {
-      const updated = [...dos];
-      updated[editIndex] = editValue;
-      setDos(updated);
-    } else {
-      const updated = [...donts];
-      updated[editIndex] = editValue;
-      setDonts(updated);
-    }
+    try {
+      await api.put(`/guidelines/${editId}`, {
+        title: editValue,
+        category: editType,
+      });
 
-    setEditIndex(null);
-    setEditType(null);
-    setEditValue("");
+      setEditId(null);
+      setEditType(null);
+      setEditValue("");
+
+      fetchGuidelines();
+    } catch (error) {
+      console.error("Error updating guideline:", error);
+    }
   };
 
   return (
@@ -82,8 +113,8 @@ const Guidelines = () => {
             onChange={(e) => setType(e.target.value)}
             className="border rounded px-3 py-2"
           >
-            <option value="do">Do's</option>
-            <option value="dont">Don'ts</option>
+            <option value="dos">Do's</option>
+            <option value="donts">Don'ts</option>
           </select>
 
           <input
@@ -106,20 +137,20 @@ const Guidelines = () => {
       {/* DO'S */}
       <h2 className="text-xl font-semibold mt-4">Do's</h2>
       <ul className="list-disc ml-6">
-        {dos.map((item, index) => (
-          <li key={index} className="mb-2 flex justify-between items-center">
-            <span>{item}</span>
+        {dos.map((item) => (
+          <li key={item._id} className="mb-2 flex justify-between items-center">
+            <span>{item.title}</span>
 
             <div className="flex gap-2 ml-4">
               <button
-                onClick={() => handleEditStart(index, "do", item)}
+                onClick={() => handleEditStart(item._id, "dos", item.title)}
                 className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
               >
                 Edit
               </button>
 
               <button
-                onClick={() => handleDelete(index, "do")}
+                onClick={() => handleDelete(item._id)}
                 className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
               >
                 Delete
@@ -132,20 +163,20 @@ const Guidelines = () => {
       {/* DON'TS */}
       <h2 className="text-xl font-semibold mt-4">Don'ts</h2>
       <ul className="list-disc ml-6">
-        {donts.map((item, index) => (
-          <li key={index} className="mb-2 flex justify-between items-center">
-            <span>{item}</span>
+        {donts.map((item) => (
+          <li key={item._id} className="mb-2 flex justify-between items-center">
+            <span>{item.title}</span>
 
             <div className="flex gap-2 ml-4">
               <button
-                onClick={() => handleEditStart(index, "dont", item)}
+                onClick={() => handleEditStart(item._id, "donts", item.title)}
                 className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
               >
                 Edit
               </button>
 
               <button
-                onClick={() => handleDelete(index, "dont")}
+                onClick={() => handleDelete(item._id)}
                 className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
               >
                 Delete
@@ -155,8 +186,8 @@ const Guidelines = () => {
         ))}
       </ul>
 
-      {/* EDIT MODAL / EDIT SECTION */}
-      {editIndex !== null && (
+      {/* EDIT SECTION */}
+      {editId !== null && (
         <div className="mt-6 border p-4 rounded-lg bg-white shadow-md">
           <h2 className="text-lg font-semibold mb-2">Edit Guideline</h2>
 
@@ -177,7 +208,7 @@ const Guidelines = () => {
 
             <button
               onClick={() => {
-                setEditIndex(null);
+                setEditId(null);
                 setEditType(null);
                 setEditValue("");
               }}
