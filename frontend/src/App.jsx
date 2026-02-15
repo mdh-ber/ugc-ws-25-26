@@ -11,6 +11,7 @@ import Footer from "./components/Footer"
 
 import Reviews from "./pages/Reviews";
 import UuOverview from "./pages/UuOverview";
+import UI_Guidelines from "./pages/UI_Guidelines"
 
 
 function App() {
@@ -25,6 +26,10 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/trainings" element={<Trainings />} />
         <Route path="/guidelines" element={<Guidelines />} />
+
+        <Route path="/ui_guidelines" element={<UI_Guidelines />} />
+
+
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/uu-overview" element={<UuOverview />} />
         
