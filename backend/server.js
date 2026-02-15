@@ -11,12 +11,14 @@ connectDB();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/api/events', eventRoutes);
+
 
 // Routes
 app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
 app.use("/api/trainings", require("./routes/trainingRoutes"));
-app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
+app.use("/api/profiles", require("./routes/profileRoutes"));
+app.use("/api/uu", require("./routes/uuRoutes"));
+app.use('/api/events', eventRoutes);
 
 
 
