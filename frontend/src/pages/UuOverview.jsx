@@ -15,6 +15,11 @@ export default function UuOverview() {
   const [series, setSeries] = useState([]);
   const [range, setRange] = useState("7");
 
+  // ✅ NEW: members modal states
+  const [openMembers, setOpenMembers] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+
   useEffect(() => {
     const url =
       activeTab === "referral"
@@ -35,6 +40,28 @@ export default function UuOverview() {
 
     return { total, avg };
   }, [series]);
+
+  // ✅ NEW: Fetch members on click
+  const fetchMembers = async () => {
+    try {
+      setMembersLoading(true);
+
+      // call backend members endpoint based on tab
+      const url =
+        activeTab === "referral"
+          ? "http://localhost:5000/api/uu/referral/members"
+          : "http://localhost:5000/api/uu/referee/members";
+
+      const res = await axios.get(url, { params: { days: range } });
+
+      setMembers(res.data.members || []);
+      setOpenMembers(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setMembersLoading(false);
+    }
+  };
 
   return (
     <div className="bg-white shadow-lg rounded-xl p-4 w-full max-w-3xl mx-auto mt-6">
@@ -57,10 +84,15 @@ export default function UuOverview() {
 
       {/* KPI Mini Cards */}
       <div className="flex gap-4 mb-4 text-sm">
-        <div className="bg-gray-50 px-3 py-2 rounded-lg">
+        {/* ✅ CLICKABLE e Users */}
+        <button
+          onClick={fetchMembers}
+          className="bg-gray-50 px-3 py-2 rounded-lg text-left hover:bg-gray-100"
+        >
           <p className="text-gray-500">Total Unique Users</p>
           <p className="font-semibold">{metrics.total}</p>
-        </div>
+          <p className="text-xs text-gray-400 mt-1">Click to view members</p>
+        </button>
 
         <div className="bg-gray-50 px-3 py-2 rounded-lg">
           <p className="text-gray-500">Avg Unique Users / Day</p>
@@ -92,9 +124,7 @@ export default function UuOverview() {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" fontSize={12} />
             <YAxis fontSize={12} />
-            <Tooltip
-              formatter={(value) => [`${value}`, "Unique Users"]}
-            />
+            <Tooltip formatter={(value) => [`${value}`, "Unique Users"]} />
             <Line
               type="monotone"
               dataKey="uu"
@@ -106,6 +136,51 @@ export default function UuOverview() {
           </LineChart>
         </ResponsiveContainer>
       </div>
+
+      {/* ✅ MEMBERS MODAL */}
+      {openMembers && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-md font-semibold">
+                {activeTab.toUpperCase()} Members ({members.length})
+              </h3>
+
+              <button
+                onClick={() => setOpenMembers(false)}
+                className="text-sm px-2 py-1 rounded-md bg-gray-100 hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+
+            {membersLoading ? (
+              <div className="text-sm text-gray-500 p-3">Loading...</div>
+            ) : members.length === 0 ? (
+              <div className="text-sm text-gray-500 p-3">No members found.</div>
+            ) : (
+              <div className="max-h-80 overflow-auto border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-gray-50">
+                    <tr className="text-left text-gray-500 border-b">
+                      <th className="py-2 px-2">Member ID</th>
+                      <th className="py-2 px-2">Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {members.map((m) => (
+                      <tr key={m.id} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-2 font-medium">{m.id}</td>
+                        <td className="py-2 px-2">{m.name || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
