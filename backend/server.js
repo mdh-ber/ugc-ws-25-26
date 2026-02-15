@@ -17,6 +17,8 @@ app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
 app.use("/api/trainings", require("./routes/trainingRoutes"));
 app.use("/api/profiles", require("./routes/profileRoutes"));
 app.use("/api/uu", require("./routes/uuRoutes"));
+app.use("/api/guidelines", require("./routes/guidelinesRoutes.")); 
+
 
 // PORT (must be BEFORE listen)
 const PORT = process.env.PORT || 5000;

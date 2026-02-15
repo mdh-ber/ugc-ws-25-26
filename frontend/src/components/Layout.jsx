@@ -25,7 +25,7 @@ function Layout({ children }) {
     { name: "Trainings", path: "/trainings", icon: BookOpen },
     { name: "Profile", path: "/profile", icon: User },
 
-    { name: "Guidelines", path: "/ui_guidelines", icon: FileText },
+    // { name: "Guidelines", path: "/ui_guidelines", icon: FileText },
 
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "UU Overview", path: "/uu-overview", icon: FileText },
