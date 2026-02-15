@@ -10,7 +10,8 @@ import {
   FileText,
   Star,
   Bell,
- NotebookPen
+  NotebookPen,
+  Wallet
 } from "lucide-react";
 
 function Layout({ children }) {
@@ -29,6 +30,9 @@ function Layout({ children }) {
 
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
+
+    // ✅ NEW REWARDS PAGE
+    { name: "Rewards", path: "/rewards", icon: Wallet },
   ];
   
   // --- Notification Placeholder Component ---
@@ -40,13 +44,11 @@ function Layout({ children }) {
         aria-label="Notifications (coming soon)"
       >
         <Bell size={20} className="text-gray-700" />
-        {/* Static badge - 0 notifications */}
         <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
           0
         </span>
       </button>
 
-      {/* Dropdown Placeholder */}
       {showNotifications && (
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 py-4 px-6 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
@@ -88,7 +90,6 @@ function Layout({ children }) {
           isOpen ? "w-64" : "w-20"
         }`}
       >
-        {/* Sidebar Header */}
         <div className="p-4 flex justify-between items-center border-b">
           {isOpen && (
             <h2 className="font-bold text-primary text-lg">MDH UGC</h2>
@@ -101,7 +102,6 @@ function Layout({ children }) {
           </button>
         </div>
 
-        {/* Sidebar Navigation */}
         <nav className="p-4 flex flex-col space-y-2">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
@@ -127,7 +127,6 @@ function Layout({ children }) {
 
       {/* --- Main Content --- */}
       <div className="flex-1">
-        {/* Top Bar - YOUR NOTIFICATION GOES HERE */}
         <div className="bg-white shadow p-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <h1 className="font-semibold text-xl">UGC Platform</h1>
@@ -136,13 +135,11 @@ function Layout({ children }) {
             </span>
           </div>
           
-          {/* NOTIFICATION PLACEHOLDER - RIGHT SIDE */}
           <div className="flex items-center space-x-2">
             <NotificationPlaceholder />
           </div>
         </div>
 
-        {/* Page Content */}
         <div className="p-6">{children}</div>
       </div>
     </div>
