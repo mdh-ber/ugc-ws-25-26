@@ -1,8 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const { getTrainings, addTrainings } = require("../controllers/trainingController");
+const {
+  getTrainings,
+  addTrainings,
+  getTrainingById,
+} = require("../controllers/trainingController");
 
 router.get("/", getTrainings);
 router.post("/", addTrainings);
+router.get("/:id", getTrainingById);
 
 module.exports = router;
