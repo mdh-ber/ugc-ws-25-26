@@ -1,10 +1,17 @@
-// src/components/Guidelines.js
-import { useState, useEffect } from "react";
-import api from "../services/api";
+import { useState } from "react";
 
 const Guidelines = () => {
-  const [dos, setDos] = useState([]);
-  const [donts, setDonts] = useState([]);
+  const [dos, setDos] = useState([
+    "Follow university branding rules",
+    "Use clear audio and video",
+    "Be respectful and professional",
+  ]);
+
+  const [donts, setDonts] = useState([
+    "Do not post offensive content",
+    "Do not share private information",
+    "Do not violate copyright rules",
+  ]);
 
   const [newGuideline, setNewGuideline] = useState("");
   const [type, setType] = useState("dos");
@@ -13,123 +20,139 @@ const Guidelines = () => {
   const [editType, setEditType] = useState(null);
   const [editValue, setEditValue] = useState("");
 
-  // FETCH guidelines from backend
-  const fetchGuidelines = async () => {
-    try {
-      const dosRes = await api.get("/guidelines/category/dos");
-      const dontsRes = await api.get("/guidelines/category/donts");
-
-      setDos(dosRes.data.data);
-      setDonts(dontsRes.data.data);
-    } catch (error) {
-      console.error("Failed to connect to backend:", error);
-
-      // fallback
-      setDos([
-        { _id: "1", title: "Follow university branding rules" },
-        { _id: "2", title: "Use clear audio and video" },
-        { _id: "3", title: "Be respectful and professional" },
-      ]);
-
-      setDonts([
-        { _id: "4", title: "Do not post offensive content" },
-        { _id: "5", title: "Do not share private information" },
-        { _id: "6", title: "Do not violate copyright rules" },
-      ]);
-    }
-  };
-
-  useEffect(() => {
-    fetchGuidelines();
-  }, []);
-
-  // ADD guideline
-  const handleAdd = async () => {
+  // ADD
+  const handleAdd = () => {
     if (!newGuideline.trim()) return;
 
-    try {
-      const payload = {
-        title: newGuideline,
-        category: type, // dos / donts
-      };
-
-      await api.post("/guidelines", payload);
-
-      setNewGuideline("");
-      fetchGuidelines();
-    } catch (error) {
-      console.error("Error adding guideline:", error);
+    if (type === "do") {
+      setDos([...dos, newGuideline]);
+    } else {
+      setDonts([...donts, newGuideline]);
     }
+
+    setNewGuideline("");
   };
 
-  // DELETE guideline
-  const handleDelete = async (id) => {
-    try {
-      await api.delete(`/guidelines/${id}`);
-      fetchGuidelines();
-    } catch (error) {
-      console.error("Error deleting guideline:", error);
+  // DELETE
+  const handleDelete = (index, listType) => {
+    if (listType === "do") {
+      setDos(dos.filter((_, i) => i !== index));
+    } else {
+      setDonts(donts.filter((_, i) => i !== index));
     }
   };
 
   // START EDIT
-  const handleEditStart = (id, listType, value) => {
-    setEditId(id);
+  const handleEditStart = (index, listType, value) => {
+    setEditIndex(index);
     setEditType(listType);
     setEditValue(value);
   };
 
   // SAVE EDIT
+  const handleEditSave = () => {
+    if (!editValue.trim()) return;
+
+    if (editType === "do") {
+      const updated = [...dos];
+      updated[editIndex] = editValue;
+      setDos(updated);
+    } else {
+      const updated = [...donts];
+      updated[editIndex] = editValue;
+      setDonts(updated);
+    }
+
+    setEditIndex(null);
+    setEditType(null);
+    setEditValue("");
+  };
+
   const handleEditSave = async () => {
     if (!editValue.trim()) return;
 
+    setSaving(true);
     try {
-      await api.put(`/guidelines/${editId}`, {
-        title: editValue,
-        category: editType,
-      });
+      await updateGuidelineApi(editId, editValue.trim());
 
-      setEditId(null);
-      setEditType(null);
-      setEditValue("");
+      if (editType === "do") {
+        setDos((prev) =>
+          prev.map((g) => (g._id === editId ? { ...g, text: editValue.trim() } : g))
+        );
+      } else {
+        setDonts((prev) =>
+          prev.map((g) => (g._id === editId ? { ...g, text: editValue.trim() } : g))
+        );
+      }
 
-      fetchGuidelines();
-    } catch (error) {
-      console.error("Error updating guideline:", error);
+      resetEdit();
+    } catch (e) {
+      console.error(e);
+      alert("Failed to update guideline.");
+    } finally {
+      setSaving(false);
     }
   };
 
+  // -------- small UI helpers --------
+  const cardClass = "bg-white rounded-xl shadow-sm border border-gray-100";
+  const headerClass =
+    "px-4 py-3 border-b border-gray-100 flex items-center justify-between";
+  const titleClass = "text-sm font-semibold";
+  const btnPrimary =
+    "rounded-lg px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60";
+  const btnDanger =
+    "text-xs px-2 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white disabled:opacity-60";
+  const btnWarn =
+    "text-xs px-2 py-1 rounded-md bg-amber-500/90 hover:bg-amber-600 text-white disabled:opacity-60";
+
+  const Row = ({ item, onEdit, onDelete }) => (
+    <li className="flex items-start justify-between gap-3 py-2">
+      <span className="text-sm text-gray-800 leading-snug">{item.text}</span>
+      <div className="flex gap-2 shrink-0">
+        <button disabled={saving} onClick={onEdit} className={btnWarn}>
+          Edit
+        </button>
+        <button disabled={saving} onClick={onDelete} className={btnDanger}>
+          Delete
+        </button>
+      </div>
+    </li>
+  );
+
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">Content Guidelines</h1>
+    <div className="p-4">
+      <div className="mb-3">
+        <h1 className="text-xl font-bold text-gray-900">Content Guidelines</h1>
+        <p className="text-sm text-gray-500">Data is loaded/saved from backend.</p>
+      </div>
 
-      {/* ADD NEW GUIDELINE */}
-      <div className="border p-4 rounded-lg mb-6 bg-gray-50">
-        <h2 className="text-lg font-semibold mb-2">Add New Guideline</h2>
+      {/* Add */}
+      <div className={`${cardClass} p-4 mb-4`}>
+        <h2 className="text-sm font-semibold text-gray-800 mb-3">
+          Add new guideline
+        </h2>
 
-        <div className="flex flex-col md:flex-row gap-3">
+        <div className="flex flex-col md:flex-row gap-2">
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="border rounded px-3 py-2"
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
           >
-            <option value="dos">Do's</option>
-            <option value="donts">Don'ts</option>
+            <option value="do">Do's</option>
+            <option value="dont">Don'ts</option>
           </select>
 
           <input
             type="text"
             value={newGuideline}
             onChange={(e) => setNewGuideline(e.target.value)}
-            placeholder="Enter new guideline..."
-            className="border rounded px-3 py-2 flex-1"
+            placeholder="Enter guideline..."
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-200"
           />
 
-          <button
-            onClick={handleAdd}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Add
+          <button disabled={saving} onClick={handleAdd} className={btnPrimary}>
+            {saving ? "Saving..." : "Add"}
           </button>
         </div>
       </div>
@@ -137,20 +160,20 @@ const Guidelines = () => {
       {/* DO'S */}
       <h2 className="text-xl font-semibold mt-4">Do's</h2>
       <ul className="list-disc ml-6">
-        {dos.map((item) => (
-          <li key={item._id} className="mb-2 flex justify-between items-center">
-            <span>{item.title}</span>
+        {dos.map((item, index) => (
+          <li key={index} className="mb-2 flex justify-between items-center">
+            <span>{item}</span>
 
             <div className="flex gap-2 ml-4">
               <button
-                onClick={() => handleEditStart(item._id, "dos", item.title)}
+                onClick={() => handleEditStart(index, "do", item)}
                 className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
               >
                 Edit
               </button>
 
               <button
-                onClick={() => handleDelete(item._id)}
+                onClick={() => handleDelete(index, "do")}
                 className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
               >
                 Delete
@@ -163,31 +186,31 @@ const Guidelines = () => {
       {/* DON'TS */}
       <h2 className="text-xl font-semibold mt-4">Don'ts</h2>
       <ul className="list-disc ml-6">
-        {donts.map((item) => (
-          <li key={item._id} className="mb-2 flex justify-between items-center">
-            <span>{item.title}</span>
+        {donts.map((item, index) => (
+          <li key={index} className="mb-2 flex justify-between items-center">
+            <span>{item}</span>
 
             <div className="flex gap-2 ml-4">
               <button
-                onClick={() => handleEditStart(item._id, "donts", item.title)}
+                onClick={() => handleEditStart(index, "dont", item)}
                 className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
               >
                 Edit
               </button>
 
               <button
-                onClick={() => handleDelete(item._id)}
+                onClick={() => handleDelete(index, "dont")}
                 className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
               >
-                Delete
+                ×
               </button>
             </div>
           </li>
         ))}
       </ul>
 
-      {/* EDIT SECTION */}
-      {editId !== null && (
+      {/* EDIT MODAL / EDIT SECTION */}
+      {editIndex !== null && (
         <div className="mt-6 border p-4 rounded-lg bg-white shadow-md">
           <h2 className="text-lg font-semibold mb-2">Edit Guideline</h2>
 
@@ -208,7 +231,7 @@ const Guidelines = () => {
 
             <button
               onClick={() => {
-                setEditId(null);
+                setEditIndex(null);
                 setEditType(null);
                 setEditValue("");
               }}
@@ -224,4 +247,3 @@ const Guidelines = () => {
 };
 
 export default Guidelines;
-
