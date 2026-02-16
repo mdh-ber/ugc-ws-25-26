@@ -1,11 +1,10 @@
-const Guideline = require('../models/guideline.model');
+const Guideline = require("../models/guideline.model");
 
 // @desc    Get all guidelines
 // @route   GET /api/guidelines
 const getGuidelines = async (req, res) => {
   try {
-    const guidelines = await Guideline.find({ isActive: true })
-      .populate('createdBy', 'name email');
+    const guidelines = await Guideline.find({ isActive: true }).sort({ createdAt: -1 });
     res.json(guidelines);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -16,10 +15,9 @@ const getGuidelines = async (req, res) => {
 // @route   GET /api/guidelines/:id
 const getGuideline = async (req, res) => {
   try {
-    const guideline = await Guideline.findById(req.params.id)
-      .populate('createdBy', 'name email');
+    const guideline = await Guideline.findById(req.params.id);
     if (!guideline) {
-      return res.status(404).json({ message: 'Guideline not found' });
+      return res.status(404).json({ message: "Guideline not found" });
     }
     res.json(guideline);
   } catch (error) {
@@ -31,18 +29,16 @@ const getGuideline = async (req, res) => {
 // @route   POST /api/guidelines
 const createGuideline = async (req, res) => {
   try {
-    const { text, type, category } = req.body;
-    
-    // For now, use a default user ID (you'll need to get this from auth later)
-    const createdBy = req.user?.id || '507f1f77bcf86cd799439011'; // Temporary default ID
-    
+    const { text, type, category, tags } = req.body;
+
     const guideline = new Guideline({
       text,
       type,
-      category,
-      createdBy
+      category: category || "general",
+      tags: Array.isArray(tags) ? tags : [],
+      // ✅ createdBy removed for now (no auth)
     });
-    
+
     const savedGuideline = await guideline.save();
     res.status(201).json(savedGuideline);
   } catch (error) {
@@ -54,14 +50,25 @@ const createGuideline = async (req, res) => {
 // @route   PUT /api/guidelines/:id
 const updateGuideline = async (req, res) => {
   try {
-    const guideline = await Guideline.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const { text, type, category, tags, isActive } = req.body;
+
+    // only update whitelisted fields
+    const updates = {};
+    if (text !== undefined) updates.text = text;
+    if (type !== undefined) updates.type = type;
+    if (category !== undefined) updates.category = category;
+    if (tags !== undefined) updates.tags = tags;
+    if (isActive !== undefined) updates.isActive = isActive;
+
+    const guideline = await Guideline.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true,
+    });
+
     if (!guideline) {
-      return res.status(404).json({ message: 'Guideline not found' });
+      return res.status(404).json({ message: "Guideline not found" });
     }
+
     res.json(guideline);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -77,10 +84,12 @@ const deleteGuideline = async (req, res) => {
       { isActive: false },
       { new: true }
     );
+
     if (!guideline) {
-      return res.status(404).json({ message: 'Guideline not found' });
+      return res.status(404).json({ message: "Guideline not found" });
     }
-    res.json({ message: 'Guideline deleted successfully' });
+
+    res.json({ message: "Guideline deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -90,10 +99,11 @@ const deleteGuideline = async (req, res) => {
 // @route   GET /api/guidelines/category/:category
 const getGuidelinesByCategory = async (req, res) => {
   try {
-    const guidelines = await Guideline.find({ 
+    const guidelines = await Guideline.find({
       type: req.params.category,
-      isActive: true 
-    });
+      isActive: true,
+    }).sort({ createdAt: -1 });
+
     res.json(guidelines);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -101,14 +111,16 @@ const getGuidelinesByCategory = async (req, res) => {
 };
 
 // @desc    Search guidelines
-// @route   GET /api/guidelines/search
+// @route   GET /api/guidelines/search?q=...
 const searchGuidelines = async (req, res) => {
   try {
     const { q } = req.query;
+
     const guidelines = await Guideline.find({
-      $text: { $search: q },
-      isActive: true
+      $text: { $search: q || "" },
+      isActive: true,
     });
+
     res.json(guidelines);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -132,9 +144,9 @@ const likeGuideline = async (req, res) => {
   try {
     const guideline = await Guideline.findById(req.params.id);
     if (!guideline) {
-      return res.status(404).json({ message: 'Guideline not found' });
+      return res.status(404).json({ message: "Guideline not found" });
     }
-    
+
     await guideline.like();
     res.json(guideline);
   } catch (error) {
@@ -151,5 +163,5 @@ module.exports = {
   getGuidelinesByCategory,
   searchGuidelines,
   getGuidelineStats,
-  likeGuideline
+  likeGuideline,
 };

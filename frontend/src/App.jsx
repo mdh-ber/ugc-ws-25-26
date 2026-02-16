@@ -7,37 +7,36 @@ import ContentCreation from "./pages/ContentCreation";
 import Login from "./pages/Login";
 import Trainings from "./pages/Trainings";
 import Guidelines from "./pages/Guidelines";
-import Footer from "./components/Footer"
+import Footer from "./components/Footer";
 
 import Reviews from "./pages/Reviews";
 import UuOverview from "./pages/UuOverview";
-import UI_Guidelines from "./pages/UI_Guidelines"
-
-
+import UI_Guidelines from "./pages/UI_Guidelines";
+import Rewards from "./pages/Rewards";
 function App() {
   return (
-    <>
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/create" element={<ContentCreation />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/trainings" element={<Trainings />} />
-        <Route path="/guidelines" element={<Guidelines />} />
+    <div className="min-h-screen flex flex-col">
+     
+      <div className="flex-1">
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/create" element={<ContentCreation />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/trainings" element={<Trainings />} />
+            <Route path="/guidelines" element={<Guidelines />} />
+            <Route path="/ui_guidelines" element={<UI_Guidelines />} />
+            <Route path="/reviews" element={<Reviews />} />
+            <Route path="/uu-overview" element={<UuOverview />} />
+            <Route path="/rewards" element={<Rewards />} />
+          </Routes>
+        </Layout>
+      </div>
 
-        <Route path="/ui_guidelines" element={<UI_Guidelines />} />
-
-
-        <Route path="/reviews" element={<Reviews />} />
-        <Route path="/uu-overview" element={<UuOverview />} />
-        
-        
-      </Routes>
-    </Layout>
-    <Footer />
-    </>
+      <Footer />
+    </div>
   );
 }
 

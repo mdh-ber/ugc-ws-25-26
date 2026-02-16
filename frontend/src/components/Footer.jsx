@@ -1,14 +1,18 @@
 import React from "react";
 import FeedbackModal from "../pages/Feedback";
-const Footer = () => {    
-    return    <footer className="absolute inset-x-0 bottom-0 ">  
-        <p className="flex justify-end">
-         
-         <FeedbackModal />
-       
+
+const Footer = () => {
+  return (
+    <footer className="w-full border-t bg-white">
+      <div className="flex items-center justify-between px-6 h-12">
+        <p className="text-xs text-gray-500">
+          © 2024 Your Company
         </p>
-        <p className="text-center text-gray-500 ">© 2024 Your Company. All rights reserved.</p>
-      </footer>
+
+        <FeedbackModal />
+      </div>
+    </footer>
+  );
 };
 
 export default Footer;
