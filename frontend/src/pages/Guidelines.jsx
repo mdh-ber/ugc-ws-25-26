@@ -1,244 +1,183 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import api from "../services/api"; 
 
 const Guidelines = () => {
-  const [dos, setDos] = useState([
-    "Follow university branding rules",
-    "Use clear audio and video",
-    "Be respectful and professional",
-  ]);
-
-  const [donts, setDonts] = useState([
-    "Do not post offensive content",
-    "Do not share private information",
-    "Do not violate copyright rules",
-  ]);
+  // --- STATE ---
+  const [dos, setDos] = useState([]);
+  const [donts, setDonts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const [newGuideline, setNewGuideline] = useState("");
-  const [type, setType] = useState("dos");
+  const [type, setType] = useState("do");
 
   const [editId, setEditId] = useState(null);
   const [editType, setEditType] = useState(null);
   const [editValue, setEditValue] = useState("");
 
-  // ADD
-  const handleAdd = () => {
+  // --- FETCH DATA ON MOUNT ---
+  useEffect(() => {
+    const fetchGuidelines = async () => {
+      try {
+        setLoading(true);
+        const { data } = await api.get("/guidelines");
+        // Filter guidelines into respective categories
+        setDos(data.filter((g) => g.type === "do"));
+        setDonts(data.filter((g) => g.type === "dont"));
+      } catch (error) {
+        console.error("Error fetching guidelines:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGuidelines();
+  }, []);
+
+  // --- ACTIONS ---
+  const handleAdd = async () => {
     if (!newGuideline.trim()) return;
-
-    if (type === "do") {
-      setDos([...dos, newGuideline]);
-    } else {
-      setDonts([...donts, newGuideline]);
-    }
-
-    setNewGuideline("");
-  };
-
-  // DELETE
-  const handleDelete = (index, listType) => {
-    if (listType === "do") {
-      setDos(dos.filter((_, i) => i !== index));
-    } else {
-      setDonts(donts.filter((_, i) => i !== index));
-    }
-  };
-
-  // START EDIT
-  const handleEditStart = (index, listType, value) => {
-    setEditIndex(index);
-    setEditType(listType);
-    setEditValue(value);
-  };
-
-  // SAVE EDIT
-  const handleEditSave = () => {
-    if (!editValue.trim()) return;
-
-    if (editType === "do") {
-      const updated = [...dos];
-      updated[editIndex] = editValue;
-      setDos(updated);
-    } else {
-      const updated = [...donts];
-      updated[editIndex] = editValue;
-      setDonts(updated);
-    }
-
-    setEditIndex(null);
-    setEditType(null);
-    setEditValue("");
-  };
-
-  const handleEditSave = async () => {
-    if (!editValue.trim()) return;
-
     setSaving(true);
     try {
-      await updateGuidelineApi(editId, editValue.trim());
-
-      if (editType === "do") {
-        setDos((prev) =>
-          prev.map((g) => (g._id === editId ? { ...g, text: editValue.trim() } : g))
-        );
-      } else {
-        setDonts((prev) =>
-          prev.map((g) => (g._id === editId ? { ...g, text: editValue.trim() } : g))
-        );
-      }
-
-      resetEdit();
-    } catch (e) {
-      console.error(e);
-      alert("Failed to update guideline.");
+      const { data: created } = await api.post("/guidelines", {
+        text: newGuideline.trim(),
+        type: type,
+      });
+      if (type === "do") setDos([...dos, created]);
+      else setDonts([...donts, created]);
+      setNewGuideline("");
+    } catch (err) {
+      console.error("Add failed:", err);
     } finally {
       setSaving(false);
     }
   };
 
-  // -------- small UI helpers --------
-  const cardClass = "bg-white rounded-xl shadow-sm border border-gray-100";
-  const headerClass =
-    "px-4 py-3 border-b border-gray-100 flex items-center justify-between";
-  const titleClass = "text-sm font-semibold";
-  const btnPrimary =
-    "rounded-lg px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60";
-  const btnDanger =
-    "text-xs px-2 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white disabled:opacity-60";
-  const btnWarn =
-    "text-xs px-2 py-1 rounded-md bg-amber-500/90 hover:bg-amber-600 text-white disabled:opacity-60";
+  const handleDelete = async (id, listType) => {
+    if (!window.confirm("Delete this guideline?")) return;
+    try {
+      await api.delete(`/guidelines/${id}`);
+      if (listType === "do") setDos(dos.filter((g) => g._id !== id));
+      else setDonts(donts.filter((g) => g._id !== id));
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
 
-  const Row = ({ item, onEdit, onDelete }) => (
-    <li className="flex items-start justify-between gap-3 py-2">
-      <span className="text-sm text-gray-800 leading-snug">{item.text}</span>
-      <div className="flex gap-2 shrink-0">
-        <button disabled={saving} onClick={onEdit} className={btnWarn}>
-          Edit
-        </button>
-        <button disabled={saving} onClick={onDelete} className={btnDanger}>
-          Delete
-        </button>
-      </div>
-    </li>
-  );
+  const handleEditStart = (item) => {
+    setEditId(item._id);
+    setEditType(item.type);
+    setEditValue(item.text);
+  };
+
+  const handleEditSave = async () => {
+    if (!editValue.trim()) return;
+    setSaving(true);
+    try {
+      await api.put(`/guidelines/${editId}`, {
+        text: editValue.trim(),
+        type: editType,
+      });
+      const update = (list) => list.map((g) => (g._id === editId ? { ...g, text: editValue } : g));
+      if (editType === "do") setDos((prev) => update(prev));
+      else setDonts((prev) => update(prev));
+      resetEdit();
+    } catch (e) {
+      console.error("Update failed:", e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetEdit = () => {
+    setEditId(null);
+    setEditType(null);
+    setEditValue("");
+  };
+
+  // --- STYLES ---
+  const btnPrimary = "rounded-lg px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50";
+  const btnDanger = "text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white";
+  const btnWarn = "text-xs px-2 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white";
 
   return (
-    <div className="p-4">
-      <div className="mb-3">
-        <h1 className="text-xl font-bold text-gray-900">Content Guidelines</h1>
-        <p className="text-sm text-gray-500">Data is loaded/saved from backend.</p>
+    <div className="p-6 max-w-4xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Content Guidelines</h1>
+        <p className="text-sm text-gray-500">Manage rules for content creation.</p>
       </div>
 
-      {/* Add */}
-      <div className={`${cardClass} p-4 mb-4`}>
-        <h2 className="text-sm font-semibold text-gray-800 mb-3">
-          Add new guideline
-        </h2>
+      {/* INPUT */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row gap-3">
+        <select value={type} onChange={(e) => setType(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-gray-50">
+          <option value="do">Do's</option>
+          <option value="dont">Don'ts</option>
+        </select>
+        <input
+          type="text"
+          value={newGuideline}
+          onChange={(e) => setNewGuideline(e.target.value)}
+          placeholder="New rule..."
+          className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button disabled={saving} onClick={handleAdd} className={btnPrimary}>
+          {saving ? "Saving..." : "Add"}
+        </button>
+      </div>
 
-        <div className="flex flex-col md:flex-row gap-2">
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
-          >
-            <option value="do">Do's</option>
-            <option value="dont">Don'ts</option>
-          </select>
-
-          <input
-            type="text"
-            value={newGuideline}
-            onChange={(e) => setNewGuideline(e.target.value)}
-            placeholder="Enter guideline..."
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          />
-
-          <button disabled={saving} onClick={handleAdd} className={btnPrimary}>
-            {saving ? "Saving..." : "Add"}
-          </button>
+      {/* LISTS */}
+      {loading ? (
+        <div className="text-center py-10">Loading...</div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+            <h2 className="font-bold text-green-800 mb-3">✅ Do's</h2>
+            <ul className="space-y-2">
+              {dos.map((item) => (
+                <li key={item._id} className="flex justify-between items-start bg-white p-2 rounded shadow-sm">
+                  <span className="text-sm text-gray-700">{item.text}</span>
+                  <div className="flex gap-1">
+                    <button onClick={() => handleEditStart(item)} className={btnWarn}>Edit</button>
+                    <button onClick={() => handleDelete(item._id, "do")} className={btnDanger}>X</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+            <h2 className="font-bold text-red-800 mb-3">❌ Don'ts</h2>
+            <ul className="space-y-2">
+              {donts.map((item) => (
+                <li key={item._id} className="flex justify-between items-start bg-white p-2 rounded shadow-sm">
+                  <span className="text-sm text-gray-700">{item.text}</span>
+                  <div className="flex gap-1">
+                    <button onClick={() => handleEditStart(item)} className={btnWarn}>Edit</button>
+                    <button onClick={() => handleDelete(item._id, "dont")} className={btnDanger}>X</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* DO'S */}
-      <h2 className="text-xl font-semibold mt-4">Do's</h2>
-      <ul className="list-disc ml-6">
-        {dos.map((item, index) => (
-          <li key={index} className="mb-2 flex justify-between items-center">
-            <span>{item}</span>
-
-            <div className="flex gap-2 ml-4">
-              <button
-                onClick={() => handleEditStart(index, "do", item)}
-                className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-              >
-                Edit
-              </button>
-
-              <button
-                onClick={() => handleDelete(index, "do")}
-                className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-              >
-                Delete
+      {/* MODAL */}
+      {editId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
+            <h3 className="font-bold mb-4">Edit Rule</h3>
+            <input
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={resetEdit} className="px-4 py-2 bg-gray-100 rounded-lg">Cancel</button>
+              <button onClick={handleEditSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                {saving ? "Saving..." : "Save"}
               </button>
             </div>
-          </li>
-        ))}
-      </ul>
-
-      {/* DON'TS */}
-      <h2 className="text-xl font-semibold mt-4">Don'ts</h2>
-      <ul className="list-disc ml-6">
-        {donts.map((item, index) => (
-          <li key={index} className="mb-2 flex justify-between items-center">
-            <span>{item}</span>
-
-            <div className="flex gap-2 ml-4">
-              <button
-                onClick={() => handleEditStart(index, "dont", item)}
-                className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-              >
-                Edit
-              </button>
-
-              <button
-                onClick={() => handleDelete(index, "dont")}
-                className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-              >
-                ×
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      {/* EDIT MODAL / EDIT SECTION */}
-      {editIndex !== null && (
-        <div className="mt-6 border p-4 rounded-lg bg-white shadow-md">
-          <h2 className="text-lg font-semibold mb-2">Edit Guideline</h2>
-
-          <input
-            type="text"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            className="border rounded px-3 py-2 w-full mb-3"
-          />
-
-          <div className="flex gap-3">
-            <button
-              onClick={handleEditSave}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-            >
-              Save
-            </button>
-
-            <button
-              onClick={() => {
-                setEditIndex(null);
-                setEditType(null);
-                setEditValue("");
-              }}
-              className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
-            >
-              Cancel
-            </button>
           </div>
         </div>
       )}
