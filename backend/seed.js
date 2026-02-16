@@ -9,7 +9,7 @@ const TrainingSchema = new mongoose.Schema({
   title: String,
   type: { 
     type: String, 
-    enum: ['video', 'pdf'] 
+    enum: ['Video', 'PDF'] 
   },
   url: String,
   category: String,
@@ -21,17 +21,17 @@ const Training = mongoose.model('Training', TrainingSchema);
 
 // 3. The Mixed List (Videos + PDFs)
 const trainingData = [
-  // --- VIDEOS ---
+  // --- VideoS ---
   {
     title: "How to Create Viral Reels",
-    type: "video",
+    type: "Video",
     category: "Content Strategy",
     url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg"
   },
   {
     title: "UGC Editing Masterclass",
-    type: "video",
+    type: "Video",
     category: "Editing",
     url: "https://www.youtube.com/watch?v=example123",
     thumbnail: "https://img.youtube.com/vi/example123/mqdefault.jpg"
@@ -40,17 +40,17 @@ const trainingData = [
   // --- PDFS ---
   {
     title: "2026 Brand Guidelines",
-    type: "pdf",
+    type: "PDF",
     category: "Guidelines",
-    url: "https://www.mdh-university.de/files/brand-guide.pdf", 
+    url: "https://www.mdh-university.de/files/brand-guide.PDF", 
     // Use a generic icon for PDFs since they don't have thumbnails like YouTube
     thumbnail: "https://cdn-icons-png.flaticon.com/512/337/337946.png"
   },
   {
     title: "Creator Contract Template",
-    type: "pdf",
+    type: "PDF",
     category: "Legal",
-    url: "https://www.mdh-university.de/files/contract.pdf",
+    url: "https://www.mdh-university.de/files/contract.PDF",
     thumbnail: "https://cdn-icons-png.flaticon.com/512/2965/2965335.png"
   }
 ];
