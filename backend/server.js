@@ -32,9 +32,9 @@ app.use("/api/trainings", require("./routes/trainingRoutes"));
 app.use("/api/profiles", require("./routes/profileRoutes"));
 app.use("/api/uu", require("./routes/uuRoutes"));
 app.use("/api/events", require("./routes/eventRoutes"));
-
-// ⭐ YOUR GUIDELINES ROUTE
 app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
+app.use("/api/certificates", require("./routes/certificateRoutes"));
+app.use("/api/feedback", require("./routes/feedbackRoutes"));
 
 // =====================
 // SERVER START
