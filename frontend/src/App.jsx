@@ -14,6 +14,8 @@ import UuOverview from "./pages/UuOverview";
 import UI_Guidelines from "./pages/UI_Guidelines";
 import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
+import { Milestone } from "lucide-react";
+import Milestones from "./pages/Milestones";
 function App() {
   return (
     <div className="min-h-screen flex flex-col">
@@ -33,6 +35,7 @@ function App() {
             <Route path="/uu-overview" element={<UuOverview />} />
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/certificates" element={<CertificatesPage />}/>
+            <Route path="/milestones" element={<Milestones />}/>
           </Routes>
         </Layout>
       </div>
