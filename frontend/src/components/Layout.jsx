@@ -6,11 +6,11 @@ import {
   LayoutDashboard,
   User,
   BookOpen,
-  Book,
   FileText,
-  Star,
   Bell,
- NotebookPen
+  NotebookPen,
+  Wallet,
+  Award
 } from "lucide-react";
 
 function Layout({ children }) {
@@ -18,20 +18,21 @@ function Layout({ children }) {
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // --- MVP Menu Items ---
+  // --- Sidebar Menu Items ---
   const menuItems = [
     { name: "Home", path: "/", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Trainings & Events", path: "/trainings", icon: BookOpen },
     { name: "Profile", path: "/profile", icon: User },
-
-    // { name: "Guidelines", path: "/ui_guidelines", icon: FileText },
-
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
+    { name: "Rewards", path: "/rewards", icon: Wallet },
+
+    // ✅ NEW CERTIFICATES PAGE
+    { name: "Certificates", path: "/certificates", icon: Award },
   ];
-  
-  // --- Notification Placeholder Component ---
+
+  // --- Notification Placeholder ---
   const NotificationPlaceholder = () => (
     <div className="relative">
       <button
@@ -40,20 +41,22 @@ function Layout({ children }) {
         aria-label="Notifications (coming soon)"
       >
         <Bell size={20} className="text-gray-700" />
-        {/* Static badge - 0 notifications */}
         <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
           0
         </span>
       </button>
 
-      {/* Dropdown Placeholder */}
       {showNotifications && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 py-4 px-6 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 py-4 px-6 z-50">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
-            <span className="text-sm text-gray-500 font-medium">Coming soon</span>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Notifications
+            </h3>
+            <span className="text-sm text-gray-500 font-medium">
+              Coming soon
+            </span>
           </div>
-          
+
           <div className="text-center py-8 space-y-3">
             <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center">
               <Bell size={24} className="text-white" />
@@ -63,12 +66,12 @@ function Layout({ children }) {
                 Engagement alerts coming soon!
               </h4>
               <p className="text-gray-600 max-w-sm mx-auto">
-                Real-time notifications for likes, comments, new followers, and content approvals will appear here.
+                Real-time notifications will appear here.
               </p>
             </div>
             <Link
               to="/profile"
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-xl hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-xl hover:shadow-lg transition-all duration-200"
               onClick={() => setShowNotifications(false)}
             >
               <User size={16} className="mr-2" />
@@ -91,7 +94,9 @@ function Layout({ children }) {
         {/* Sidebar Header */}
         <div className="p-4 flex justify-between items-center border-b">
           {isOpen && (
-            <h2 className="font-bold text-primary text-lg">MDH UGC</h2>
+            <h2 className="font-bold text-primary text-lg">
+              MDH UGC
+            </h2>
           )}
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -101,11 +106,16 @@ function Layout({ children }) {
           </button>
         </div>
 
-        {/* Sidebar Navigation */}
+        {/* Sidebar Menu */}
         <nav className="p-4 flex flex-col space-y-2">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+
+            // ✅ Better active detection (important)
+            const isActive =
+              item.path === "/"
+                ? location.pathname === "/"
+                : location.pathname.startsWith(item.path);
 
             return (
               <Link
@@ -113,8 +123,8 @@ function Layout({ children }) {
                 to={item.path}
                 className={`flex items-center space-x-3 p-3 rounded-lg transition ${
                   isActive
-                    ? "bg-primary text-white"
-                    : "hover:bg-gray-100"
+                    ? "bg-primary text-white shadow-md"
+                    : "hover:bg-gray-100 text-gray-700"
                 }`}
               >
                 <Icon size={20} />
@@ -127,16 +137,17 @@ function Layout({ children }) {
 
       {/* --- Main Content --- */}
       <div className="flex-1">
-        {/* Top Bar - YOUR NOTIFICATION GOES HERE */}
+        {/* Top Header */}
         <div className="bg-white shadow p-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <h1 className="font-semibold text-xl">UGC Platform</h1>
+            <h1 className="font-semibold text-xl">
+              UGC Platform
+            </h1>
             <span className="text-sm text-gray-500">
               MDH University
             </span>
           </div>
-          
-          {/* NOTIFICATION PLACEHOLDER - RIGHT SIDE */}
+
           <div className="flex items-center space-x-2">
             <NotificationPlaceholder />
           </div>
