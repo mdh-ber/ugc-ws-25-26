@@ -12,8 +12,6 @@ app.use(express.json());
 
 // CORS 
 app.use(cors());
-app.options("*", cors());
-
 // =====================
 // DATABASE
 // =====================

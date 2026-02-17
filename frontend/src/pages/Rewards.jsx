@@ -77,7 +77,6 @@ const Rewards = () => {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: "15px",
-          marginBottom: "20px",
         }}
       >
         {breakdown.map((item, index) => (
