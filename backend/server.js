@@ -13,8 +13,6 @@ app.use(express.json());
 
 // ⭐ CORS (must be before routes)
 app.use(cors());
-app.options("*", cors());
-
 // =====================
 // DATABASE
 // =====================
