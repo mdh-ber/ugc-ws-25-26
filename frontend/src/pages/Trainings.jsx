@@ -17,7 +17,7 @@ import FormInput from "../components/FormInput";
 import { Calendar, MapPin, Users, Trash2, Edit } from "lucide-react";
 
 function Trainings() {
-  // --- STATE ---
+  // STATE 
   const [trainings, setTrainings] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +52,7 @@ function Trainings() {
     url: "",
   });
 
-  // --- FETCH DATA ---
+  // FETCH DATA 
   useEffect(() => {
     const storedUser = localStorage.getItem("userInfo");
     if (storedUser) setUser(JSON.parse(storedUser));
@@ -76,7 +76,7 @@ function Trainings() {
     fetchData();
   }, []);
 
-  // --- EVENT HANDLERS ---
+  // EVENT HANDLERS 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewEvent((prev) => ({ ...prev, [name]: value }));
@@ -136,7 +136,7 @@ function Trainings() {
     }
   };
 
-  // --- TRAINING HANDLERS ---
+  //  TRAINING HANDLERS 
   const handleTrainingInputChange = (e) => {
     const { name, value } = e.target;
     setNewTraining((prev) => ({ ...prev, [name]: value }));
@@ -216,7 +216,7 @@ function Trainings() {
 
       {loading && <p>Loading...</p>}
 
-      {/* --- TAB 1: TRAININGS --- */}
+      {/*  TAB 1: TRAININGS  */}
       {!loading && activeTab === "training" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
@@ -281,7 +281,7 @@ function Trainings() {
         </div>
       )}
 
-      {/* --- TAB 2: EVENTS --- */}
+      {/* TAB 2: EVENTS */}
       {!loading && activeTab === "events" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
@@ -361,8 +361,8 @@ function Trainings() {
         </div>
       )}
 
-      {/* --- MODAL (CREATE OR EDIT) --- */}
-      {/* --- TRAINING MODAL --- */}
+      {/*  MODAL (CREATE OR EDIT) */}
+      {/* TRAINING MODAL  */}
       <Modal
         isOpen={isTrainingModalOpen}
         onClose={() => setIsTrainingModalOpen(false)}
@@ -448,7 +448,7 @@ function Trainings() {
         </div>
       </Modal>
 
-      {/* --- EVENT MODAL --- */}
+      {/*  EVENT MODAL  */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <div className="p-1">
           <h2 className="text-xl font-bold mb-4">
