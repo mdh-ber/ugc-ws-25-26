@@ -10,7 +10,8 @@ import {
   Bell,
   NotebookPen,
   Wallet,
-  Award
+  Award,
+  Target
 } from "lucide-react";
 
 function Layout({ children }) {
@@ -30,6 +31,7 @@ function Layout({ children }) {
 
     // ✅ NEW CERTIFICATES PAGE
     { name: "Certificates", path: "/certificates", icon: Award },
+    { name: "Milestones", path: "/milestones", icon: Target}
   ];
 
   // --- Notification Placeholder ---
