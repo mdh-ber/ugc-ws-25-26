@@ -20,7 +20,9 @@ const profileSchema = new mongoose.Schema({
   course: String,
   intake: String,
   primaryLanguage: String,
-  profilePic: String,
+  profilePic: {
+    data: Buffer, contentType: String,
+  },
   socialAccounts: [String],
 });
 
