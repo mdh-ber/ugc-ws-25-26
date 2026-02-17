@@ -1,7 +1,5 @@
 {
   "dependencies": {
-    "lucide-react": "^0.564.0",
-    "mongodb": "^7.1.0",
-    "recharts": "^3.7.0"
+    "dotenv": "^17.3.1"
   }
 }

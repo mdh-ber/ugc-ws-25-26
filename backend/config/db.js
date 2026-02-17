@@ -12,3 +12,4 @@ const connectDB = async () => {
 };
 
 module.exports = connectDB;
+>>>>>>>>> Temporary merge branch 2
