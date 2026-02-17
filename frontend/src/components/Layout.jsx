@@ -132,7 +132,7 @@ function Layout({ children }) {
             <h1 className="font-semibold text-xl">UGC Platform</h1>
             <span className="text-sm text-gray-500">
               MDH University
-            </span>
+            </span>n
           </div>
           
           {/* NOTIFICATION PLACEHOLDER - RIGHT SIDE */}

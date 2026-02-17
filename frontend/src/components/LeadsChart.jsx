@@ -15,14 +15,23 @@ import {
   FaYoutube,
   FaLinkedin,
   FaTwitter,
+  FaTiktok,
 } from "react-icons/fa";
 
 // Placeholder data
 const initialData = [
-  { platform: "Instagram", leads: 120, icon: <FaInstagram /> },
-  { platform: "YouTube", leads: 80, icon: <FaYoutube /> },
-  { platform: "LinkedIn", leads: 60, icon: <FaLinkedin /> },
-  { platform: "Twitter", leads: 40, icon: <FaTwitter /> },
+  { date: "Jan", Instagram: 30, YouTube: 20, LinkedIn: 10, Twitter: 5, Tiktok: 15 },
+  { date: "Feb", Instagram: 40, YouTube: 25, LinkedIn: 20, Twitter: 10, Tiktok: 20 },
+  { date: "Mar", Instagram: 50, YouTube: 35, LinkedIn: 30, Twitter: 15, Tiktok: 25 },
+];
+
+// Platforms and their colors/icons
+const platforms = [
+  { name: "Instagram", color: "#E1306C", icon: <FaInstagram /> },
+  { name: "YouTube", color: "#FF0000", icon: <FaYoutube /> },
+  { name: "LinkedIn", color: "#0077B5", icon: <FaLinkedin /> },
+  { name: "Twitter", color: "#1DA1F2", icon: <FaTwitter /> },
+  { name: "Tiktok", color: "#69C9D0", icon: <FaTiktok /> },
 ];
 
 export default function LeadsChart() {
@@ -32,26 +41,31 @@ export default function LeadsChart() {
   const [leadsData, setLeadsData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const colors = ["#E1306C", "#FF0000", "#0077B5", "#1DA1F2"];
-
   useEffect(() => {
     setLoading(true);
-    // Simulated API call
     setTimeout(() => {
       setLeadsData(initialData);
       setLoading(false);
     }, 800);
   }, []);
 
-  const filteredData =
-    selectedPlatform === "All"
-      ? leadsData
-      : leadsData.filter((item) => item.platform === selectedPlatform);
-
+  // Total leads calculation
   const totalLeads =
     selectedPlatform === "All"
-      ? leadsData.reduce((sum, item) => sum + item.leads, 0)
-      : filteredData[0]?.leads || 0;
+      ? leadsData.reduce(
+          (sum, item) =>
+            sum +
+            item.Instagram +
+            item.YouTube +
+            item.LinkedIn +
+            item.Twitter +
+            item.Tiktok,
+          0
+        )
+      : leadsData.reduce(
+          (sum, item) => sum + (item[selectedPlatform] || 0),
+          0
+        );
 
   // Animated total
   useEffect(() => {
@@ -81,7 +95,7 @@ export default function LeadsChart() {
       }`}
     >
       <div
-        className={`max-w-4xl mx-auto backdrop-blur-xl bg-white/20 border border-white/30 rounded-2xl shadow-xl p-4 sm:p-6 transition-all duration-500 ${
+        className={`max-w-7xl mx-auto backdrop-blur-xl bg-white/20 border border-white/30 rounded-2xl shadow-xl p-6 sm:p-8 transition-all duration-500 ${
           darkMode ? "text-white" : "text-gray-800"
         }`}
       >
@@ -103,9 +117,9 @@ export default function LeadsChart() {
               className="px-3 py-1 sm:px-3 sm:py-1.5 rounded-lg text-black text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500"
             >
               <option value="All">All Platforms</option>
-              {leadsData.map((item) => (
-                <option key={item.platform} value={item.platform}>
-                  {item.platform}
+              {platforms.map((plat) => (
+                <option key={plat.name} value={plat.name}>
+                  {plat.name}
                 </option>
               ))}
             </select>
@@ -128,19 +142,18 @@ export default function LeadsChart() {
           <>
             {/* Platform Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
-              {leadsData.map((item, index) => (
+              {platforms.map((plat, index) => (
                 <div
-                  key={item.platform}
+                  key={plat.name}
                   className="rounded-xl p-3 sm:p-4 text-center bg-white/30 backdrop-blur-lg shadow-md hover:scale-105 transition duration-300"
                 >
-                  <div
-                    className="text-xl sm:text-2xl mb-1"
-                    style={{ color: colors[index] }}
-                  >
-                    {item.icon}
+                  <div className="text-xl sm:text-2xl mb-1" style={{ color: plat.color }}>
+                    {plat.icon}
                   </div>
-                  <div className="font-medium text-xs sm:text-sm">{item.platform}</div>
-                  <div className="text-lg sm:text-xl font-bold mt-1">{item.leads}</div>
+                  <div className="font-medium text-xs sm:text-sm">{plat.name}</div>
+                  <div className="text-lg sm:text-xl font-bold mt-1">
+                    {leadsData.reduce((sum, item) => sum + (item[plat.name] || 0), 0)}
+                  </div>
                 </div>
               ))}
             </div>
@@ -157,12 +170,12 @@ export default function LeadsChart() {
             </div>
 
             {/* Chart */}
-            <div className="w-full h-48 sm:h-64">
+            <div className="w-full h-72 sm:h-96">
               <ResponsiveContainer>
-                <BarChart data={filteredData}>
+                <BarChart data={leadsData}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis
-                    dataKey="platform"
+                    dataKey="date"
                     stroke={darkMode ? "#fff" : "#000"}
                     tick={{ fontSize: 10 }}
                   />
@@ -174,11 +187,25 @@ export default function LeadsChart() {
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="leads" radius={[15, 15, 0, 0]}>
-                    {filteredData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={colors[index]} />
-                    ))}
-                  </Bar>
+                  {selectedPlatform === "All"
+                    ? platforms.map((plat, index) => (
+                        <Bar
+                          key={plat.name}
+                          dataKey={plat.name}
+                          radius={[10, 10, 0, 0]}
+                        >
+                          {leadsData.map((entry, idx) => (
+                            <Cell key={idx} fill={plat.color} />
+                          ))}
+                        </Bar>
+                      ))
+                    : (
+                        <Bar dataKey={selectedPlatform} radius={[10, 10, 0, 0]}>
+                          {leadsData.map((entry, idx) => (
+                            <Cell key={idx} fill="#6366f1" />
+                          ))}
+                        </Bar>
+                      )}
                 </BarChart>
               </ResponsiveContainer>
             </div>
