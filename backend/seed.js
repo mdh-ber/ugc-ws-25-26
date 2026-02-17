@@ -1,78 +1,72 @@
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
+// seed.js
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import MilestoneType from "./models/MilestoneType.js";
 
-// 1. Load your secrets
 dotenv.config();
 
-// 2. Define Schema (Must match your Training.js model)
-const TrainingSchema = new mongoose.Schema({
-  title: String,
-  type: { 
-    type: String, 
-    enum: ['Video', 'PDF'] 
-  },
-  url: String,
-  category: String,
-  thumbnail: String,
-  createdAt: { type: Date, default: Date.now }
-});
+// Check if MONGO_URI is loaded
+if (!process.env.MONGO_URI) {
+  console.error("MONGO_URI is missing in your .env file!");
+  process.exit(1);
+}
 
-const Training = mongoose.model('Training', TrainingSchema);
+const MONGO_URI = process.env.MONGO_URI;
 
-// 3. The Mixed List (Videos + PDFs)
-const trainingData = [
-  // --- VideoS ---
+// Sample milestones
+const milestones = [
   {
-    title: "How to Create Viral Reels",
-    type: "Video",
-    category: "Content Strategy",
-    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg"
+    title: "Premium Badge",
+    description: "Unlock premium profile badge",
+    category: "profile",
+    goal: 10,
+    rewardPoints: 500,
+    isActive: true,
   },
   {
-    title: "UGC Editing Masterclass",
-    type: "Video",
-    category: "Editing",
-    url: "https://www.youtube.com/watch?v=example123",
-    thumbnail: "https://img.youtube.com/vi/example123/mqdefault.jpg"
-  },
-
-  // --- PDFS ---
-  {
-    title: "2026 Brand Guidelines",
-    type: "PDF",
-    category: "Guidelines",
-    url: "https://www.mdh-university.de/files/brand-guide.PDF", 
-    // Use a generic icon for PDFs since they don't have thumbnails like YouTube
-    thumbnail: "https://cdn-icons-png.flaticon.com/512/337/337946.png"
+    title: "Top Reviewer",
+    description: "Leave 50 reviews to get this badge",
+    category: "reviews",
+    goal: 50,
+    rewardPoints: 300,
+    isActive: true,
   },
   {
-    title: "Creator Contract Template",
-    type: "PDF",
-    category: "Legal",
-    url: "https://www.mdh-university.de/files/contract.PDF",
-    thumbnail: "https://cdn-icons-png.flaticon.com/512/2965/2965335.png"
-  }
+    title: "Training Master",
+    description: "Complete 5 trainings",
+    category: "trainings",
+    goal: 5,
+    rewardPoints: 700,
+    isActive: true,
+  },
+  {
+    title: "Income Achiever",
+    description: "Reach $1000 in income",
+    category: "income",
+    goal: 1000,
+    rewardPoints: 1000,
+    isActive: true,
+  },
 ];
 
-// 4. The Magic Function
 const seedDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    console.log("Connecting to MongoDB Atlas...");
+    await mongoose.connect(MONGO_URI);
+    console.log("Connected to MongoDB Atlas");
 
-    // CLEAR old data
-    await Training.deleteMany();
-    console.log('🗑️  Old data removed...');
+    console.log("🗑️  Clearing existing milestones...");
+    await MilestoneType.deleteMany({});
+    console.log(" Existing milestones cleared");
 
-    // INSERT new mixed data
-    await Training.insertMany(trainingData);
-    console.log('✨ Success! Added ' + trainingData.length + ' items (Videos & PDFs).');
+    console.log("Adding new milestones...");
+    const inserted = await MilestoneType.insertMany(milestones);
+    console.log(`Inserted ${inserted.length} milestones successfully`);
 
-    process.exit();
-  } catch (error) {
-    console.error(`❌ Error: ${error.message}`);
-    process.exit(1);
+    await mongoose.connection.close();
+    console.log("🔒 MongoDB connection closed");
+  } catch (err) {
+    console.error("Error seeding database:", err);
   }
 };
 
