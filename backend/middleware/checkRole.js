@@ -1,11 +1,13 @@
 // backend/middleware/checkRole.js
-module.exports = (req, res, next) => {
-  // We will expect the frontend to send a custom header 'user-role'
-  const userRole = req.headers['user-role'];
+const checkRole = (req, res, next) => {
+  // We check the custom header we sent from the frontend
+  const userRole = req.headers['x-user-role'];
 
-  if (userRole !== 'Marketing Manager') {
-    return res.status(403).json({ message: "Access denied. Marketing Managers only." });
+  if (userRole === 'Marketing Manager') {
+    next(); // Access granted
+  } else {
+    res.status(403).json({ message: "Access denied. Marketing Manager role required." });
   }
-  
-  next();
 };
+
+module.exports = checkRole;
