@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const Reward = require("../models/reward");
-const Profile = require("../models/profile");
+const Profile = require("../models/Profile");
 const RewardTransaction = require("../models/rewardTransaction");
 
 router.get("/", async (req, res) => {

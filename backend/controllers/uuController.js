@@ -1,5 +1,6 @@
 const RefereeUu = require("../models/RefereeUu");
-const ReferralUu = require("../models/ReferralUu");
+const ReferralUu = require("../models/referralUu");
+const { Parser } = require("json2csv");
 
 function parseRange(req) {
   const from = req.query.from || "2026-01-01";
@@ -104,5 +105,64 @@ exports.getReferralDetails = async (req, res) => {
     res.json({ id: referralId, summary, series });
   } catch (e) {
     res.status(500).json({ message: "Server error", error: e.message });
+  }
+};
+
+// ---------- CSV Download Functions ----------
+exports.downloadRefereeMembersCSV = async (req, res) => {
+  try {
+    const days = Number(req.query.days || 7);
+
+    // TEMP dummy data (should match the members endpoint)
+    const members = [
+      { id: "RF-101", name: "Referee A" },
+      { id: "RF-102", name: "Referee B" },
+      { id: "RL-203", name: "Referral C" },
+      { id: "RL-204", name: "Referral D" },
+    ];
+
+    // Convert to CSV
+    const fields = ["id", "name"];
+    const parser = new Parser({ fields });
+    const csv = parser.parse(members);
+
+    // Set headers for file download
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=referee-members-${days}days.csv`
+    );
+
+    res.status(200).send(csv);
+  } catch (e) {
+    res.status(500).json({ message: "Error generating CSV", error: e.message });
+  }
+};
+
+exports.downloadReferralMembersCSV = async (req, res) => {
+  try {
+    const days = Number(req.query.days || 7);
+
+    // TEMP dummy data (should match the members endpoint)
+    const members = [
+      { id: "RL-201", name: "Referral A" },
+      { id: "RL-202", name: "Referral B" },
+    ];
+
+    // Convert to CSV
+    const fields = ["id", "name"];
+    const parser = new Parser({ fields });
+    const csv = parser.parse(members);
+
+    // Set headers for file download
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=referral-members-${days}days.csv`
+    );
+
+    res.status(200).send(csv);
+  } catch (e) {
+    res.status(500).json({ message: "Error generating CSV", error: e.message });
   }
 };
