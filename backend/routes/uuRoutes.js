@@ -6,6 +6,8 @@ const {
   getRefereeDetails,
   getReferralOverview,
   getReferralDetails,
+  downloadRefereeMembersCSV,
+  downloadReferralMembersCSV,
 } = require("../controllers/uuController");
 
 // ✅ MUST BE ABOVE "/referee/:refereeId"
@@ -23,6 +25,9 @@ router.get("/referee/members", async (req, res) => {
   return res.json({ count: members.length, members, days });
 });
 
+// ✅ CSV Download endpoint for referee members
+router.get("/referee/members/download", downloadRefereeMembersCSV);
+
 // ✅ MUST BE ABOVE "/referral/:referralId"
 router.get("/referral/members", async (req, res) => {
   const days = Number(req.query.days || 7);
@@ -34,6 +39,9 @@ router.get("/referral/members", async (req, res) => {
 
   return res.json({ count: members.length, members, days });
 });
+
+// ✅ CSV Download endpoint for referral members
+router.get("/referral/members/download", downloadReferralMembersCSV);
 
 // Referee
 router.get("/referee/overview", getRefereeOverview);
