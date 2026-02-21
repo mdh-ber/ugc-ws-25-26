@@ -11,7 +11,8 @@ import {
   NotebookPen,
   Wallet,
   Award,
-  Target
+  Target,
+  PieChart // Added the PieChart icon for Lead Tracking
 } from "lucide-react";
 
 function Layout() {
@@ -30,7 +31,8 @@ function Layout() {
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
-    { name: "Milestones", path: "/milestones", icon: Target }
+    { name: "Milestones", path: "/milestones", icon: Target },
+    { name: "Lead Tracking", path: "/lead-tracking", icon: PieChart } // Added Lead Tracking Tab here!
   ];
 
   // --- Notification Placeholder ---

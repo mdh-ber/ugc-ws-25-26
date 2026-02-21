@@ -4,8 +4,6 @@ const path = require("path");
 const cors = require("cors");
 require("dotenv").config();
 
-const cors = require("cors");
-
 const app = express();
 
 // =====================
@@ -44,7 +42,7 @@ app.use("/api/trainings", require("./routes/trainingRoutes"));
 app.use("/api/profiles", require("./routes/profileRoutes"));
 app.use("/api/uu", require("./routes/uuRoutes"));
 app.use("/api/events", require("./routes/eventRoutes"));
-
+app.use("/api/leads", require("./routes/leadRoutes"));
 // ⭐ YOUR GUIDELINES ROUTE
 app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
 

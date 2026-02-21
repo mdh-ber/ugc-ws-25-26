@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-
+import LeadTracking from "./pages/LeadTracking";
 import Layout from "./components/Layout";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -63,6 +63,7 @@ function App() {
                   <Route path="/rewards" element={<Rewards />} />
                   <Route path="/certificates" element={<CertificatesPage />} />
                   <Route path="/milestones" element={<Milestones />} />
+                  <Route path="/lead-tracking" element={<LeadTracking />} />
                   {/* <Route path="/admin/feedback" element={<AdminFeedback />} /> */}
 
                   {/* fallback inside app */}
