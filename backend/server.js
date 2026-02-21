@@ -4,6 +4,8 @@ const path = require("path");
 const cors = require("cors");
 require("dotenv").config();
 
+const cors = require("cors");
+
 const app = express();
 
 // =====================
@@ -20,11 +22,10 @@ app.use(cors({
 
 // Standard body parsers
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// ⭐ STATIC FOLDER 
-// This makes images in 'backend/uploads' accessible via http://localhost:5000/uploads/filename.jpg
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// ⭐ CORS (must be before routes)
+app.use(cors());
+app.options("*", cors());
 
 // =====================
 // DATABASE
@@ -43,6 +44,8 @@ app.use("/api/trainings", require("./routes/trainingRoutes"));
 app.use("/api/profiles", require("./routes/profileRoutes"));
 app.use("/api/uu", require("./routes/uuRoutes"));
 app.use("/api/events", require("./routes/eventRoutes"));
+
+// ⭐ YOUR GUIDELINES ROUTE
 app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
 
 // =====================
