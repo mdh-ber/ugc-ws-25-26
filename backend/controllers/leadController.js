@@ -21,11 +21,11 @@ exports.getLeadStats = async (req, res) => {
 // Create a Lead (Simulating a form submission)
 exports.createLead = async (req, res) => {
   try {
-    const { name, email, platform } = req.body;
-    const newLead = new Lead({ name, email, platform });
+    const { name, email, platform, creatorId } = req.body; // ✅ Extract creatorId
+    const newLead = new Lead({ name, email, platform, creatorId });
     await newLead.save();
     res.status(201).json({ message: "Lead saved successfully", lead: newLead });
   } catch (error) {
-    res.status(500).json({ message: "Server error creating lead" });
+    res.status(500).json({ message: "Server error" });
   }
 };
