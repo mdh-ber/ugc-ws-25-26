@@ -1,43 +1,45 @@
-require("dotenv").config();
 const express = require("express");
+const mongoose = require("mongoose");
+require("dotenv").config();
+
 const cors = require("cors");
-const connectDB = require("./config/db");
-const uuRoutes = require("./routes/uu");
 const app = express();
 
-// Connect DB
-connectDB();
-
-// Middleware
-app.use(cors());
+// =====================
+// MIDDLEWARE
+// =====================
 app.use(express.json());
 
-// Routes
+// CORS 
+app.use(cors());
+app.options("*", cors());
+
+// =====================
+// DATABASE
+// =====================
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.log(err));
+
+// =====================
+// ROUTES
+// =====================
+app.use("/api/rewards", require("./routes/rewardRoutes"));
 app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
 app.use("/api/trainings", require("./routes/trainingRoutes"));
 app.use("/api/profiles", require("./routes/profileRoutes"));
 app.use("/api/uu", require("./routes/uuRoutes"));
-app.use("/api/feedback", require("./routes/feedbackRoutes"));
-app.use("/api/uu", uuRoutes);
-// PORT (must be BEFORE listen)
+app.use("/api/events", require("./routes/eventRoutes"));
+
+// GUIDELINES ROUTE
+app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
+
+// =====================
+// SERVER START
+// =====================
 const PORT = process.env.PORT || 5000;
 
-// Start server
-app.get("/api/uu/referral/users", (req, res) => {
-  res.json({
-    users: [
-      { id: "1", name: "John", email: "john@test.com", date: "2026-02-15" },
-      { id: "2", name: "Sara", email: "sara@test.com", date: "2026-02-14" },
-    ],
-  });
-});
-
-app.get("/api/uu/referee/users", (req, res) => {
-  res.json({
-    users: [{ id: "3", name: "Adam", email: "adam@test.com", date: "2026-02-15" }],
-  });
-});
-
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
