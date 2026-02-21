@@ -9,15 +9,6 @@ const feedbackSchema = new mongoose.Schema(
       minlength: 2,
       maxlength: 2000,
     },
-    resolved: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
-    resolvedAt: {
-      type: Date,
-      default: null,
-    },
   },
   { timestamps: true }
 );
