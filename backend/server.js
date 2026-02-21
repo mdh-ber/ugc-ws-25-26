@@ -35,6 +35,7 @@ app.use("/api/events", require("./routes/eventRoutes"));
 // GUIDELINES ROUTE
 app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
 
+app.use("/api/auth", require("./routes/authRoutes"));
 // =====================
 // SERVER START
 // =====================
