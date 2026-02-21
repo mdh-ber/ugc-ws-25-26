@@ -36,13 +36,18 @@ mongoose
 // =====================
 // ROUTES
 // =====================
+// =====================
+// ROUTES
+// =====================
+// ✅ Removed /api/auth
 app.use("/api/rewards", require("./routes/rewardRoutes"));
 app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
 app.use("/api/trainings", require("./routes/trainingRoutes"));
 app.use("/api/profiles", require("./routes/profileRoutes"));
 app.use("/api/uu", require("./routes/uuRoutes"));
 app.use("/api/events", require("./routes/eventRoutes"));
-app.use("/api/leads", require("./routes/leadRoutes"));
+app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
+app.use("/api/leads", require("./routes/leadRoutes")); // From our previous task
 // ⭐ YOUR GUIDELINES ROUTE
 app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
 
