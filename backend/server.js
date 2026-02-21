@@ -33,6 +33,9 @@ app.use("/api/events", require("./routes/eventRoutes"));
 // GUIDELINES ROUTE
 app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
 
+// (Referral Visits)
+app.use("/api/referrals", require("./routes/referralVisitRoutes"));
+
 // =====================
 // SERVER START
 // =====================
