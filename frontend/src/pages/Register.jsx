@@ -123,11 +123,9 @@ function Register() {
 
       const res = await axios.post(`${API_BASE}/auth/register`, payload);
 
-      // auto-login (session-based)
       sessionStorage.setItem("token", res.data.token);
-      sessionStorage.setItem("role", res.data.user.role);
-
-      nav("/profile");
+sessionStorage.setItem("user", JSON.stringify(res.data.user));
+nav("/profile");
     } catch (err) {
       console.error(err);
       setError(err?.response?.data?.message || "Registration failed");
