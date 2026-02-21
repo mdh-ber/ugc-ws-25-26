@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const ReferalSchema = new mongoose.Schema({
+const ReferralSchema = new mongoose.Schema({
   firstName: {
     type: String,
     required: true,
@@ -29,7 +29,7 @@ const ReferalSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-   referalDate: {
+   referralDate: {
     type: Date,
     required: true
   },
@@ -62,7 +62,5 @@ const ReferalSchema = new mongoose.Schema({
 });
 
 module.exports = {
-  Referal: mongoose.model('Referal', ReferalSchema),
-//  ReferalSchedule: mongoose.model('ReferalSchedule', ReferalScheduleSchema),
-//  ReferalProgress: mongoose.model('ReferalProgress', ReferalProgressSchema)
+  Referral: mongoose.model('Referral', ReferralSchema),
 };  
