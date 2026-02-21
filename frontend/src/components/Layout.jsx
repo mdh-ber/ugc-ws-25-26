@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Link, useLocation, Outlet } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import {
   Menu,
   Home,
@@ -14,7 +16,18 @@ import {
   Target
 } from "lucide-react";
 
-function Layout() {
+const nav = useNavigate();
+const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+
+const logout = () => {
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
+//   localStorage.removeItem("token");
+//   localStorage.removeItem("user");
+  nav("/login");
+};
+
+function Layout({ children }) {
   const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
