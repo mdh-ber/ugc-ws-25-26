@@ -38,3 +38,6 @@ logs/
 # Misc
 .eslintignore
 .prettierignore
+node_modules
+.env
+.DS_Store
