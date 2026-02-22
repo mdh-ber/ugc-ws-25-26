@@ -12,12 +12,9 @@
 
 1. May is the product owner
 2. Deepsika is the Scrum Master
-<<<<<<< Kiran-Doddapaneni#35
-=======
-3. Napat is one of the development team
-4. Pantida developed the backend training data.
 
->>>>>>> main
+3. Napat is one of the development team
+4. Pantida developed the backend training data
 
 
 # Development Stack

@@ -17,6 +17,7 @@ import UuOverview from "./pages/UuOverview";
 import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
+import ReferralList from "./pages/ReferralList";
 
 import Footer from "./components/Footer";
 
@@ -52,6 +53,7 @@ function App() {
             <Route path="/guidelines" element={<Guidelines />} />
             <Route path="/reviews" element={<Reviews />} />
             <Route path="/uu-overview" element={<UuOverview />} />
+            <Route path="/referrals" element={<ReferralList />} />
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="/milestones" element={<Milestones />} />
