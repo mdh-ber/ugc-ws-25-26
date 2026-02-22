@@ -17,7 +17,7 @@ export default function RefereeOverview() {
   const fetchOverview = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/uu/referee/overview"); // ✅ backend endpoint
+      const res = await api.get("/uu/referee/users"); // ✅ backend endpoint
       const series = res.data?.series || [];
 
       // Convert backend format → recharts format

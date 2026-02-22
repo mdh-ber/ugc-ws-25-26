@@ -23,8 +23,8 @@ export default function UuOverview() {
   useEffect(() => {
     const url =
       activeTab === "referral"
-        ? "http://localhost:5000/api/uu/referral/overview"
-        : "http://localhost:5000/api/uu/referee/overview";
+        ? "http://localhost:5000/api/uu/referral/users"
+        : "http://localhost:5000/api/uu/referee/users";
 
     axios
       .get(url, { params: { days: range } })
