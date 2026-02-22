@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 
 const cors = require("cors");
-
 const app = express();
 
 // =====================
@@ -11,7 +10,7 @@ const app = express();
 // =====================
 app.use(express.json());
 
-// ⭐ CORS (must be before routes)
+// CORS 
 app.use(cors());
 app.options("*", cors());
 
@@ -31,11 +30,14 @@ app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
 app.use("/api/trainings", require("./routes/trainingRoutes"));
 app.use("/api/profiles", require("./routes/profileRoutes"));
 app.use("/api/uu", require("./routes/uuRoutes"));
+app.use("/api/events", require("./routes/eventRoutes"));
+app.use("/api/referrals", require("./routes/referralRoutes"));
 app.use("/api/lead", require("./routes/leadRoutes"));
 
-// ⭐ YOUR GUIDELINES ROUTE
+// GUIDELINES ROUTE
 app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
 
+app.use("/api/auth", require("./routes/authRoutes"));
 // =====================
 // SERVER START
 // =====================
