@@ -1,6 +1,7 @@
 const http = require("http");
 const url = require("url");
 const mongoose = require("mongoose");
+
 require("dotenv").config();
 
 const Feedback = require("./models/feedback.model");
@@ -102,6 +103,58 @@ const server = http.createServer(async (req, res) => {
   const query = parsed.query || {};
   const segments = path.split("/").filter(Boolean); // no empty
 
+// =====================
+// DATABASE
+// =====================
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.log(err));
+
+// =====================
+// ROUTES
+// =====================
+app.use("/api/rewards", require("./routes/rewardRoutes"));
+app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
+app.use("/api/trainings", require("./routes/trainingRoutes"));
+app.use("/api/profiles", require("./routes/profileRoutes"));
+app.use("/api/uu", require("./routes/uuRoutes"));
+app.use("/api/events", require("./routes/eventRoutes"));
+app.use("/api/referrals", require("./routes/referralRoutes"));
+app.use("/api/lead", require("./routes/leadRoutes"));
+app.use("/api/visits", require("./routes/visitRoutes"));
+
+
+// GUIDELINES ROUTE
+app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
+
+app.use("/api/auth", require("./routes/authRoutes"));
+// =====================
+// SERVER START
+// =====================
+2b01ec51397b652c10e1c8c9f3aadd9fe968d3cc
+main
+const PORT = process.env.PORT || 5000;
+ 
+// =====================
+// MIDDLEWARE
+// =====================
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(
+  cors({
+    origin: ["http://localhost:3000"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+app.options("*", cors());
+ 
+// =====================
+// DEFAULT ADMIN CREATION
+// =====================
+const createDefaultAdmin = async () => {
   try {
     // ===========================
     // AUTH
@@ -429,14 +482,14 @@ const server = http.createServer(async (req, res) => {
     // Not found
     return sendJson(res, 404, { message: "Route not found" });
   } catch (err) {
-    return sendJson(res, 500, { message: err.message || "Server error" });
+    console.error("Failed to create/reset default admin:", err);
   }
 });
 
 // ---------------- connect & listen ----------------
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log("MongoDB connected");
     server.listen(PORT, () => console.log(`Node server running on port ${PORT}`));
   })
