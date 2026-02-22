@@ -11,13 +11,36 @@ import {
   NotebookPen,
   Wallet,
   Award,
-  Target
+  Target,
+  LogOut,
+  UserSearch,
 } from "lucide-react";
+
+
+import Feedback from "../pages/Feedback"
 
 function Layout() {
   const [isOpen, setIsOpen] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
+
   const location = useLocation();
-  const navigate = useNavigate();
+  const nav = useNavigate();
+
+  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("role");
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+
+    nav("/login");
+  };
+
+  if (!token) return <Outlet />;
 
   const menuItems = [
     { name: "Home", path: "/home", icon: Home },
@@ -26,31 +49,65 @@ function Layout() {
     { name: "Profile", path: "/profile", icon: User },
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
+    { name: "Referral List", path: "/referrals", icon: UserSearch },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
-    { name: "Milestones", path: "/milestones", icon: Target }
+    { name: "Milestones", path: "/milestones", icon: Target },
   ];
 
-  const logout = () => {
-    sessionStorage.removeItem("token");
-    navigate("/login");
-  };
+  const NotificationPlaceholder = () => (
+    <div className="relative">
+      <button
+        onClick={() => setShowNotifications(!showNotifications)}
+        className="relative p-2 rounded-lg hover:bg-gray-100"
+        aria-label="Notifications"
+      >
+        <Bell size={20} className="text-gray-700" />
+        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+          0
+        </span>
+      </button>
+
+      {showNotifications && (
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border py-4 px-6 z-50">
+          <h3 className="text-lg font-semibold mb-4">
+            Notifications (Coming Soon)
+          </h3>
+          <p className="text-gray-600">
+            Real-time notifications will appear here.
+          </p>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className={`bg-white shadow ${isOpen ? "w-64" : "w-20"}`}>
-        <div className="p-4 flex justify-between">
-          {isOpen && <h2 className="font-bold text-blue-600">MDH UGC</h2>}
-          <button onClick={() => setIsOpen(!isOpen)}>
-            <Menu />
+      <div
+        className={`bg-white shadow-lg transition-all duration-300 ${
+          isOpen ? "w-64" : "w-20"
+        }`}
+      >
+        <div className="p-4 flex justify-between items-center border-b">
+          {isOpen && <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-2 rounded hover:bg-gray-100"
+            aria-label="Toggle sidebar"
+          >
+            <Menu size={20} />
           </button>
         </div>
 
         <nav className="p-4 flex flex-col space-y-2">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
-            const isActive = location.pathname.startsWith(item.path);
+
+            const isActive =
+              item.path === "/home"
+                ? location.pathname === "/home"
+                : location.pathname.startsWith(item.path);
 
             return (
               <Link
@@ -79,10 +136,34 @@ function Layout() {
 
       {/* Main */}
       <div className="flex-1">
-        <div className="bg-white p-4 shadow">UGC Platform</div>
+        <div className="bg-white shadow p-4 flex justify-between items-center">
+          <div>
+            <h1 className="font-semibold text-xl">UGC Platform</h1>
+            <span className="text-sm text-gray-500">MDH University</span>
+          </div>
 
+          <div className="flex items-center gap-2">
+            <NotificationPlaceholder />
+
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-gray-100"
+              title="Logout"
+              aria-label="Logout"
+            >
+              <LogOut size={20} className="text-gray-700" />
+            </button>
+          </div>
+        </div>
+
+        {/* Page content + feedback */}
         <div className="p-6">
           <Outlet />
+
+          {/* ✅ Show feedback on every protected page */}
+          {/* <div className="mt-6">
+            <Feedback />
+          </div> */}
         </div>
       </div>
     </div>
