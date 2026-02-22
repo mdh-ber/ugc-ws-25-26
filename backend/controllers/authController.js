@@ -17,9 +17,9 @@ const signToken = (user) =>
     { expiresIn: "7d" }
   );
 
-// ==============================
+// ======================
 // POST /api/auth/login
-// ==============================
+// ======================
 const login = async (req, res) => {
   try {
     const email = (req.body.email || "").trim().toLowerCase();
@@ -51,7 +51,7 @@ const login = async (req, res) => {
     });
   } catch (err) {
     console.error("Login error:", err);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Login failed" });
   }
 };
 

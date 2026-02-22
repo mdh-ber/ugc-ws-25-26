@@ -11,11 +11,13 @@ import {
   NotebookPen,
   Wallet,
   Award,
-  Target
+  Target,
+  LogOut,
 } from "lucide-react";
 
 function Layout() {
   const [isOpen, setIsOpen] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -28,22 +30,56 @@ function Layout() {
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
-    { name: "Milestones", path: "/milestones", icon: Target }
+    { name: "Milestones", path: "/milestones", icon: Target },
   ];
 
+  // ✅ DEFINE logout INSIDE the component
   const logout = () => {
     sessionStorage.removeItem("token");
-    navigate("/login");
+    sessionStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login", { replace: true });
   };
+
+  const NotificationPlaceholder = () => (
+    <div className="relative">
+      <button
+        onClick={() => setShowNotifications(!showNotifications)}
+        className="relative p-2 rounded-lg hover:bg-gray-100"
+      >
+        <Bell size={20} className="text-gray-700" />
+        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+          0
+        </span>
+      </button>
+
+      {showNotifications && (
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border py-4 px-6 z-50">
+          <h3 className="text-lg font-semibold mb-4">
+            Notifications (Coming Soon)
+          </h3>
+          <p className="text-gray-600">Real-time notifications will appear here.</p>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className={`bg-white shadow ${isOpen ? "w-64" : "w-20"}`}>
-        <div className="p-4 flex justify-between">
-          {isOpen && <h2 className="font-bold text-blue-600">MDH UGC</h2>}
-          <button onClick={() => setIsOpen(!isOpen)}>
-            <Menu />
+      <div
+        className={`bg-white shadow-lg transition-all duration-300 ${
+          isOpen ? "w-64" : "w-20"
+        }`}
+      >
+        <div className="p-4 flex justify-between items-center border-b">
+          {isOpen && <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-2 rounded hover:bg-gray-100"
+          >
+            <Menu size={20} />
           </button>
         </div>
 
@@ -56,9 +92,9 @@ function Layout() {
               <Link
                 key={index}
                 to={item.path}
-                className={`flex items-center space-x-3 p-3 rounded ${
+                className={`flex items-center space-x-3 p-3 rounded-lg transition ${
                   isActive
-                    ? "bg-blue-600 text-white"
+                    ? "bg-blue-600 text-white shadow-md"
                     : "hover:bg-gray-100 text-gray-700"
                 }`}
               >
@@ -69,17 +105,27 @@ function Layout() {
           })}
         </nav>
 
-        <button
-          onClick={logout}
-          className="m-4 bg-red-500 text-white p-2 rounded"
-        >
-          Logout
-        </button>
+        {/* Logout button */}
+        <div className="p-4 border-t">
+          <button
+            onClick={logout}
+            className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600"
+          >
+            <LogOut size={18} />
+            {isOpen && <span>Logout</span>}
+          </button>
+        </div>
       </div>
 
       {/* Main */}
       <div className="flex-1">
-        <div className="bg-white p-4 shadow">UGC Platform</div>
+        <div className="bg-white shadow p-4 flex justify-between items-center">
+          <div>
+            <h1 className="font-semibold text-xl">UGC Platform</h1>
+            <span className="text-sm text-gray-500">MDH University</span>
+          </div>
+          <NotificationPlaceholder />
+        </div>
 
         <div className="p-6">
           <Outlet />
