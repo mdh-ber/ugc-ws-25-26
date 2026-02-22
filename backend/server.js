@@ -1,3 +1,34 @@
+// server.js
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
+ 
+// =====================
+// ROUTES
+// =====================
+import rewardRoutes from "./routes/rewardRoutes.js";
+import reviewRequestRoutes from "./routes/reviewRequestRoutes.js";
+import trainingRoutes from "./routes/trainingRoutes.js";
+import profileRoutes from "./routes/profileRoutes.js";
+import uuRoutes from "./routes/uuRoutes.js";
+import eventRoutes from "./routes/eventRoutes.js";
+import guidelinesRoutes from "./routes/guidelinesRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import feedbackRoutes from "./routes/feedbackRoutes.js";
+ 
+// =====================
+// MODELS
+// =====================
+import User from "./models/user.model.js";
+ 
+// =====================
+// CONFIG
+// =====================
+dotenv.config();
+const app = express();
+=======
 // server.js (updated)
 const http = require("http");
 const url = require("url");
@@ -7,7 +38,6 @@ require("dotenv").config();
 
 const Feedback = require("./models/feedback.model"); // must be CommonJS export
 
-<<<<<<< HEAD
 // =====================
 // MIDDLEWARE
 // =====================
@@ -46,114 +76,82 @@ app.use("/api/auth", require("./routes/authRoutes"));
 // =====================
 // SERVER START
 // =====================
-=======
->>>>>>> 2b01ec51397b652c10e1c8c9f3aadd9fe968d3cc
+2b01ec51397b652c10e1c8c9f3aadd9fe968d3cc
+main
 const PORT = process.env.PORT || 5000;
-
-// --- helpers ---
-function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-  );
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-}
-
-function sendJson(res, status, data) {
-  setCors(res);
-  res.writeHead(status, { "Content-Type": "application/json" });
-  res.end(JSON.stringify(data));
-}
-
-function readJsonBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => {
-      if (!body) return resolve({});
-      try {
-        resolve(JSON.parse(body));
-      } catch (e) {
-        reject(new Error("Invalid JSON"));
-      }
-    });
-  });
-}
-
-// --- server ---
-const server = http.createServer(async (req, res) => {
-  setCors(res);
-
-  // Preflight
-  if (req.method === "OPTIONS") {
-    res.writeHead(204);
-    return res.end();
-  }
-
-  const parsed = url.parse(req.url, true);
-  const path = parsed.pathname;
-
+ 
+// =====================
+// MIDDLEWARE
+// =====================
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(
+  cors({
+    origin: ["http://localhost:3000"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+app.options("*", cors());
+ 
+// =====================
+// DEFAULT ADMIN CREATION
+// =====================
+const createDefaultAdmin = async () => {
   try {
-    // ---------------------------
-    // AUTH
-    // ---------------------------
-
-    // POST /api/auth/login
-    if (req.method === "POST" && path === "/api/auth/login") {
-      const body = await readJsonBody(req);
-      const email = (body.email || "").trim().toLowerCase();
-      const password = body.password || "";
-
-      // TEMP: hardcoded demo login (replace with DB + bcrypt + JWT later)
-      if (email === "admin@mdh.com" && password === "admin123") {
-        return sendJson(res, 200, {
-          token: "demo-token-123",
-          user: { email, role: "admin" },
-        });
-      }
-
-      return sendJson(res, 401, { message: "Invalid email or password" });
+    const adminEmail = "admin@mdh.com";
+    const adminPassword = "Admin@123";
+ 
+    const existingAdmin = await User.findOne({ email: adminEmail });
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
+ 
+    if (existingAdmin) {
+      existingAdmin.passwordHash = passwordHash;
+      existingAdmin.role = "admin";
+      await existingAdmin.save();
+ 
+      console.log("✅ Default admin password RESET");
+      console.log("📧 Email:", adminEmail);
+      console.log("🔑 Password:", adminPassword);
+      return;
     }
-
-    // ---------------------------
-    // FEEDBACK
-    // ---------------------------
-
-    // GET /api/feedback
-    if (req.method === "GET" && path === "/api/feedback") {
-      const items = await Feedback.find().sort({ createdAt: -1 });
-      return sendJson(res, 200, { items });
-    }
-
-    // POST /api/feedback
-    if (req.method === "POST" && path === "/api/feedback") {
-      const body = await readJsonBody(req);
-      const text = (body.feedback ?? body.message ?? "").trim();
-
-      if (!text || text.length < 2) {
-        return sendJson(res, 400, { message: "Feedback is required" });
-      }
-
-      await Feedback.create({ feedback: text });
-      return sendJson(res, 201, { message: "Feedback saved" });
-    }
-
-    // Not found
-    return sendJson(res, 404, { message: "Route not found" });
+ 
+    await User.create({
+      email: adminEmail,
+      passwordHash,
+      role: "admin",
+    });
+ 
+    console.log("✅ Default admin created");
+    console.log("📧 Email:", adminEmail);
+    console.log("🔑 Password:", adminPassword);
   } catch (err) {
-    return sendJson(res, 500, { message: err.message || "Server error" });
+    console.error("Failed to create/reset default admin:", err);
   }
-});
-
-// --- connect DB then listen ---
+};
+ 
+// =====================
+// ROUTES
+// =====================
+app.use("/api/rewards", rewardRoutes);
+app.use("/api/review-requests", reviewRequestRoutes);
+app.use("/api/trainings", trainingRoutes);
+app.use("/api/profiles", profileRoutes);
+app.use("/api/uu", uuRoutes);
+app.use("/api/events", eventRoutes);
+app.use("/api/guidelines", guidelinesRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/feedback", feedbackRoutes);
+ 
+// =====================
+// DB + SERVER START
+// =====================
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log("MongoDB connected");
-    server.listen(PORT, () =>
-      console.log(`Node server running on port ${PORT}`)
-    );
+    await createDefaultAdmin();
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
   .catch((err) => console.error("MongoDB connection error:", err));
