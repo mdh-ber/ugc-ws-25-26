@@ -12,7 +12,7 @@ import Footer from "./components/Footer";
 import Reviews from "./pages/Reviews";
 import UuOverview from "./pages/UuOverview";
 import UI_Guidelines from "./pages/UI_Guidelines";
-
+import Rewards from "./pages/Rewards";
 function App() {
   return (
     <div className="min-h-screen flex flex-col">
@@ -30,6 +30,7 @@ function App() {
             <Route path="/ui_guidelines" element={<UI_Guidelines />} />
             <Route path="/reviews" element={<Reviews />} />
             <Route path="/uu-overview" element={<UuOverview />} />
+            <Route path="/rewards" element={<Rewards />} />
           </Routes>
         </Layout>
       </div>
