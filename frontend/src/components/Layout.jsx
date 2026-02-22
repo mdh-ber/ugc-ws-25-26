@@ -16,9 +16,6 @@ import {
   UserSearch,
 } from "lucide-react";
 
-
-import Feedback from "../pages/Feedback"
-
 function Layout() {
   const [isOpen, setIsOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -40,6 +37,7 @@ function Layout() {
     nav("/login");
   };
 
+  // If not logged in, just render pages (login/register)
   if (!token) return <Outlet />;
 
   const menuItems = [
@@ -60,7 +58,6 @@ function Layout() {
       <button
         onClick={() => setShowNotifications(!showNotifications)}
         className="relative p-2 rounded-lg hover:bg-gray-100"
-        aria-label="Notifications"
       >
         <Bell size={20} className="text-gray-700" />
         <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
@@ -94,7 +91,6 @@ function Layout() {
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 rounded hover:bg-gray-100"
-            aria-label="Toggle sidebar"
           >
             <Menu size={20} />
           </button>
@@ -126,8 +122,9 @@ function Layout() {
           })}
         </nav>
 
+        {/* FIXED HERE */}
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="m-4 bg-red-500 text-white p-2 rounded"
         >
           Logout
@@ -148,22 +145,14 @@ function Layout() {
             <button
               onClick={handleLogout}
               className="p-2 rounded-lg hover:bg-gray-100"
-              title="Logout"
-              aria-label="Logout"
             >
               <LogOut size={20} className="text-gray-700" />
             </button>
           </div>
         </div>
 
-        {/* Page content + feedback */}
         <div className="p-6">
           <Outlet />
-
-          {/* ✅ Show feedback on every protected page */}
-          {/* <div className="mt-6">
-            <Feedback />
-          </div> */}
         </div>
       </div>
     </div>
