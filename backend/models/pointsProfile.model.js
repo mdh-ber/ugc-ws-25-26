@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const pointsProfileSchema = new mongoose.Schema(
   {
@@ -6,13 +6,17 @@ const pointsProfileSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true
     },
-    points: { type: Number, default: 0 }
+    points: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
 
-module.exports =
+const PointsProfile =
   mongoose.models.PointsProfile ||
   mongoose.model("PointsProfile", pointsProfileSchema);
+
+export default PointsProfile;

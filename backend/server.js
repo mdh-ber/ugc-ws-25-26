@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 
 import milestoneTypeRoutes from "./routes/milestoneTypeRoutes.js";
 import userMilestoneRoutes from "./routes/userMilestoneRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.get("/", (_req, res) => {
 });
 
 // Routes
+app.use("/api/auth", authRoutes);
 app.use("/milestone-types", milestoneTypeRoutes);
 app.use("/user-milestones", userMilestoneRoutes);
 
