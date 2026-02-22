@@ -1,6 +1,6 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const User = require("../models/user.model");
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/user.model.js";
 
 // ======================
 // JWT SIGN
@@ -19,7 +19,7 @@ const signToken = (user) => {
 // ======================
 // REGISTER
 // ======================
-exports.register = async (req, res) => {
+const register = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -36,7 +36,7 @@ exports.register = async (req, res) => {
 
     const user = await User.create({
       email,
-      passwordHash, // ✅ CORRECT FIELD
+      passwordHash,
       role: "user",
     });
 
@@ -57,9 +57,9 @@ exports.register = async (req, res) => {
 };
 
 // ======================
-// LOGIN (FIXED)
+// LOGIN
 // ======================
-exports.login = async (req, res) => {
+const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -68,7 +68,6 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // 🔥 THIS WAS THE BUG BEFORE
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -89,3 +88,5 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Login failed" });
   }
 };
+
+export { login, register };
