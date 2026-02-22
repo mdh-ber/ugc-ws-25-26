@@ -3,6 +3,9 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
@@ -14,67 +17,57 @@ import UuOverview from "./pages/UuOverview";
 import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
-// import AdminFeedback from "./pages/AdminFeedback";
-// Clear auth on app reload (no persistent login)
-localStorage.removeItem("token");
-localStorage.removeItem("role");
+
+import Footer from "./components/Footer";
+
 function App() {
-  const token = sessionStorage.getItem("token");
+  // ✅ support both storages
+  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
 
   return (
-    <Routes>
-      {/* 🔹 APP ENTRY POINT */}
-      <Route
-        path="/"
-        element={<Navigate to={"/login"} replace />}
-      />
+    <>
+      <Routes>
+        {/* Entry */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-      {/* 🔓 PUBLIC ROUTES (NO LAYOUT) */}
-      <Route
-        path="/login"
-        element={token ? <Navigate to="/dashboard" replace /> : <Login />}
-      />
-
-      <Route
-        path="/register"
-        element={token ? <Navigate to="/dashboard" replace /> : <Register />}
-      />
-
-      {/* 🔐 PROTECTED ROUTES */}
-      <Route element={<ProtectedRoute />}>
+        {/* Public routes (NO layout UI because Layout will not be used here) */}
         <Route
-          path="/*"
-          element={
-            <>
-              <Layout>
-                <Routes>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/create" element={<ContentCreation />} />
-                  <Route path="/trainings" element={<Trainings />} />
-                  <Route path="/guidelines" element={<Guidelines />} />
-                  <Route path="/reviews" element={<Reviews />} />
-                  <Route path="/uu-overview" element={<UuOverview />} />
-                  <Route path="/rewards" element={<Rewards />} />
-                  <Route path="/certificates" element={<CertificatesPage />} />
-                  <Route path="/milestones" element={<Milestones />} />
-                  {/* <Route path="/admin/feedback" element={<AdminFeedback />} /> */}
-
-                  {/* fallback inside app */}
-                  <Route
-                    path="*"
-                    element={<Navigate to="/dashboard" replace />}
-                  />
-                </Routes>
-              </Layout>
-
-              <Footer />
-            </>
-          }
+          path="/login"
+          element={token ? <Navigate to="/dashboard" replace /> : <Login />}
         />
-      </Route>
-    </Routes>
+        <Route
+          path="/register"
+          element={token ? <Navigate to="/dashboard" replace /> : <Register />}
+        />
+
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          {/* Layout wraps all protected pages */}
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/create" element={<ContentCreation />} />
+            <Route path="/trainings" element={<Trainings />} />
+            <Route path="/guidelines" element={<Guidelines />} />
+            <Route path="/reviews" element={<Reviews />} />
+            <Route path="/uu-overview" element={<UuOverview />} />
+            <Route path="/rewards" element={<Rewards />} />
+            <Route path="/certificates" element={<CertificatesPage />} />
+            <Route path="/milestones" element={<Milestones />} />
+
+            {/* fallback inside protected area */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Route>
+        </Route>
+
+        {/* global fallback */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+
+      {/* ✅ optional: only show footer when logged in */}
+      {token ? <Footer /> : null}
+    </>
   );
 }
 
