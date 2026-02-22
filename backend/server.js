@@ -28,6 +28,56 @@ import User from "./models/user.model.js";
 // =====================
 dotenv.config();
 const app = express();
+=======
+// server.js (updated)
+const http = require("http");
+const url = require("url");
+const mongoose = require("mongoose");
+
+require("dotenv").config();
+
+const Feedback = require("./models/feedback.model"); // must be CommonJS export
+
+// =====================
+// MIDDLEWARE
+// =====================
+app.use(express.json());
+
+// CORS 
+app.use(cors());
+app.options("*", cors());
+
+// =====================
+// DATABASE
+// =====================
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.log(err));
+
+// =====================
+// ROUTES
+// =====================
+app.use("/api/rewards", require("./routes/rewardRoutes"));
+app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
+app.use("/api/trainings", require("./routes/trainingRoutes"));
+app.use("/api/profiles", require("./routes/profileRoutes"));
+app.use("/api/uu", require("./routes/uuRoutes"));
+app.use("/api/events", require("./routes/eventRoutes"));
+app.use("/api/referrals", require("./routes/referralRoutes"));
+app.use("/api/lead", require("./routes/leadRoutes"));
+app.use("/api/visits", require("./routes/visitRoutes"));
+
+
+// GUIDELINES ROUTE
+app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
+
+app.use("/api/auth", require("./routes/authRoutes"));
+// =====================
+// SERVER START
+// =====================
+2b01ec51397b652c10e1c8c9f3aadd9fe968d3cc
+main
 const PORT = process.env.PORT || 5000;
  
 // =====================
