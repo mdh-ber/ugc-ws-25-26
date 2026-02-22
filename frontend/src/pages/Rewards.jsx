@@ -9,7 +9,7 @@ const Rewards = () => {
   useEffect(() => {
     const fetchRewards = async () => {
       try {
-        const res = await axios.get("/api/rewards/summary/USER_ID_HERE");
+        const res = await axios.get("/api/rewards");
         setRewards(res.data);
       } catch (e) {
         setError(e?.message || "Request failed");
@@ -39,21 +39,15 @@ const Rewards = () => {
     <div style={{ padding: "20px" }}>
       <h2>Rewards Earned</h2>
 
-      {loading && <p>Loading rewards...</p>}
+      {loading && <p>Loading...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <div style={{ background: "#fff", padding: "20px", borderRadius: "10px" }}>
-        <h3>Total Points</h3>
-        <h1>{totalPoints}</h1>
-        <p>Equivalent Value: €{moneyValue}</p>
-      </div>
+      <h3>Total Points: {totalPoints}</h3>
+      <p>Value: €{moneyValue}</p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
-        {breakdown.map((item, i) => (
-          <div key={i} style={{ background: "#fff", padding: 15 }}>
-            <h4>{item.title}</h4>
-            <p>{item.points} Points</p>
-          </div>
+      <div>
+        {breakdown.map((b, i) => (
+          <div key={i}>{b.title}: {b.points}</div>
         ))}
       </div>
     </div>
