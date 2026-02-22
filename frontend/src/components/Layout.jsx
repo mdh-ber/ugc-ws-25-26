@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
   Menu,
   Home,
@@ -13,27 +11,35 @@ import {
   NotebookPen,
   Wallet,
   Award,
-  Target
+  Target,
+  LogOut,
+  UserSearch,
 } from "lucide-react";
 
-const nav = useNavigate();
-const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-
-const logout = () => {
-  sessionStorage.removeItem("token");
-  sessionStorage.removeItem("user");
-//   localStorage.removeItem("token");
-//   localStorage.removeItem("user");
-  nav("/login");
-};
-
-function Layout({ children }) {
+function Layout() {
   const [isOpen, setIsOpen] = useState(true);
-  const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // --- Sidebar Menu Items ---
-  // IMPORTANT: Home path changed from "/" to "/home"
+  const location = useLocation();
+  const nav = useNavigate();
+
+  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("role");
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+
+    nav("/login");
+  };
+
+  // If not logged in, just render pages (login/register)
+  if (!token) return <Outlet />;
+
   const menuItems = [
     { name: "Home", path: "/home", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -41,12 +47,12 @@ function Layout({ children }) {
     { name: "Profile", path: "/profile", icon: User },
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
+    { name: "Referral List", path: "/referrals", icon: UserSearch },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
-    { name: "Milestones", path: "/milestones", icon: Target }
+    { name: "Milestones", path: "/milestones", icon: Target },
   ];
 
-  // --- Notification Placeholder ---
   const NotificationPlaceholder = () => (
     <div className="relative">
       <button
@@ -74,19 +80,14 @@ function Layout({ children }) {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* --- Sidebar --- */}
+      {/* Sidebar */}
       <div
         className={`bg-white shadow-lg transition-all duration-300 ${
           isOpen ? "w-64" : "w-20"
         }`}
       >
-        {/* Sidebar Header */}
         <div className="p-4 flex justify-between items-center border-b">
-          {isOpen && (
-            <h2 className="font-bold text-blue-600 text-lg">
-              MDH UGC
-            </h2>
-          )}
+          {isOpen && <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 rounded hover:bg-gray-100"
@@ -95,20 +96,22 @@ function Layout({ children }) {
           </button>
         </div>
 
-        {/* Sidebar Menu */}
         <nav className="p-4 flex flex-col space-y-2">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
 
-            const isActive = location.pathname.startsWith(item.path);
+            const isActive =
+              item.path === "/home"
+                ? location.pathname === "/home"
+                : location.pathname.startsWith(item.path);
 
             return (
               <Link
                 key={index}
                 to={item.path}
-                className={`flex items-center space-x-3 p-3 rounded-lg transition ${
+                className={`flex items-center space-x-3 p-3 rounded ${
                   isActive
-                    ? "bg-blue-600 text-white shadow-md"
+                    ? "bg-blue-600 text-white"
                     : "hover:bg-gray-100 text-gray-700"
                 }`}
               >
@@ -118,25 +121,36 @@ function Layout({ children }) {
             );
           })}
         </nav>
+
+        {/* FIXED HERE */}
+        <button
+          onClick={handleLogout}
+          className="m-4 bg-red-500 text-white p-2 rounded"
+        >
+          Logout
+        </button>
       </div>
 
-      {/* --- Main Content --- */}
+      {/* Main */}
       <div className="flex-1">
-        {/* Top Header */}
         <div className="bg-white shadow p-4 flex justify-between items-center">
           <div>
-            <h1 className="font-semibold text-xl">
-              UGC Platform
-            </h1>
-            <span className="text-sm text-gray-500">
-              MDH University
-            </span>
+            <h1 className="font-semibold text-xl">UGC Platform</h1>
+            <span className="text-sm text-gray-500">MDH University</span>
           </div>
 
-          <NotificationPlaceholder />
+          <div className="flex items-center gap-2">
+            <NotificationPlaceholder />
+
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-gray-100"
+            >
+              <LogOut size={20} className="text-gray-700" />
+            </button>
+          </div>
         </div>
 
-        {/* Page Content */}
         <div className="p-6">
           <Outlet />
         </div>

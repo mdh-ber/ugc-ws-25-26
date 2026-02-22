@@ -1,6 +1,6 @@
+import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../services/api";// adjust path if different
+import api from "../services/api";
 
 function Login() {
   const nav = useNavigate();
@@ -17,8 +17,9 @@ function Login() {
 
       sessionStorage.setItem("token", res.data.token);
       sessionStorage.setItem("user", JSON.stringify(res.data.user));
+      sessionStorage.setItem("role", res.data.user.role);
 
-      nav("/profile"); // or "/dashboard"
+      nav("/dashboard");
     } catch (e) {
       setErr(e?.response?.data?.message || "Login failed");
     } finally {
@@ -56,17 +57,18 @@ function Login() {
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full bg-primary text-white py-2 rounded-lg disabled:opacity-60"
+          className="w-full bg-blue-600 text-white py-2 rounded-lg disabled:opacity-60"
         >
           {loading ? "Logging in..." : "Login"}
         </button>
+
+        <p className="mt-4 text-sm text-gray-600 text-center">
+          Don’t have an account?{" "}
+          <Link to="/register" className="text-blue-600 font-medium hover:underline">
+            Register
+          </Link>
+        </p>
       </div>
-      <p className="mt-4 text-sm text-gray-600">
-        Don’t have an account?{" "}
-        <Link to="/register" className="text-blue-600 font-medium hover:underline">
-          Register
-        </Link>
-      </p>
     </div>
   );
 }
