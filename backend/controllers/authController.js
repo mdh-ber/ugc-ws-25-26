@@ -1,6 +1,6 @@
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import User from "../models/user.model.js";
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/user.model");
 
 // ======================
 // JWT SIGN
@@ -89,4 +89,4 @@ const login = async (req, res) => {
   }
 };
 
-export { login, register };
+module.exports = { login, register };

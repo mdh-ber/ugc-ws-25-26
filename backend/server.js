@@ -3,21 +3,19 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 
-import rewardRoutes from "./routes/rewardRoutes.js";
-import reviewRequestRoutes from "./routes/reviewRequestRoutes.js";
-import trainingRoutes from "./routes/trainingRoutes.js";
-import profileRoutes from "./routes/profileRoutes.js";
-import uuRoutes from "./routes/uuRoutes.js";
-import eventRoutes from "./routes/eventRoutes.js";
-import guidelinesRoutes from "./routes/guidelinesRoutes.js";
-import authRoutes from "./routes/authRoutes.js";
-import feedbackRoutes from "./routes/feedbackRoutes.js";
+const rewardRoutes = require("./routes/rewardRoutes");
+const reviewRequestRoutes = require("./routes/reviewRequestRoutes");
+const trainingRoutes = require("./routes/trainingRoutes");
+const profileRoutes = require("./routes/profileRoutes");
+const uuRoutes = require("./routes/uuRoutes");
+const eventRoutes = require("./routes/eventRoutes");
+const guidelinesRoutes = require("./routes/guidelinesRoutes");
+const authRoutes = require("./routes/authRoutes");
+const feedbackRoutes = require("./routes/feedbackRoutes");
+const referralVisitRoutes = require("./routes/referralVisitRoutes");
 
-import bcrypt from "bcryptjs";
-// import User from "./models/user.model.js"
-import User from "./models/user.model.js";
-
-dotenv.config();
+const bcrypt = require("bcryptjs");
+const User = require("./models/user.model");
 
 const app = express();
 
@@ -26,22 +24,8 @@ const app = express();
 // =====================
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-<<<<<<< HEAD
-// CORS 
 app.use(cors());
-=======
-app.use(
-  cors({
-    origin: ["http://localhost:3000"],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
-app.options("*", cors());
 
->>>>>>> a318b33d15b73535c77bbcded28051c39659d1de
 // =====================
 // DEFAULT ADMIN CREATION
 // =====================
@@ -57,10 +41,7 @@ const createDefaultAdmin = async () => {
       existingAdmin.passwordHash = passwordHash;
       existingAdmin.role = "admin";
       await existingAdmin.save();
-
       console.log("✅ Default admin password RESET");
-      console.log("📧 Email:", adminEmail);
-      console.log("🔑 Password:", adminPassword);
       return;
     }
 
@@ -71,8 +52,6 @@ const createDefaultAdmin = async () => {
     });
 
     console.log("✅ Default admin created");
-    console.log("📧 Email:", adminEmail);
-    console.log("🔑 Password:", adminPassword);
   } catch (err) {
     console.error("Failed to create/reset default admin:", err);
   }
@@ -90,9 +69,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/guidelines", guidelinesRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/feedback", feedbackRoutes);
-
-// (Referral Visits)
-app.use("/api/referrals", require("./routes/referralVisitRoutes"));
+app.use("/api/referrals", referralVisitRoutes);
 
 // =====================
 // DB + SERVER START
@@ -104,6 +81,8 @@ mongoose
   .then(async () => {
     console.log("MongoDB connected");
     await createDefaultAdmin();
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    app.listen(PORT, () =>
+      console.log(`Server running on port ${PORT}`)
+    );
   })
   .catch((err) => console.log(err));

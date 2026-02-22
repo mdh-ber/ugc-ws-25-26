@@ -13,12 +13,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-<<<<<<< HEAD
-    "cors": "^2.8.5",
-=======
     "bcryptjs": "^3.0.3",
-    "cors": "^2.8.6",
->>>>>>> a318b33d15b73535c77bbcded28051c39659d1de
+    "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.22.1",
     "jsonwebtoken": "^9.0.3",
