@@ -13,6 +13,7 @@ import {
   Award,
   Target,
   LogOut,
+  UserSearch,
 } from "lucide-react";
 
 
@@ -48,6 +49,7 @@ function Layout() {
     { name: "Profile", path: "/profile", icon: User },
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
+    { name: "Referral List", path: "/referrals", icon: UserSearch },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
     { name: "Milestones", path: "/milestones", icon: Target },
