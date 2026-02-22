@@ -1,77 +1,99 @@
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
+// backend/seed.js
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import MilestoneType from "./models/MilestoneType.js";
 
-// 1. Load your secrets
 dotenv.config();
 
-// 2. Define Schema (Must match your Training.js model)
-const TrainingSchema = new mongoose.Schema({
-  title: String,
-  type: { 
-    type: String, 
-    enum: ['Video', 'PDF'] 
-  },
-  url: String,
-  category: String,
-  thumbnail: String,
-  createdAt: { type: Date, default: Date.now }
-});
+if (!process.env.MONGO_URI) {
+  console.error("MONGO_URI is missing in your .env file!");
+  process.exit(1);
+}
+const MONGO_URI = process.env.MONGO_URI;
 
-const Training = mongoose.model('Training', TrainingSchema);
-
-// 3. The Mixed List (Videos + PDFs)
-const trainingData = [
-  // --- VideoS ---
+const milestones = [
+  // 1) Creator of Platforms – goal-based (posts)
   {
-    title: "How to Create Viral Reels",
-    type: "Video",
-    category: "Content Strategy",
-    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg"
-  },
-  {
-    title: "UGC Editing Masterclass",
-    type: "Video",
-    category: "Editing",
-    url: "https://www.youtube.com/watch?v=example123",
-    thumbnail: "https://img.youtube.com/vi/example123/mqdefault.jpg"
+    title: "Creator of Platforms",
+    description: "Post across platforms to reach the goal",
+    category: "platforms",
+    metric: "posts",
+    computeMethod: "goal",
+    period: "lifetime",
+    scope: "platform",
+    scopeValue: null,
+    goal: 10,
+    rewardPoints: 300,
+    isActive: true,
   },
 
-  // --- PDFS ---
+  // 2) Best Creators of the Month – global leaderboard (top 3)
   {
-    title: "2026 Brand Guidelines",
-    type: "PDF",
-    category: "Guidelines",
-    url: "https://www.mdh-university.de/files/brand-guide.PDF", 
-    // Use a generic icon for PDFs since they don't have thumbnails like YouTube
-    thumbnail: "https://cdn-icons-png.flaticon.com/512/337/337946.png"
+    title: "Best Creators of the Month",
+    description: "Top creators by points this month",
+    category: "leaderboard",
+    metric: "points",
+    computeMethod: "leaderboard",
+    period: "monthly",
+    scope: "global",
+    scopeValue: null,
+    goal: 0,
+    slots: 3,
+    rewardPoints: 1000,
+    isActive: true,
   },
+
+  // 3a) Best Creator – Berlin – city leaderboard (top 1)
   {
-    title: "Creator Contract Template",
-    type: "PDF",
-    category: "Legal",
-    url: "https://www.mdh-university.de/files/contract.PDF",
-    thumbnail: "https://cdn-icons-png.flaticon.com/512/2965/2965335.png"
-  }
+    title: "Best Creator – Berlin",
+    description: "Top creator in Berlin this month",
+    category: "leaderboard",
+    metric: "points",
+    computeMethod: "leaderboard",
+    period: "monthly",
+    scope: "city",
+    scopeValue: "Berlin",
+    goal: 0,
+    slots: 1,
+    rewardPoints: 800,
+    isActive: true,
+  },
+
+  // 3b) Best Creator – Düsseldorf – city leaderboard (top 1)
+  {
+    title: "Best Creator – Düsseldorf",
+    description: "Top creator in Düsseldorf this month",
+    category: "leaderboard",
+    metric: "points",
+    computeMethod: "leaderboard",
+    period: "monthly",
+    scope: "city",
+    scopeValue: "Düsseldorf",
+    goal: 0,
+    slots: 1,
+    rewardPoints: 800,
+    isActive: true,
+  },
 ];
 
-// 4. The Magic Function
 const seedDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    console.log("Connecting to MongoDB Atlas...");
+    await mongoose.connect(MONGO_URI);
+    console.log("Connected to MongoDB Atlas");
 
-    // CLEAR old data
-    await Training.deleteMany();
-    console.log('🗑️  Old data removed...');
+    console.log(" Clearing existing milestones...");
+    await MilestoneType.deleteMany({});
+    console.log("Existing milestones cleared");
 
-    // INSERT new mixed data
-    await Training.insertMany(trainingData);
-    console.log('✨ Success! Added ' + trainingData.length + ' items (Videos & PDFs).');
+    console.log("Adding new milestones...");
+    const inserted = await MilestoneType.insertMany(milestones);
+    console.log(`Inserted ${inserted.length} milestones successfully`);
 
-    process.exit();
-  } catch (error) {
-    console.error(`❌ Error: ${error.message}`);
+    await mongoose.connection.close();
+    console.log(" MongoDB connection closed");
+  } catch (err) {
+    console.error("Error seeding database:", err);
     process.exit(1);
   }
 };
