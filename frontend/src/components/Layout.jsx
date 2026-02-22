@@ -14,6 +14,7 @@ import {
   Target,
   LogOut,
   UserSearch,
+  BarChart3,
 } from "lucide-react";
 
 function Layout() {
@@ -24,6 +25,10 @@ function Layout() {
   const nav = useNavigate();
 
   const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+
+  // ✅ URL-based mode switch: add ?mode=manager to any URL
+  const params = new URLSearchParams(location.search);
+  const isMarketingManager = params.get("mode") === "manager";
 
   const handleLogout = () => {
     sessionStorage.removeItem("token");
@@ -40,6 +45,9 @@ function Layout() {
   // If not logged in, just render pages (login/register)
   if (!token) return <Outlet />;
 
+  // ✅ Keep query string (so mode stays when you click menu items)
+  const withQuery = (path) => `${path}${location.search || ""}`;
+
   const menuItems = [
     { name: "Home", path: "/home", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -51,6 +59,17 @@ function Layout() {
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
     { name: "Milestones", path: "/milestones", icon: Target },
+
+    // ✅ Only visible when URL has ?mode=manager
+    ...(isMarketingManager
+      ? [
+          {
+            name: "Website Analytics",
+            path: "/website-analytics",
+            icon: BarChart3,
+          },
+        ]
+      : []),
   ];
 
   const NotificationPlaceholder = () => (
@@ -108,7 +127,7 @@ function Layout() {
             return (
               <Link
                 key={index}
-                to={item.path}
+                to={withQuery(item.path)}
                 className={`flex items-center space-x-3 p-3 rounded ${
                   isActive
                     ? "bg-blue-600 text-white"
@@ -122,7 +141,6 @@ function Layout() {
           })}
         </nav>
 
-        {/* FIXED HERE */}
         <button
           onClick={handleLogout}
           className="m-4 bg-red-500 text-white p-2 rounded"

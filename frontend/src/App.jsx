@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -19,11 +19,17 @@ import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
 import ReferralList from "./pages/ReferralList";
 
+import WebsiteAnalytics from "./pages/WebsiteAnalytics";
 import Footer from "./components/Footer";
 
 function App() {
-  // ✅ support both storages
+  // keep your existing auth gate (still requires login to access protected pages)
   const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+
+  // ✅ URL-based mode switch
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const isMarketingManager = params.get("mode") === "manager";
 
   return (
     <>
@@ -31,7 +37,7 @@ function App() {
         {/* Entry */}
         <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Public routes (NO layout UI because Layout will not be used here) */}
+        {/* Public routes */}
         <Route
           path="/login"
           element={token ? <Navigate to="/dashboard" replace /> : <Login />}
@@ -43,7 +49,6 @@ function App() {
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
-          {/* Layout wraps all protected pages */}
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/home" element={<Home />} />
@@ -58,6 +63,18 @@ function App() {
             <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="/milestones" element={<Milestones />} />
 
+            {/* ✅ Website Analytics: ONLY when URL has ?mode=manager */}
+            <Route
+              path="/website-analytics"
+              element={
+                isMarketingManager ? (
+                  <WebsiteAnalytics />
+                ) : (
+                  <Navigate to="/dashboard" replace />
+                )
+              }
+            />
+
             {/* fallback inside protected area */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
@@ -67,7 +84,6 @@ function App() {
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
 
-      {/* ✅ optional: only show footer when logged in */}
       {token ? <Footer /> : null}
     </>
   );
