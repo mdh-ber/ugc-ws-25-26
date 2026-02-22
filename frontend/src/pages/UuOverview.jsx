@@ -1,3 +1,4 @@
+import ClicksPerCreatorCard from "../components/ClicksPerCreatorCard";
 import { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import {
