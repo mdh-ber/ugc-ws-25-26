@@ -125,6 +125,7 @@ function Register() {
 
       sessionStorage.setItem("token", res.data.token);
 sessionStorage.setItem("user", JSON.stringify(res.data.user));
+sessionStorage.setItem("role", res.data.user.role);
 nav("/profile");
     } catch (err) {
       console.error(err);

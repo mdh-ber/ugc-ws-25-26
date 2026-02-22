@@ -1,60 +1,73 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
+
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import ContentCreation from "./pages/ContentCreation";
-import Login from "./pages/Login";
 import Trainings from "./pages/Trainings";
 import Guidelines from "./pages/Guidelines";
-import Footer from "./components/Footer";
-import Register from "./pages/Register";
 import Reviews from "./pages/Reviews";
 import UuOverview from "./pages/UuOverview";
-import UI_Guidelines from "./pages/UI_Guidelines";
 import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
 
+import Footer from "./components/Footer";
+
 function App() {
+  // ✅ support both storages
   const token = sessionStorage.getItem("token") || localStorage.getItem("token");
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1">
-        <Layout>
-          <Routes>
-            {/* Public */}
-            <Route path="/login" element={<Login />} />
+    <>
+      <Routes>
+        {/* Entry */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-            {/* Protected group */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/create" element={<ContentCreation />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/trainings" element={<Trainings />} />
-              <Route path="/guidelines" element={<Guidelines />} />
-              <Route path="/ui_guidelines" element={<UI_Guidelines />} />
-              <Route path="/reviews" element={<Reviews />} />
-              <Route path="/uu-overview" element={<UuOverview />} />
-              <Route path="/rewards" element={<Rewards />} />
-              <Route path="/certificates" element={<CertificatesPage />} />
-              <Route path="/milestones" element={<Milestones />} />
-              <Route path="/register" element={<Register />} />
-            </Route>
+        {/* Public routes (NO layout UI because Layout will not be used here) */}
+        <Route
+          path="/login"
+          element={token ? <Navigate to="/dashboard" replace /> : <Login />}
+        />
+        <Route
+          path="/register"
+          element={token ? <Navigate to="/dashboard" replace /> : <Register />}
+        />
 
-            {/* Optional: fallback */}
-            <Route path="*" element={<Login />} />
-          </Routes>
-        </Layout>
-      </div>
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          {/* Layout wraps all protected pages */}
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/create" element={<ContentCreation />} />
+            <Route path="/trainings" element={<Trainings />} />
+            <Route path="/guidelines" element={<Guidelines />} />
+            <Route path="/reviews" element={<Reviews />} />
+            <Route path="/uu-overview" element={<UuOverview />} />
+            <Route path="/rewards" element={<Rewards />} />
+            <Route path="/certificates" element={<CertificatesPage />} />
+            <Route path="/milestones" element={<Milestones />} />
 
-      {/* Optional: hide footer when logged out */}
+            {/* fallback inside protected area */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Route>
+        </Route>
+
+        {/* global fallback */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+
+      {/* ✅ optional: only show footer when logged in */}
       {token ? <Footer /> : null}
-    </div>
+    </>
   );
 }
 
