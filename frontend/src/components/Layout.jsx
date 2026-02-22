@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link, useLocation, Outlet } from "react-router-dom";
 import { LogOut } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
 import {
   Menu,
   Home,
@@ -13,24 +12,36 @@ import {
   NotebookPen,
   Wallet,
   Award,
-  Target
+  Target,
+  BarChart3
 } from "lucide-react";
 
-const nav = useNavigate();
+
+
+// const nav = useNavigate(); // Remove this - hooks can't be called at module level
 const token = sessionStorage.getItem("token") || localStorage.getItem("token");
 
-const logout = () => {
-  sessionStorage.removeItem("token");
-  sessionStorage.removeItem("user");
-//   localStorage.removeItem("token");
-//   localStorage.removeItem("user");
-  nav("/login");
-};
+// const logout = () => {  // Move this inside the component
+//   sessionStorage.removeItem("token");
+//   sessionStorage.removeItem("user");
+// //   localStorage.removeItem("token");
+// //   localStorage.removeItem("user");
+//   nav("/login");
+// };
 
 function Layout({ children }) {
   const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
+  const nav = useNavigate();  // Move useNavigate inside the component
+
+  const logout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    //   localStorage.removeItem("token");
+    //   localStorage.removeItem("user");
+    nav("/login");
+  };
 
   // --- Sidebar Menu Items ---
   // IMPORTANT: Home path changed from "/" to "/home"
@@ -43,7 +54,8 @@ function Layout({ children }) {
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
-    { name: "Milestones", path: "/milestones", icon: Target }
+    { name: "Milestones", path: "/milestones", icon: Target },
+    { name: "Financial Report", path: "/financial-report", icon: BarChart3 }
   ];
 
   // --- Notification Placeholder ---
@@ -106,6 +118,7 @@ function Layout({ children }) {
               <Link
                 key={index}
                 to={item.path}
+                onClick={() => console.log('Navigating to:', item.path)}
                 className={`flex items-center space-x-3 p-3 rounded-lg transition ${
                   isActive
                     ? "bg-blue-600 text-white shadow-md"

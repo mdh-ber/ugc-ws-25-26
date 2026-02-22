@@ -1,5 +1,5 @@
 const RefereeUu = require("../models/RefereeUu");
-const ReferralUu = require("../models/ReferralUu");
+const ReferralUu = require("../models/referralUu");
 
 function parseRange(req) {
   const from = req.query.from || "2026-01-01";

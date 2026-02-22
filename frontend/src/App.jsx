@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Footer from "./components/Footer";
 
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
@@ -11,10 +12,12 @@ import Trainings from "./pages/Trainings";
 import Guidelines from "./pages/Guidelines";
 import Reviews from "./pages/Reviews";
 import UuOverview from "./pages/UuOverview";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
-// import AdminFeedback from "./pages/AdminFeedback";
+import FinancialReport from "./pages/FinancialReport";
 // Clear auth on app reload (no persistent login)
 localStorage.removeItem("token");
 localStorage.removeItem("role");
@@ -59,6 +62,7 @@ function App() {
                   <Route path="/rewards" element={<Rewards />} />
                   <Route path="/certificates" element={<CertificatesPage />} />
                   <Route path="/milestones" element={<Milestones />} />
+                  <Route path="/financial-report" element={<FinancialReport />} />
                   {/* <Route path="/admin/feedback" element={<AdminFeedback />} /> */}
 
                   {/* fallback inside app */}

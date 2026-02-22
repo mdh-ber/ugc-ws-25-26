@@ -1,4 +1,5 @@
 function Button({
+  children,
   text,
   onClick,
   type = "button",
@@ -39,7 +40,7 @@ function Button({
       disabled={disabled}
       className={buttonClasses}
     >
-      {text}
+      {children || text}
     </button>
   );
 }

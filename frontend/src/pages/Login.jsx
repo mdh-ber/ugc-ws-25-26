@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";// adjust path if different
 
 function Login() {
@@ -59,6 +59,19 @@ function Login() {
           className="w-full bg-primary text-white py-2 rounded-lg disabled:opacity-60"
         >
           {loading ? "Logging in..." : "Login"}
+        </button>
+
+        <button
+          onClick={() => {
+            console.log('Demo login clicked');
+            sessionStorage.setItem("token", "demo-token");
+            sessionStorage.setItem("role", "admin");
+            console.log('Token set:', sessionStorage.getItem("token"));
+            nav("/dashboard");
+          }}
+          className="w-full bg-gray-500 text-white py-2 rounded-lg mt-2"
+        >
+          Demo Login (No Backend)
         </button>
       </div>
       <p className="mt-4 text-sm text-gray-600">

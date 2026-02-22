@@ -32,6 +32,7 @@ app.use("/api/profiles", require("./routes/profileRoutes"));
 app.use("/api/uu", require("./routes/uuRoutes"));
 app.use("/api/events", require("./routes/eventRoutes"));
 app.use("/api/referrals", require("./routes/referralRoutes"));
+app.use("/api/financial-report", require("./routes/financialReportRoutes"));
 
 // GUIDELINES ROUTE
 app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
