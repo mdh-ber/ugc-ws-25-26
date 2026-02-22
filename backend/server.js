@@ -7,7 +7,6 @@ require("dotenv").config();
 
 const Feedback = require("./models/feedback.model"); // must be CommonJS export
 
-<<<<<<< HEAD
 // =====================
 // MIDDLEWARE
 // =====================
@@ -46,8 +45,6 @@ app.use("/api/auth", require("./routes/authRoutes"));
 // =====================
 // SERVER START
 // =====================
-=======
->>>>>>> 2b01ec51397b652c10e1c8c9f3aadd9fe968d3cc
 const PORT = process.env.PORT || 5000;
 
 // --- helpers ---
