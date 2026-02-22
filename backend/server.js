@@ -1,9 +1,10 @@
-const express = require("express");
-const mongoose = require("mongoose");
-require("dotenv").config();
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import dotenv from "dotenv";
 
-const cors = require("cors");
-const app = express();
+import milestoneTypeRoutes from "./routes/milestoneTypeRoutes.js";
+import userMilestoneRoutes from "./routes/userMilestoneRoutes.js";
 
 // =====================
 // MIDDLEWARE
@@ -26,9 +27,6 @@ app.use(
 // ✅ Preflight
 app.options("*", cors());
 
-// =====================
-// DATABASE
-// =====================
 mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
