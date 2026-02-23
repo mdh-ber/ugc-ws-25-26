@@ -97,7 +97,7 @@ export default function CertificatesPage() {
         <div>
           <h2 className="text-2xl font-bold">Certificates</h2>
           <p className="text-sm text-gray-600 mt-1">
-            View your certificates by domain/type and earnings during participation.
+            View your rewards by domain/type and earnings during participation.
           </p>
         </div>
 
