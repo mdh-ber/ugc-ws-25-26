@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -22,14 +23,31 @@ import ReferralList from "./pages/ReferralList";
 import WebsiteAnalytics from "./pages/WebsiteAnalytics";
 import Footer from "./components/Footer";
 
+import CampaignsList from "./pages/CampaignsList";
+import CampaignForm from "./pages/CampaignForm";
+
+import CampaignROI from "./pages/CampaignROI";
+
 function App() {
   // keep your existing auth gate (still requires login to access protected pages)
   const token = sessionStorage.getItem("token") || localStorage.getItem("token");
 
   // ✅ URL-based mode switch
   const location = useLocation();
+  const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
   const isMarketingManager = params.get("mode") === "manager";
+
+  // ✅ AUTO add ?mode=manager after login (so sidebar shows Campaigns automatically)
+  useEffect(() => {
+    if (!token) return;
+
+    const mode = params.get("mode");
+    if (!mode) {
+      // preserve current path; add manager mode
+      navigate(`${location.pathname}?mode=manager`, { replace: true });
+    }
+  }, [token, location.pathname]); // keep minimal deps
 
   return (
     <>
@@ -63,7 +81,14 @@ function App() {
             <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="/milestones" element={<Milestones />} />
 
-            {/* ✅ Website Analytics: ONLY when URL has ?mode=manager */}
+            {/* Campaigns */}
+            <Route path="/campaigns" element={<CampaignsList />} />
+            <Route path="/campaigns/new" element={<CampaignForm />} />
+            <Route path="/campaigns/:id/edit" element={<CampaignForm />} />
+
+            <Route path="/campaigns/:id/roi" element={<CampaignROI />} />
+
+            {/* Website Analytics: ONLY when URL has ?mode=manager */}
             <Route
               path="/website-analytics"
               element={
