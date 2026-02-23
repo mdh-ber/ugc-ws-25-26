@@ -46,3 +46,31 @@ exports.getUniqueAudience = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getClicksPerCreator = async (req, res) => {
+  try {
+    const data = await ReferralVisit.aggregate([
+      {
+        $group: {
+          _id: "$creatorId",
+          totalClicks: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          creatorId: "$_id",
+          creatorName: "$_id", // replace later with real name
+          totalClicks: 1,
+          _id: 0
+        }
+      },
+      {
+        $sort: { totalClicks: -1 }
+      }
+    ]);
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

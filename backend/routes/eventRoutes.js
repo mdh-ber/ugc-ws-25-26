@@ -15,3 +15,5 @@ router.delete("/:id", checkRole, deleteEvent);
 router.put("/:id", checkRole, updateEvent);
 
 export default router;
+
+module.exports = router;

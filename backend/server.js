@@ -13,6 +13,7 @@ const guidelinesRoutes = require("./routes/guidelinesRoutes");
 const authRoutes = require("./routes/authRoutes");
 const feedbackRoutes = require("./routes/feedbackRoutes");
 const referralVisitRoutes = require("./routes/referralVisitRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
 
 const bcrypt = require("bcryptjs");
 const User = require("./models/user.model");
@@ -50,7 +51,8 @@ const createDefaultAdmin = async () => {
       role: "admin",
     });
 
-    console.log("✅ Default admin created");
+    console.log("Default admin created");
+    console.log("Analytics routes loaded");
   } catch (err) {
     console.error("Failed to create/reset default admin:", err);
   }
@@ -69,6 +71,7 @@ app.use("/api/guidelines", guidelinesRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/referrals", referralVisitRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // =====================
 // DB + SERVER START
