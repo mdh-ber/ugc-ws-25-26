@@ -5,3 +5,4 @@ import Rewards from "./pages/Rewards";
 import Milestones from "./pages/Milestones";
 
 <Route path="/milestones" element={<Milestones />} />
+

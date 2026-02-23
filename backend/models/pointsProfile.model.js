@@ -1,18 +1,28 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-const pointsProfileSchema = new mongoose.Schema(
+const { Schema } = mongoose;
+
+const pointsProfileSchema = new Schema(
   {
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true
+      unique: true, // each user has only one points profile
     },
-    points: { type: Number, default: 0 }
+    points: {
+      type: Number,
+      default: 0,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-module.exports =
+// Prevent model overwrite in development (important for nodemon / hot reload)
+const PointsProfile =
   mongoose.models.PointsProfile ||
   mongoose.model("PointsProfile", pointsProfileSchema);
+
+export default PointsProfile;

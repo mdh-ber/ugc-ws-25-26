@@ -1,3 +1,4 @@
+// Layout.jsx
 import { useState } from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
@@ -14,34 +15,35 @@ import {
   Target,
   LogOut,
   UserSearch,
+  BarChart3,
+  Megaphone, // ✅ NEW
 } from "lucide-react";
-
-
-import Feedback from "../pages/Feedback"
 
 function Layout() {
   const [isOpen, setIsOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
-
   const location = useLocation();
   const nav = useNavigate();
 
   const token = sessionStorage.getItem("token") || localStorage.getItem("token");
 
+  // ----------------------
+  // Logout Function
+  // ----------------------
   const handleLogout = () => {
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
     sessionStorage.removeItem("role");
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("role");
+  // ✅ Keep query string
+  const withQuery = (path) => `${path}${location.search || ""}`;
 
-    nav("/login");
-  };
-
+  // If no token, allow rendering login/outlet pages
   if (!token) return <Outlet />;
 
+  // ----------------------
+  // Menu Items
+  // ----------------------
   const menuItems = [
     { name: "Home", path: "/home", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -49,18 +51,35 @@ function Layout() {
     { name: "Profile", path: "/profile", icon: User },
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
-    { name: "Referral List", path: "/referrals", icon: UserSearch },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
     { name: "Milestones", path: "/milestones", icon: Target },
+
+    // ✅ Visible only in manager mode
+    ...(isMarketingManager
+      ? [
+          {
+            name: "Campaigns", // ✅ NEW
+            path: "/campaigns",
+            icon: Megaphone,
+          },
+          {
+            name: "Website Analytics",
+            path: "/website-analytics",
+            icon: BarChart3,
+          },
+        ]
+      : []),
   ];
 
+  // ----------------------
+  // Notifications Placeholder
+  // ----------------------
   const NotificationPlaceholder = () => (
     <div className="relative">
       <button
         onClick={() => setShowNotifications(!showNotifications)}
         className="relative p-2 rounded-lg hover:bg-gray-100"
-        aria-label="Notifications"
       >
         <Bell size={20} className="text-gray-700" />
         <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
@@ -90,11 +109,12 @@ function Layout() {
         }`}
       >
         <div className="p-4 flex justify-between items-center border-b">
-          {isOpen && <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>}
+          {isOpen && (
+            <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>
+          )}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 rounded hover:bg-gray-100"
-            aria-label="Toggle sidebar"
           >
             <Menu size={20} />
           </button>
@@ -103,7 +123,6 @@ function Layout() {
         <nav className="p-4 flex flex-col space-y-2">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
-
             const isActive =
               item.path === "/home"
                 ? location.pathname === "/home"
@@ -112,10 +131,10 @@ function Layout() {
             return (
               <Link
                 key={index}
-                to={item.path}
-                className={`flex items-center space-x-3 p-3 rounded ${
+                to={withQuery(item.path)}   // ✅ keeps ?mode=manager
+                className={`flex items-center space-x-3 p-3 rounded-lg transition ${
                   isActive
-                    ? "bg-blue-600 text-white"
+                    ? "bg-blue-600 text-white shadow-md"
                     : "hover:bg-gray-100 text-gray-700"
                 }`}
               >
@@ -126,16 +145,18 @@ function Layout() {
           })}
         </nav>
 
+        {/* Sidebar Logout Button */}
         <button
-          onClick={logout}
-          className="m-4 bg-red-500 text-white p-2 rounded"
+          onClick={handleLogout}
+          className="m-4 bg-red-500 text-white p-2 rounded flex items-center justify-center gap-2"
         >
-          Logout
+          <LogOut size={18} /> {isOpen && "Logout"}
         </button>
       </div>
 
-      {/* Main */}
+      {/* Main Content */}
       <div className="flex-1">
+        {/* Header */}
         <div className="bg-white shadow p-4 flex justify-between items-center">
           <div>
             <h1 className="font-semibold text-xl">UGC Platform</h1>
@@ -145,6 +166,7 @@ function Layout() {
           <div className="flex items-center gap-2">
             <NotificationPlaceholder />
 
+            {/* Top-right Logout */}
             <button
               onClick={handleLogout}
               className="p-2 rounded-lg hover:bg-gray-100"
@@ -156,14 +178,9 @@ function Layout() {
           </div>
         </div>
 
-        {/* Page content + feedback */}
+        {/* Page Content */}
         <div className="p-6">
           <Outlet />
-
-          {/* ✅ Show feedback on every protected page */}
-          {/* <div className="mt-6">
-            <Feedback />
-          </div> */}
         </div>
       </div>
     </div>
