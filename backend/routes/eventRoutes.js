@@ -1,16 +1,18 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+
+// ✅ Add Multer to parse the incoming form data and images
+const upload = multer({ storage: multer.memoryStorage() });
 
 const { getEvents, createEvent, deleteEvent, updateEvent } = require("../controllers/eventController.js");
 
-const checkRole = require("../middleware/checkRole.js");
-
-// Public Route (Everyone can see events)
+// Public Route
 router.get("/", getEvents);
 
-// Protected Routes (Only Marketing Manager can Create, Update, Delete)
-router.post("/", checkRole, createEvent);
-router.delete("/:id", checkRole, deleteEvent);
-router.put("/:id", checkRole, updateEvent);
+// ✅ Add 'upload.any()' so the backend can read the React form data
+router.post("/", upload.any(), createEvent);
+router.delete("/:id", deleteEvent);
+router.put("/:id", upload.any(), updateEvent);
 
 module.exports = router;

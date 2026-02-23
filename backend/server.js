@@ -1,19 +1,20 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path"); // ✅ 1. ADDED PATH MODULE
 require("dotenv").config();
 
-// ✅ 1. UNCOMMENTED EXPRESS INITIALIZATION
 const app = express();
 
 // =====================
 // MIDDLEWARE
 // =====================
-// ✅ 2. UNCOMMENTED JSON PARSER (Crucial for forms!)
 app.use(express.json()); 
-
 app.use(cors());
 app.options("*", cors());
+
+// ✅ 2. ADDED STATIC FOLDER: This allows the frontend to view images inside the backend's "uploads" folder!
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // =====================
 // DATABASE
@@ -35,17 +36,7 @@ app.use("/api/events", require("./routes/eventRoutes"));
 app.use("/api/referrals", require("./routes/referralRoutes"));
 app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
 app.use("/api/leads", require("./routes/leadRoutes"));
-
-// ✅ 3. ADDED LEADS MOCK DATA ROUTE
-app.get("/api/leads", (req, res) => {
-  const leadStats = [
-    { _id: "TikTok", count: 842 },
-    { _id: "Instagram", count: 530 },
-    { _id: "YouTube", count: 215 }
-  ];
-  res.status(200).json(leadStats);
-});
-
+app.use("/api/platforms", require("./routes/platformRoutes"));
 // =====================
 // SERVER START
 // =====================

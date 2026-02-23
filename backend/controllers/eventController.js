@@ -1,5 +1,6 @@
-// backend/controllers/eventController.js
 const Event = require("../models/Event.js");
+const fs = require("fs");
+const path = require("path");
 
 // GET /api/events
 exports.getEvents = async (req, res) => {
@@ -15,7 +16,29 @@ exports.getEvents = async (req, res) => {
 // POST /api/events
 exports.createEvent = async (req, res) => {
   try {
-    const created = await Event.create(req.body);
+    const eventData = { ...req.body };
+
+    // Check if Multer caught an uploaded image from React
+    if (req.files && req.files.length > 0) {
+      const file = req.files[0];
+      
+      // Create a unique, web-safe filename
+      const filename = Date.now() + "-" + file.originalname.replace(/\s+/g, '-');
+      const uploadDir = path.join(__dirname, "../uploads");
+      
+      // Safety Check: Auto-create the 'uploads' folder if it is missing
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir);
+      }
+
+      // Save the actual image file to the disk
+      fs.writeFileSync(path.join(uploadDir, filename), file.buffer);
+
+      // Tell MongoDB where to find the image!
+      eventData.image = `/uploads/${filename}`;
+    }
+
+    const created = await Event.create(eventData);
     return res.status(201).json(created);
   } catch (err) {
     console.error("createEvent error:", err);
@@ -26,7 +49,23 @@ exports.createEvent = async (req, res) => {
 // PUT /api/events/:id
 exports.updateEvent = async (req, res) => {
   try {
-    const updated = await Event.findByIdAndUpdate(req.params.id, req.body, {
+    const eventData = { ...req.body };
+
+    // We do the exact same logic here so you can update an event's image later!
+    if (req.files && req.files.length > 0) {
+      const file = req.files[0];
+      const filename = Date.now() + "-" + file.originalname.replace(/\s+/g, '-');
+      const uploadDir = path.join(__dirname, "../uploads");
+      
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir);
+      }
+
+      fs.writeFileSync(path.join(uploadDir, filename), file.buffer);
+      eventData.image = `/uploads/${filename}`;
+    }
+
+    const updated = await Event.findByIdAndUpdate(req.params.id, eventData, {
       new: true,
     });
 

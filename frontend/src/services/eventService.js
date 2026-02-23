@@ -15,21 +15,30 @@ export const getEvents = async () => {
 };
 
 export const createEvent = async (formData) => {
-  return (await api.post("/events", formData, {
-    headers: { "x-user-role": getRoleHeader() }
-  })).data;
+  const response = await api.post("/events", formData, {
+    headers: { 
+      "x-user-role": getRoleHeader()
+      // Notice: No Content-Type header here! Axios will handle it automatically.
+    }
+  });
+  return response.data;
 };
 
 export const updateEvent = async (id, formData) => {
-  return (await api.put(`/events/${id}`, formData, {
-    headers: { "x-user-role": getRoleHeader() }
-  })).data;
+  const response = await api.put(`/events/${id}`, formData, {
+    headers: { 
+      "x-user-role": getRoleHeader()
+      // Notice: No Content-Type header here!
+    }
+  });
+  return response.data;
 };
 
 export const deleteEvent = async (id) => {
-  return (await api.delete(`/events/${id}`, {
+  const response = await api.delete(`/events/${id}`, {
     headers: { "x-user-role": getRoleHeader() }
-  })).data;
+  });
+  return response.data;
 };
 
 export const eventService = { getEvents, createEvent, updateEvent, deleteEvent };
