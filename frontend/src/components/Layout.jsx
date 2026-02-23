@@ -15,6 +15,7 @@ import {
   LogOut,
   UserSearch,
   BarChart3,
+  Megaphone, // ✅ NEW
 } from "lucide-react";
 
 function Layout() {
@@ -63,6 +64,11 @@ function Layout() {
     // ✅ Only visible when URL has ?mode=manager
     ...(isMarketingManager
       ? [
+          {
+            name: "Campaigns", // ✅ NEW
+            path: "/campaigns",
+            icon: Megaphone,
+          },
           {
             name: "Website Analytics",
             path: "/website-analytics",

@@ -7,9 +7,19 @@ require("dotenv").config();
 const Feedback = require("./models/feedback.model");
 const Guideline = require("./models/guideline.model");
 
+// ✅ IMPORTANT: these match your filenames in models folder
+const Training = require("./models/Training");
+const Event = require("./models/Event");
+
 const RefereeUu = require("./models/RefereeUu");
 const ReferralUu = require("./models/ReferralUu");
 const { Referral } = require("./models/Referral");
+
+// ✅ NEW (Sub-issue #155)
+const Campaign = require("./models/Campaign");
+
+// ✅ NEW (Sub-issue #158)
+const CampaignMetric = require("./models/CampaignMetric");
 
 const PORT = process.env.PORT || 5000;
 
@@ -88,6 +98,25 @@ function buildSummary(series) {
   return { totalUu: total, avgDailyUu: avg, peakUu, peakDate };
 }
 
+// =========================================================
+// ROI helpers (Sub-issue #158.2)
+// =========================================================
+function yyyyMmDd(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+function dateRangeDays(days = 7) {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - (days - 1));
+  return { from: yyyyMmDd(start), to: yyyyMmDd(end) };
+}
+
+function safeNumber(n, fallback = 0) {
+  const x = Number(n);
+  return Number.isFinite(x) ? x : fallback;
+}
+
 // ---------------- server ----------------
 const server = http.createServer(async (req, res) => {
   setCors(res);
@@ -119,6 +148,22 @@ const server = http.createServer(async (req, res) => {
         });
       }
       return sendJson(res, 401, { message: "Invalid email or password" });
+    }
+
+    // ===========================
+    // TRAININGS ✅ NEW
+    // ===========================
+    if (req.method === "GET" && path === "/api/trainings") {
+      const items = await Training.find().sort({ createdAt: -1 }).lean();
+      return sendJson(res, 200, items);
+    }
+
+    // ===========================
+    // EVENTS ✅ NEW
+    // ===========================
+    if (req.method === "GET" && path === "/api/events") {
+      const items = await Event.find().sort({ createdAt: -1 }).lean();
+      return sendJson(res, 200, items);
     }
 
     // ===========================
@@ -179,7 +224,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "PUT" && path.startsWith("/api/guidelines/")) {
-      const id = segments[2]; // api/guidelines/:id => ["api","guidelines",":id"]
+      const id = segments[2]; // ["api","guidelines",":id"]
       if (!id) return sendJson(res, 404, { message: "Route not found" });
       if (!isValidObjectId(id))
         return sendJson(res, 400, { message: "Invalid id" });
@@ -227,6 +272,215 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 404, { message: "Guideline not found" });
 
       return sendJson(res, 200, { message: "Guideline deleted successfully" });
+    }
+
+    // =========================================================
+    // CAMPAIGNS CRUD (Sub-issue #155)
+    // Base: /api/campaigns
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "campaigns") {
+      // GET /api/campaigns
+      if (req.method === "GET" && segments.length === 2) {
+        const items = await Campaign.find({ status: "active" })
+          .sort({ createdAt: -1 })
+          .lean();
+        return sendJson(res, 200, items);
+      }
+
+      // POST /api/campaigns
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
+
+        if (!body.name) return sendJson(res, 400, { message: "name is required" });
+        if (!body.startDate) return sendJson(res, 400, { message: "startDate is required" });
+        if (!body.endDate) return sendJson(res, 400, { message: "endDate is required" });
+        if (!body.utmCampaign) return sendJson(res, 400, { message: "utmCampaign is required" });
+
+        const created = await Campaign.create({
+          name: String(body.name).trim(),
+          startDate: new Date(body.startDate),
+          endDate: new Date(body.endDate),
+          target: String(body.target || "").trim(),
+          platforms: Array.isArray(body.platforms) ? body.platforms : [],
+          creators: Array.isArray(body.creators) ? body.creators : [],
+          rewardsDelivered: Number(body.rewardsDelivered || 0),
+          totalAmount: Number(body.totalAmount || 0),
+          utmCampaign: String(body.utmCampaign).trim().toLowerCase(),
+          status: "active",
+        });
+
+        return sendJson(res, 201, created);
+      }
+
+      // /api/campaigns/:id
+      const id = segments[2];
+      if (!id) return sendJson(res, 404, { message: "Route not found" });
+      if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid id" });
+
+      // GET /api/campaigns/:id
+      if (req.method === "GET" && segments.length === 3) {
+        const doc = await Campaign.findById(id).lean();
+        if (!doc) return sendJson(res, 404, { message: "Campaign not found" });
+        return sendJson(res, 200, doc);
+      }
+
+      // PUT /api/campaigns/:id
+      if (req.method === "PUT" && segments.length === 3) {
+        const body = await readJsonBody(req);
+
+        const updates = {};
+        if (body.name !== undefined) updates.name = String(body.name).trim();
+        if (body.startDate !== undefined) updates.startDate = new Date(body.startDate);
+        if (body.endDate !== undefined) updates.endDate = new Date(body.endDate);
+        if (body.target !== undefined) updates.target = String(body.target).trim();
+        if (body.platforms !== undefined) updates.platforms = Array.isArray(body.platforms) ? body.platforms : [];
+        if (body.creators !== undefined) updates.creators = Array.isArray(body.creators) ? body.creators : [];
+        if (body.rewardsDelivered !== undefined) updates.rewardsDelivered = Number(body.rewardsDelivered || 0);
+        if (body.totalAmount !== undefined) updates.totalAmount = Number(body.totalAmount || 0);
+        if (body.utmCampaign !== undefined) updates.utmCampaign = String(body.utmCampaign).trim().toLowerCase();
+
+        const updated = await Campaign.findByIdAndUpdate(id, updates, {
+          new: true,
+          runValidators: true,
+        }).lean();
+
+        if (!updated) return sendJson(res, 404, { message: "Campaign not found" });
+
+        return sendJson(res, 200, {
+          message: "Campaign updated successfully",
+          campaign: updated,
+        });
+      }
+
+      // DELETE /api/campaigns/:id (archive)
+      if (req.method === "DELETE" && segments.length === 3) {
+        const updated = await Campaign.findByIdAndUpdate(
+          id,
+          { status: "archived" },
+          { new: true }
+        ).lean();
+
+        if (!updated) return sendJson(res, 404, { message: "Campaign not found" });
+
+        return sendJson(res, 200, {
+          message: "Campaign archived successfully",
+          campaign: updated,
+        });
+      }
+
+      return sendJson(res, 404, { message: "Route not found" });
+    }
+
+    // =========================================================
+    // ROI ROUTES (Sub-issue #158) - NO EXPRESS
+    // Base: /api/roi/...
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "roi") {
+      const campaignId = segments[2]; // /api/roi/:campaignId
+      if (!campaignId) return sendJson(res, 404, { message: "Route not found" });
+      if (!isValidObjectId(campaignId))
+        return sendJson(res, 400, { message: "Invalid campaignId" });
+
+      // GET /api/roi/:campaignId?days=7 (totals)
+      if (req.method === "GET" && segments.length === 3) {
+        const days = safeNumber(query.days, 7);
+        const { from, to } = dateRangeDays(days);
+
+        const rows = await CampaignMetric.aggregate([
+          {
+            $match: {
+              campaignId: new mongoose.Types.ObjectId(campaignId),
+              day: { $gte: from, $lte: to },
+            },
+          },
+          {
+            $group: {
+              _id: "$campaignId",
+              spend: { $sum: "$spend" },
+              revenue: { $sum: "$revenue" },
+              clicks: { $sum: "$clicks" },
+              conversions: { $sum: "$conversions" },
+            },
+          },
+        ]);
+
+        const totals = rows[0] || { spend: 0, revenue: 0, clicks: 0, conversions: 0 };
+        const profit = totals.revenue - totals.spend;
+        const roiPct = totals.spend === 0 ? 0 : (profit / totals.spend) * 100;
+
+        return sendJson(res, 200, {
+          campaignId,
+          from,
+          to,
+          spend: totals.spend,
+          revenue: totals.revenue,
+          profit,
+          roi: `${roiPct.toFixed(2)}%`,
+          clicks: totals.clicks,
+          conversions: totals.conversions,
+          lastUpdatedAt: new Date().toISOString(),
+        });
+      }
+
+      // GET /api/roi/:campaignId/timeseries?days=7
+      if (req.method === "GET" && segments.length === 4 && segments[3] === "timeseries") {
+        const days = safeNumber(query.days, 7);
+        const { from, to } = dateRangeDays(days);
+
+        const rows = await CampaignMetric.aggregate([
+          {
+            $match: {
+              campaignId: new mongoose.Types.ObjectId(campaignId),
+              day: { $gte: from, $lte: to },
+            },
+          },
+          {
+            $group: {
+              _id: "$day",
+              spend: { $sum: "$spend" },
+              revenue: { $sum: "$revenue" },
+              clicks: { $sum: "$clicks" },
+              conversions: { $sum: "$conversions" },
+            },
+          },
+          { $sort: { _id: 1 } },
+          {
+            $project: {
+              _id: 0,
+              day: "$_id",
+              spend: 1,
+              revenue: 1,
+              clicks: 1,
+              conversions: 1,
+            },
+          },
+        ]);
+
+        return sendJson(res, 200, { campaignId, from, to, series: rows });
+      }
+
+      // POST /api/roi/:campaignId/ingest
+      if (req.method === "POST" && segments.length === 4 && segments[3] === "ingest") {
+        const body = await readJsonBody(req);
+
+        const day = String(body.day || yyyyMmDd()).slice(0, 10);
+        const platform = String(body.platform || "unknown");
+
+        const spend = safeNumber(body.spend, 0);
+        const revenue = safeNumber(body.revenue, 0);
+        const clicks = safeNumber(body.clicks, 0);
+        const conversions = safeNumber(body.conversions, 0);
+
+        const doc = await CampaignMetric.findOneAndUpdate(
+          { campaignId, day, platform },
+          { $inc: { spend, revenue, clicks, conversions } },
+          { new: true, upsert: true }
+        ).lean();
+
+        return sendJson(res, 201, { message: "Ingested", metric: doc });
+      }
+
+      return sendJson(res, 404, { message: "Route not found" });
     }
 
     // =========================================================
@@ -304,7 +558,6 @@ const server = http.createServer(async (req, res) => {
 
       // ---------- REFEREE ----------
       if (group === "referee") {
-        // GET /api/uu/referee/overview
         if (req.method === "GET" && action === "overview") {
           const data = await RefereeUu.aggregate([
             { $match: { date: { $gte: from, $lte: to } } },
@@ -315,7 +568,6 @@ const server = http.createServer(async (req, res) => {
           return sendJson(res, 200, { series: data, from, to });
         }
 
-        // GET /api/uu/referee/members
         if (req.method === "GET" && action === "members") {
           const members = await RefereeUu.aggregate([
             { $match: { date: { $gte: from, $lte: to } } },
@@ -338,7 +590,6 @@ const server = http.createServer(async (req, res) => {
           });
         }
 
-        // GET /api/uu/referee/:refereeId
         if (req.method === "GET" && segments.length === 4 && action) {
           const refereeId = action;
 
@@ -362,9 +613,7 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // ---------- REFERRAL ----------
       if (group === "referral") {
-        // GET /api/uu/referral/overview
         if (req.method === "GET" && action === "overview") {
           const data = await ReferralUu.aggregate([
             { $match: { date: { $gte: from, $lte: to } } },
@@ -375,7 +624,6 @@ const server = http.createServer(async (req, res) => {
           return sendJson(res, 200, { series: data, from, to });
         }
 
-        // GET /api/uu/referral/members
         if (req.method === "GET" && action === "members") {
           const base = await ReferralUu.aggregate([
             { $match: { date: { $gte: from, $lte: to } } },
@@ -413,7 +661,6 @@ const server = http.createServer(async (req, res) => {
           });
         }
 
-        // GET /api/uu/referral/:referralId
         if (req.method === "GET" && segments.length === 4 && action) {
           const referralId = action;
 
@@ -458,8 +705,49 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB connected");
+
     server.listen(PORT, () =>
       console.log(`Node server running on port ${PORT}`)
     );
+
+    // =========================================================
+    // DYNAMIC ROI DATA GENERATOR (Sub-issue #158.3)
+    // Inserts/upserts metrics every 2 minutes
+    // Later replace with real Meta/Shopify/API ingestion
+    // =========================================================
+    setInterval(async () => {
+      try {
+        const day = yyyyMmDd(new Date());
+
+        // Only active campaigns
+        const campaigns = await Campaign.find({ status: "active" })
+          .select("_id platforms")
+          .lean();
+
+        for (const c of campaigns) {
+          // pick a platform name (your campaigns use "platforms" array)
+          const platform =
+            Array.isArray(c.platforms) && c.platforms.length
+              ? String(c.platforms[0])
+              : "unknown";
+
+          // random demo increments (dynamic)
+          const spend = Math.round(Math.random() * 200); // 0..200
+          const revenue = Math.round(Math.random() * 500); // 0..500
+          const clicks = Math.round(Math.random() * 120); // 0..120
+          const conversions = Math.round(Math.random() * 10); // 0..10
+
+          await CampaignMetric.findOneAndUpdate(
+            { campaignId: c._id, day, platform },
+            { $inc: { spend, revenue, clicks, conversions } },
+            { upsert: true, new: true }
+          );
+        }
+
+        console.log(`[ROI] metrics updated for ${campaigns.length} campaigns (${day})`);
+      } catch (e) {
+        console.error("[ROI] metric job failed:", e);
+      }
+    }, 2 * 60 * 1000); // every 2 minutes
   })
   .catch((err) => console.error("MongoDB connection error:", err));
