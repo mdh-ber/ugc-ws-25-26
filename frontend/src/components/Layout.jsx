@@ -1,5 +1,6 @@
+// Layout.jsx
 import { useState } from "react";
-import { Link, useLocation, Outlet } from "react-router-dom";
+import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
   Menu,
   Home,
@@ -11,17 +12,34 @@ import {
   NotebookPen,
   Wallet,
   Award,
-  Target,
-  PieChart // Added the PieChart icon for Lead Tracking
+  Target
 } from "lucide-react";
 
 function Layout() {
   const [isOpen, setIsOpen] = useState(true);
-  const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
+  const location = useLocation();
+  const nav = useNavigate();
 
-  // --- Sidebar Menu Items ---
-  // IMPORTANT: Home path changed from "/" to "/home"
+  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+
+  // ----------------------
+  // Logout Function
+  // ----------------------
+  const handleLogout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("role");
+
+  // ✅ Keep query string
+  const withQuery = (path) => `${path}${location.search || ""}`;
+
+  // If no token, allow rendering login/outlet pages
+  if (!token) return <Outlet />;
+
+  // ----------------------
+  // Menu Items
+  // ----------------------
   const menuItems = [
     { name: "Home", path: "/home", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -31,11 +49,12 @@ function Layout() {
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
-    { name: "Milestones", path: "/milestones", icon: Target },
-    { name: "Lead Tracking", path: "/lead-tracking", icon: PieChart } // Added Lead Tracking Tab here!
+    { name: "Milestones", path: "/milestones", icon: Target }
   ];
 
-  // --- Notification Placeholder ---
+  // ----------------------
+  // Notifications Placeholder
+  // ----------------------
   const NotificationPlaceholder = () => (
     <div className="relative">
       <button
@@ -63,18 +82,15 @@ function Layout() {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* --- Sidebar --- */}
+      {/* Sidebar */}
       <div
         className={`bg-white shadow-lg transition-all duration-300 ${
           isOpen ? "w-64" : "w-20"
         }`}
       >
-        {/* Sidebar Header */}
         <div className="p-4 flex justify-between items-center border-b">
           {isOpen && (
-            <h2 className="font-bold text-blue-600 text-lg">
-              MDH UGC
-            </h2>
+            <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>
           )}
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -84,17 +100,18 @@ function Layout() {
           </button>
         </div>
 
-        {/* Sidebar Menu */}
         <nav className="p-4 flex flex-col space-y-2">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
-
-            const isActive = location.pathname.startsWith(item.path);
+            const isActive =
+              item.path === "/home"
+                ? location.pathname === "/home"
+                : location.pathname.startsWith(item.path);
 
             return (
               <Link
                 key={index}
-                to={item.path}
+                to={withQuery(item.path)}   // ✅ keeps ?mode=manager
                 className={`flex items-center space-x-3 p-3 rounded-lg transition ${
                   isActive
                     ? "bg-blue-600 text-white shadow-md"
@@ -107,22 +124,38 @@ function Layout() {
             );
           })}
         </nav>
+
+        {/* Sidebar Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="m-4 bg-red-500 text-white p-2 rounded flex items-center justify-center gap-2"
+        >
+          <LogOut size={18} /> {isOpen && "Logout"}
+        </button>
       </div>
 
-      {/* --- Main Content --- */}
+      {/* Main Content */}
       <div className="flex-1">
-        {/* Top Header */}
+        {/* Header */}
         <div className="bg-white shadow p-4 flex justify-between items-center">
           <div>
-            <h1 className="font-semibold text-xl">
-              UGC Platform
-            </h1>
-            <span className="text-sm text-gray-500">
-              MDH University
-            </span>
+            <h1 className="font-semibold text-xl">UGC Platform</h1>
+            <span className="text-sm text-gray-500">MDH University</span>
           </div>
 
-          <NotificationPlaceholder />
+          <div className="flex items-center gap-2">
+            <NotificationPlaceholder />
+
+            {/* Top-right Logout */}
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-gray-100"
+              title="Logout"
+              aria-label="Logout"
+            >
+              <LogOut size={20} className="text-gray-700" />
+            </button>
+          </div>
         </div>
 
         {/* Page Content */}

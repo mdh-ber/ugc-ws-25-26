@@ -1,29 +1,26 @@
-const Event = require('../models/Event');
+// backend/controllers/eventController.js
+import Event from "../models/Event.js";
 
-// @desc    Get all events
-// @route   GET /api/events
-exports.getEvents = async (req, res) => {
+// GET /api/events
+export const getEvents = async (req, res) => {
   try {
-    const events = await Event.find().sort({ createdAt: -1 }); // Newest first
-    res.json(events);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const events = await Event.find().sort({ createdAt: -1 });
+    return res.json(events);
+  } catch (err) {
+    console.error("getEvents error:", err);
+    return res.status(500).json({ message: "Failed to fetch events" });
   }
 };
 
 // @desc    Create a new event
 // @route   POST /api/events
 exports.createEvent = async (req, res) => {
-  const { title, date, time, place, type, description, speakers } = req.body;
+  const { title, image, date, time, place, type, description, speakers } = req.body;
 
   try {
-    // Multer puts the file info in req.file
-    // We store the relative path so the frontend can access it via the static middleware
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : "";
-
     const newEvent = new Event({
       title,
-      image: imagePath, // Save the file path instead of a URL string
+      image,
       date,
       time,
       place,
@@ -39,9 +36,8 @@ exports.createEvent = async (req, res) => {
   }
 };
 
-// @desc    Delete an event
-// @route   DELETE /api/events/:id
-exports.deleteEvent = async (req, res) => {
+// PUT /api/events/:id
+export const updateEvent = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
     if (!event) {
@@ -55,6 +51,10 @@ exports.deleteEvent = async (req, res) => {
   }
 };
 
+// Add this to the existing file imports/exports
+
+// ... existing getEvents, createEvent, deleteEvent ...
+
 // @desc    Update an event
 // @route   PUT /api/events/:id
 exports.updateEvent = async (req, res) => {
@@ -64,21 +64,17 @@ exports.updateEvent = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Update fields from body
-    const { title, date, time, place, type, description, speakers } = req.body;
+    // Update fields
+    const { title, image, date, time, place, type, description, speakers } = req.body;
     
     event.title = title || event.title;
+    event.image = image || event.image;
     event.date = date || event.date;
     event.time = time || event.time;
     event.place = place || event.place;
     event.type = type || event.type;
     event.description = description || event.description;
     event.speakers = speakers || event.speakers;
-
-    // If a new image was uploaded during update, replace the old path
-    if (req.file) {
-      event.image = `/uploads/${req.file.filename}`;
-    }
 
     const updatedEvent = await event.save();
     res.json(updatedEvent);
