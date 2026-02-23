@@ -4,4 +4,11 @@ import Rewards from "./pages/Rewards";
 
 import Milestones from "./pages/Milestones";
 
-<Route path="/milestones" element={<Milestones />} />
+<Route path="/milestones" element={<Milestones />}/>
+
+import CreatorPerformanceDashboard from "./pages/CreatorPerformanceDashboard";
+
+<Route
+  path="/mdh/creator-performance"
+  element={<CreatorPerformanceDashboard />}
+/>
