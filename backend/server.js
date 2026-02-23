@@ -8,67 +8,105 @@ import milestoneTypeRoutes from "./routes/milestoneTypeRoutes.js";
 import userMilestoneRoutes from "./routes/userMilestoneRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 
-import User from "./models/user.model.js";
-import trainingRoutes from "./routes/trainingRoutes.js";
-import eventRoutes from "./routes/eventRoutes.js";
+const Feedback = require("./models/feedback.model");
+const Guideline = require("./models/guideline.model");
 
+const RefereeUu = require("./models/RefereeUu");
+const ReferralUu = require("./models/ReferralUu");
+const { Referral } = require("./models/Referral");
 
-// GUIDELINES ROUTE
-app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
-
-app.use("/api/auth", require("./routes/authRoutes"));
-// =====================
-// SERVER START
-// =====================
-2b01ec51397b652c10e1c8c9f3aadd9fe968d3cc
-main
 const PORT = process.env.PORT || 5000;
- 
-// =====================
-// MIDDLEWARE
-// =====================
-app.use(cors());
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Health check
-app.get("/", (_req, res) => {
-  res.json({ status: "ok", service: "ugc-backend" });
-});
-// =====================
-// ROUTES
-// =====================
-app.use("/api/auth", authRoutes);
+// ---------------- helpers ----------------
+function setCors(res) {
+  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+}
 
-app.use("/api/trainings", trainingRoutes);
-app.use("/api/events", eventRoutes);
+function sendJson(res, status, data) {
+  setCors(res);
+  res.writeHead(status, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(data));
+}
 
-app.use("/milestone-types", milestoneTypeRoutes);
-app.use("/user-milestones", userMilestoneRoutes);
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", () => {
+      if (!body) return resolve({});
+      try {
+        resolve(JSON.parse(body));
+      } catch (e) {
+        reject(new Error("Invalid JSON"));
+      }
+    });
+  });
+}
 
-// If you have these routes, import them first, then uncomment:
-// import rewardRoutes from "./routes/rewardRoutes.js";
-// import reviewRequestRoutes from "./routes/reviewRequestRoutes.js";
-// import trainingRoutes from "./routes/trainingRoutes.js";
-// import profileRoutes from "./routes/profileRoutes.js";
-// import uuRoutes from "./routes/uuRoutes.js";
-// import eventRoutes from "./routes/eventRoutes.js";
-// import guidelinesRoutes from "./routes/guidelinesRoutes.js";
-// import feedbackRoutes from "./routes/feedbackRoutes.js";
-//
-// app.use("/api/rewards", rewardRoutes);
-// app.use("/api/review-requests", reviewRequestRoutes);
-// app.use("/api/trainings", trainingRoutes);
-// app.use("/api/profiles", profileRoutes);
-// app.use("/api/uu", uuRoutes);
-// app.use("/api/events", eventRoutes);
-// app.use("/api/guidelines", guidelinesRoutes);
-// app.use("/api/feedback", feedbackRoutes);
+function isValidObjectId(id) {
+  return mongoose.Types.ObjectId.isValid(id);
+}
 
-// =====================
-// DEFAULT ADMIN CREATION (optional)
-// =====================
-const createDefaultAdmin = async () => {
+// ---- UU helpers ----
+function toYYYYMMDD(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+function parseRange(query) {
+  const fromQ = query.from;
+  const toQ = query.to;
+  const days = Number(query.days || 7);
+
+  if (fromQ && toQ) return { from: fromQ, to: toQ };
+
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - (days - 1));
+  return { from: toYYYYMMDD(start), to: toYYYYMMDD(end) };
+}
+
+function buildSummary(series) {
+  if (!series.length) {
+    return { totalUu: 0, avgDailyUu: 0, peakUu: 0, peakDate: null };
+  }
+
+  let total = 0;
+  let peakUu = -1;
+  let peakDate = null;
+
+  for (const p of series) {
+    total += p.uu;
+    if (p.uu > peakUu) {
+      peakUu = p.uu;
+      peakDate = p.date;
+    }
+  }
+
+  const avg = Math.round((total / series.length) * 100) / 100;
+  return { totalUu: total, avgDailyUu: avg, peakUu, peakDate };
+}
+
+// ---------------- server ----------------
+const server = http.createServer(async (req, res) => {
+  setCors(res);
+
+  // Preflight
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    return res.end();
+  }
+
+  const parsed = url.parse(req.url, true);
+  const path = parsed.pathname;
+  const query = parsed.query || {};
+  const segments = path.split("/").filter(Boolean); // no empty
+
   try {
     // ===========================
     // AUTH
@@ -125,8 +163,9 @@ const createDefaultAdmin = async () => {
       const category = (body.category || "general").trim();
       const tags = Array.isArray(body.tags) ? body.tags : [];
 
-      if (!text)
+      if (!text) {
         return sendJson(res, 400, { message: "Guideline text is required" });
+      }
       if (type !== "do" && type !== "dont") {
         return sendJson(res, 400, {
           message: 'Type must be either "do" or "dont"',
@@ -186,7 +225,7 @@ const createDefaultAdmin = async () => {
       const updated = await Guideline.findByIdAndUpdate(
         id,
         { isActive: false },
-        { new: true },
+        { new: true }
       );
       if (!updated)
         return sendJson(res, 404, { message: "Guideline not found" });
@@ -195,7 +234,7 @@ const createDefaultAdmin = async () => {
     }
 
     // =========================================================
-    // ✅ REFERRALS CRUD (your ReferralList uses /api/referrals)
+    // REFERRALS CRUD (your ReferralList uses /api/referrals)
     // =========================================================
     if (segments[0] === "api" && segments[1] === "referrals") {
       // GET /api/referrals
@@ -258,7 +297,7 @@ const createDefaultAdmin = async () => {
     }
 
     // =========================================================
-    // ✅ UU ROUTES (NO EXPRESS)
+    // UU ROUTES (NO EXPRESS)
     // Base: /api/uu/...
     // =========================================================
     if (segments[0] === "api" && segments[1] === "uu") {
@@ -295,7 +334,12 @@ const createDefaultAdmin = async () => {
               },
             },
           ]);
-          return sendJson(res, 200, { count: members.length, members, from, to });
+          return sendJson(res, 200, {
+            count: members.length,
+            members,
+            from,
+            to,
+          });
         }
 
         // GET /api/uu/referee/:refereeId
@@ -312,7 +356,13 @@ const createDefaultAdmin = async () => {
           const series = docs.map((d) => ({ date: d.date, uu: d.uu }));
           const summary = buildSummary(series);
 
-          return sendJson(res, 200, { id: refereeId, summary, series, from, to });
+          return sendJson(res, 200, {
+            id: refereeId,
+            summary,
+            series,
+            from,
+            to,
+          });
         }
       }
 
@@ -329,7 +379,7 @@ const createDefaultAdmin = async () => {
           return sendJson(res, 200, { series: data, from, to });
         }
 
-        // GET /api/uu/referral/members  (safe lookup without $toObjectId errors)
+        // GET /api/uu/referral/members
         if (req.method === "GET" && action === "members") {
           const base = await ReferralUu.aggregate([
             { $match: { date: { $gte: from, $lte: to } } },
@@ -347,7 +397,10 @@ const createDefaultAdmin = async () => {
             : [];
 
           const profileMap = new Map(
-            profiles.map((p) => [String(p._id), `${p.firstName} ${p.surName}`]),
+            profiles.map((p) => [
+              String(p._id),
+              `${p.firstName} ${p.surName}`,
+            ])
           );
 
           const members = base.map((x) => ({
@@ -356,10 +409,15 @@ const createDefaultAdmin = async () => {
             name: profileMap.get(String(x._id)) || x._id,
           }));
 
-          return sendJson(res, 200, { count: members.length, members, from, to });
+          return sendJson(res, 200, {
+            count: members.length,
+            members,
+            from,
+            to,
+          });
         }
 
-        // GET /api/uu/referral/:referralId  (returns series + summary + profile)
+        // GET /api/uu/referral/:referralId
         if (req.method === "GET" && segments.length === 4 && action) {
           const referralId = action;
 
@@ -389,14 +447,13 @@ const createDefaultAdmin = async () => {
         }
       }
 
-      // if /api/uu/... not matched
       return sendJson(res, 404, { message: "Route not found" });
     }
 
-    // Not found
     return sendJson(res, 404, { message: "Route not found" });
   } catch (err) {
-    console.error("Failed to create/reset default admin:", err);
+    console.error(err);
+    return sendJson(res, 500, { message: "Server error" });
   }
 };
 
@@ -411,11 +468,12 @@ if (!process.env.MONGO_URI) {
 }
 
 mongoose
-  .connect(process.env.MONGO_URI, { autoIndex: true })
-  .then(async () => {
-    console.log("✅ MongoDB connected");
-    await createDefaultAdmin();
-    app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB connected");
+    server.listen(PORT, () =>
+      console.log(`Node server running on port ${PORT}`)
+    );
   })
   .catch((err) => {
     console.error("❌ Mongo connection error:", err.message);
