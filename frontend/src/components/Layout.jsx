@@ -1,3 +1,4 @@
+// Layout.jsx
 import { useState } from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
@@ -22,11 +23,27 @@ function Layout() {
   const [isOpen, setIsOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
+  const nav = useNavigate();
 
-  // ✅ Keep query string (so mode stays when you click menu items)
+  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+
+  // ----------------------
+  // Logout Function
+  // ----------------------
+  const handleLogout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("role");
+
+  // ✅ Keep query string
   const withQuery = (path) => `${path}${location.search || ""}`;
 
+  // If no token, allow rendering login/outlet pages
+  if (!token) return <Outlet />;
+
+  // ----------------------
+  // Menu Items
+  // ----------------------
   const menuItems = [
     { name: "Home", path: "/home", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -38,7 +55,7 @@ function Layout() {
     { name: "Certificates", path: "/certificates", icon: Award },
     { name: "Milestones", path: "/milestones", icon: Target },
 
-    // ✅ Only visible when URL has ?mode=manager
+    // ✅ Visible only in manager mode
     ...(isMarketingManager
       ? [
           {
@@ -55,15 +72,9 @@ function Layout() {
       : []),
   ];
 
-  // ✅ DEFINE logout INSIDE the component
-  const logout = () => {
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login", { replace: true });
-  };
-
+  // ----------------------
+  // Notifications Placeholder
+  // ----------------------
   const NotificationPlaceholder = () => (
     <div className="relative">
       <button
@@ -81,7 +92,9 @@ function Layout() {
           <h3 className="text-lg font-semibold mb-4">
             Notifications (Coming Soon)
           </h3>
-          <p className="text-gray-600">Real-time notifications will appear here.</p>
+          <p className="text-gray-600">
+            Real-time notifications will appear here.
+          </p>
         </div>
       )}
     </div>
@@ -96,7 +109,9 @@ function Layout() {
         }`}
       >
         <div className="p-4 flex justify-between items-center border-b">
-          {isOpen && <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>}
+          {isOpen && (
+            <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>
+          )}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 rounded hover:bg-gray-100"
@@ -108,12 +123,15 @@ function Layout() {
         <nav className="p-4 flex flex-col space-y-2">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
-            const isActive = location.pathname.startsWith(item.path);
+            const isActive =
+              item.path === "/home"
+                ? location.pathname === "/home"
+                : location.pathname.startsWith(item.path);
 
             return (
               <Link
                 key={index}
-                to={item.path}
+                to={withQuery(item.path)}   // ✅ keeps ?mode=manager
                 className={`flex items-center space-x-3 p-3 rounded-lg transition ${
                   isActive
                     ? "bg-blue-600 text-white shadow-md"
@@ -127,28 +145,40 @@ function Layout() {
           })}
         </nav>
 
-        {/* Logout button */}
-        <div className="p-4 border-t">
-          <button
-            onClick={logout}
-            className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600"
-          >
-            <LogOut size={18} />
-            {isOpen && <span>Logout</span>}
-          </button>
-        </div>
+        {/* Sidebar Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="m-4 bg-red-500 text-white p-2 rounded flex items-center justify-center gap-2"
+        >
+          <LogOut size={18} /> {isOpen && "Logout"}
+        </button>
       </div>
 
-      {/* Main */}
+      {/* Main Content */}
       <div className="flex-1">
+        {/* Header */}
         <div className="bg-white shadow p-4 flex justify-between items-center">
           <div>
             <h1 className="font-semibold text-xl">UGC Platform</h1>
             <span className="text-sm text-gray-500">MDH University</span>
           </div>
-          <NotificationPlaceholder />
+
+          <div className="flex items-center gap-2">
+            <NotificationPlaceholder />
+
+            {/* Top-right Logout */}
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-gray-100"
+              title="Logout"
+              aria-label="Logout"
+            >
+              <LogOut size={20} className="text-gray-700" />
+            </button>
+          </div>
         </div>
 
+        {/* Page Content */}
         <div className="p-6">
           <Outlet />
         </div>
