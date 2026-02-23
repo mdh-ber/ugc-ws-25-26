@@ -12,7 +12,7 @@ const Training = require("./models/Training");
 const Event = require("./models/Event");
 
 const RefereeUu = require("./models/RefereeUu");
-const ReferralUu = require("./models/ReferralUu");
+const ReferralUu = require("./models/referralUu");
 const { Referral } = require("./models/Referral");
 
 // ✅ NEW (Sub-issue #155)

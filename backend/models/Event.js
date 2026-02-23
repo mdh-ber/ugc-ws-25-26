@@ -1,5 +1,5 @@
 // backend/models/Event.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const eventSchema = new mongoose.Schema(
   {
@@ -7,8 +7,6 @@ const eventSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     date: { type: Date, required: true },
     location: { type: String, default: "" },
-
-    // optional fields (keep if your UI sends them)
     imageUrl: { type: String, default: "" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
@@ -17,4 +15,4 @@ const eventSchema = new mongoose.Schema(
 
 const Event = mongoose.models.Event || mongoose.model("Event", eventSchema);
 
-export default Event;
+module.exports = Event;

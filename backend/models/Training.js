@@ -1,5 +1,5 @@
 // backend/models/Training.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const trainingSchema = new mongoose.Schema(
   {
@@ -14,4 +14,4 @@ const trainingSchema = new mongoose.Schema(
 const Training =
   mongoose.models.Training || mongoose.model("Training", trainingSchema);
 
-export default Training;
+module.exports = Training;
