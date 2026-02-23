@@ -12,55 +12,15 @@ function Login() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    setErr("");
-
-    const cleanEmail = (email || "").trim().toLowerCase();
-    const cleanPassword = password || "";
-
-    if (!cleanEmail || !cleanPassword) {
-      setErr("Please enter email and password.");
-      return;
+    // Here you will call your backend login API and get JWT
+    // For now, we can just simulate
+    if (email && password) {
+      // Example: save fake token
+      localStorage.setItem("token", "fake-jwt-token");
+      navigate("/dashboard"); // redirect after login
+    } else {
+      alert("Enter email and password");
     }
-
-    try {
-      setLoading(true);
-
-      // IMPORTANT: This must match your backend mount: app.use("/api/auth", authRoutes)
-      // Your api baseURL should already include "/api" (common), so "/auth/login" is correct.
-      const res = await api.post("/auth/login", {
-        email: cleanEmail,
-        password: cleanPassword,
-      });
-
-      // Save auth data for the whole app (Layout uses these)
-      sessionStorage.setItem("token", res.data.token);
-      sessionStorage.setItem("user", JSON.stringify(res.data.user));
-      sessionStorage.setItem("role", res.data.user.role);
-
-      // OPTIONAL: If you want managers/admin to land on analytics automatically
-      const role = res.data?.user?.role;
-      if (role === "admin" || role === "marketing_manager") {
-        nav("/dashboard"); // keep dashboard as default landing
-        // If you prefer to land directly on analytics, use:
-        // nav("/website-analytics");
-        return;
-      }
-
-      // Normal users (content creators)
-      nav("/dashboard");
-    } catch (e) {
-      const message =
-        e?.response?.data?.message ||
-        e?.response?.data?.error ||
-        "Login failed. Please check your credentials.";
-      setErr(message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onKeyDown = (e) => {
-    if (e.key === "Enter") handleLogin();
   };
 
   return (
@@ -80,8 +40,6 @@ function Login() {
           className="w-full mb-4 p-2 border rounded-lg"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          onKeyDown={onKeyDown}
-          autoComplete="email"
         />
 
         <input
@@ -90,23 +48,25 @@ function Login() {
           className="w-full mb-6 p-2 border rounded-lg"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={onKeyDown}
-          autoComplete="current-password"
         />
 
         <button
           onClick={handleLogin}
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg disabled:opacity-60"
+          className="w-full bg-primary text-white py-2 rounded-lg mb-4"
         >
-          {loading ? "Logging in..." : "Login"}
+          Login
         </button>
 
-        <p className="mt-4 text-sm text-gray-600 text-center">
-          Don’t have an account?{" "}
-          <Link to="/register" className="text-blue-600 font-medium hover:underline">
-            Register
-          </Link>
+        {/* ✅ New User Button */}
+        <button
+          onClick={() => navigate("/Register")}
+          className="w-full border border-blue-600 text-blue-600 py-2 rounded-lg hover:bg-blue-50 transition mb-4"
+        >
+          New User? Register
+        </button>
+
+        <p className="text-sm text-gray-500 text-center">
+          Authentication handled by backend
         </p>
       </div>
     </div>

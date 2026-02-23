@@ -1,9 +1,12 @@
 import api from "./api";
 
-// Helper to get role from local storage
 const getRoleHeader = () => {
-  const user = JSON.parse(localStorage.getItem("userInfo"));
-  return { "user-role": user?.role || "Student" };
+  // Check both common keys to be safe
+  const storedData = localStorage.getItem("userInfo") || localStorage.getItem("user");
+  if (!storedData) return "";
+  
+  const user = JSON.parse(storedData);
+  return user?.role || "";
 };
 
 export const getEvents = async () => {
@@ -11,17 +14,22 @@ export const getEvents = async () => {
   return response.data;
 };
 
-export const createEvent = async (eventData) => {
-  const response = await api.post("/events", eventData, { headers: getRoleHeader() });
-  return response.data;
+export const createEvent = async (formData) => {
+  return (await api.post("/events", formData, {
+    headers: { "x-user-role": getRoleHeader() }
+  })).data;
+};
+
+export const updateEvent = async (id, formData) => {
+  return (await api.put(`/events/${id}`, formData, {
+    headers: { "x-user-role": getRoleHeader() }
+  })).data;
 };
 
 export const deleteEvent = async (id) => {
-  const response = await api.delete(`/events/${id}`, { headers: getRoleHeader() });
-  return response.data;
+  return (await api.delete(`/events/${id}`, {
+    headers: { "x-user-role": getRoleHeader() }
+  })).data;
 };
 
-export const updateEvent = async (id, eventData) => {
-  const response = await api.put(`/events/${id}`, eventData, { headers: getRoleHeader() });
-  return response.data;
-};
+export const eventService = { getEvents, createEvent, updateEvent, deleteEvent };

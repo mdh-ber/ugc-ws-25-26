@@ -12,14 +12,10 @@ import {
   NotebookPen,
   Wallet,
   Award,
-  Target,
-  LogOut,
-  UserSearch,
-  BarChart3,
-  Megaphone, // ✅ NEW
+  Target
 } from "lucide-react";
 
-function Layout() {
+function Layout() 
   const [isOpen, setIsOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const location = useLocation();
@@ -53,23 +49,7 @@ function Layout() {
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
-    { name: "Milestones", path: "/milestones", icon: Target },
-
-    // ✅ Visible only in manager mode
-    ...(isMarketingManager
-      ? [
-          {
-            name: "Campaigns", // ✅ NEW
-            path: "/campaigns",
-            icon: Megaphone,
-          },
-          {
-            name: "Website Analytics",
-            path: "/website-analytics",
-            icon: BarChart3,
-          },
-        ]
-      : []),
+    { name: "Milestones", path: "/milestones", icon: Target }
   ];
 
   // ----------------------
