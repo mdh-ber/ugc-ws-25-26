@@ -13,6 +13,7 @@ import {
   Award,
   Target,
   LogOut,
+  BarChart3,
 } from "lucide-react";
 
 function Layout() {
@@ -21,8 +22,12 @@ function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // ✅ Keep query string (so mode stays when you click menu items)
+  // ✅ Keep query string
   const withQuery = (path) => `${path}${location.search || ""}`;
+
+  // ✅ Detect manager mode from URL → ?mode=manager
+  const isMarketingManager =
+    new URLSearchParams(location.search).get("mode") === "manager";
 
   const menuItems = [
     { name: "Home", path: "/home", icon: Home },
@@ -35,7 +40,7 @@ function Layout() {
     { name: "Certificates", path: "/certificates", icon: Award },
     { name: "Milestones", path: "/milestones", icon: Target },
 
-    // ✅ Only visible when URL has ?mode=manager
+    // ✅ Visible only in manager mode
     ...(isMarketingManager
       ? [
           {
@@ -47,7 +52,6 @@ function Layout() {
       : []),
   ];
 
-  // ✅ DEFINE logout INSIDE the component
   const logout = () => {
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
@@ -73,7 +77,9 @@ function Layout() {
           <h3 className="text-lg font-semibold mb-4">
             Notifications (Coming Soon)
           </h3>
-          <p className="text-gray-600">Real-time notifications will appear here.</p>
+          <p className="text-gray-600">
+            Real-time notifications will appear here.
+          </p>
         </div>
       )}
     </div>
@@ -88,7 +94,9 @@ function Layout() {
         }`}
       >
         <div className="p-4 flex justify-between items-center border-b">
-          {isOpen && <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>}
+          {isOpen && (
+            <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>
+          )}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 rounded hover:bg-gray-100"
@@ -105,7 +113,7 @@ function Layout() {
             return (
               <Link
                 key={index}
-                to={item.path}
+                to={withQuery(item.path)}   // ✅ keeps ?mode=manager
                 className={`flex items-center space-x-3 p-3 rounded-lg transition ${
                   isActive
                     ? "bg-blue-600 text-white shadow-md"
@@ -119,7 +127,7 @@ function Layout() {
           })}
         </nav>
 
-        {/* Logout button */}
+        {/* Logout */}
         <div className="p-4 border-t">
           <button
             onClick={logout}
