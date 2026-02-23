@@ -14,13 +14,12 @@ import {
   Award,
   Target,
   LogOut,
-  UserSearch,
+  BarChart3,
 } from "lucide-react";
 
 function Layout() {
   const [isOpen, setIsOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
-
   const location = useLocation();
   const nav = useNavigate();
 
@@ -34,12 +33,8 @@ function Layout() {
     sessionStorage.removeItem("user");
     sessionStorage.removeItem("role");
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("role");
-
-    nav("/login");
-  };
+  // ✅ Keep query string
+  const withQuery = (path) => `${path}${location.search || ""}`;
 
   // If no token, allow rendering login/outlet pages
   if (!token) return <Outlet />;
@@ -54,10 +49,20 @@ function Layout() {
     { name: "Profile", path: "/profile", icon: User },
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
-    { name: "Referral List", path: "/referrals", icon: UserSearch },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
     { name: "Milestones", path: "/milestones", icon: Target },
+
+    // ✅ Visible only in manager mode
+    ...(isMarketingManager
+      ? [
+          {
+            name: "Website Analytics",
+            path: "/website-analytics",
+            icon: BarChart3,
+          },
+        ]
+      : []),
   ];
 
   // ----------------------
@@ -68,7 +73,6 @@ function Layout() {
       <button
         onClick={() => setShowNotifications(!showNotifications)}
         className="relative p-2 rounded-lg hover:bg-gray-100"
-        aria-label="Notifications"
       >
         <Bell size={20} className="text-gray-700" />
         <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
@@ -98,11 +102,12 @@ function Layout() {
         }`}
       >
         <div className="p-4 flex justify-between items-center border-b">
-          {isOpen && <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>}
+          {isOpen && (
+            <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>
+          )}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 rounded hover:bg-gray-100"
-            aria-label="Toggle sidebar"
           >
             <Menu size={20} />
           </button>
@@ -119,10 +124,10 @@ function Layout() {
             return (
               <Link
                 key={index}
-                to={item.path}
-                className={`flex items-center space-x-3 p-3 rounded ${
+                to={withQuery(item.path)}   // ✅ keeps ?mode=manager
+                className={`flex items-center space-x-3 p-3 rounded-lg transition ${
                   isActive
-                    ? "bg-blue-600 text-white"
+                    ? "bg-blue-600 text-white shadow-md"
                     : "hover:bg-gray-100 text-gray-700"
                 }`}
               >
