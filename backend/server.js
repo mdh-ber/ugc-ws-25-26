@@ -1,12 +1,8 @@
-import express from "express";
-import mongoose from "mongoose";
-import cors from "cors";
-import dotenv from "dotenv";
-import bcrypt from "bcryptjs";
+const http = require("http");
+const url = require("url");
+const mongoose = require("mongoose");
 
-import milestoneTypeRoutes from "./routes/milestoneTypeRoutes.js";
-import userMilestoneRoutes from "./routes/userMilestoneRoutes.js";
-import authRoutes from "./routes/authRoutes.js";
+require("dotenv").config();
 
 const Feedback = require("./models/feedback.model");
 const Guideline = require("./models/guideline.model");
@@ -455,18 +451,9 @@ const server = http.createServer(async (req, res) => {
     console.error(err);
     return sendJson(res, 500, { message: "Server error" });
   }
-};
+});
 
-// =====================
-// DB + SERVER START
-// =====================
-const PORT = process.env.PORT || 5000;
-
-if (!process.env.MONGO_URI) {
-  console.error("❌ MONGO_URI is missing in backend/.env");
-  process.exit(1);
-}
-
+// ---------------- connect & listen ----------------
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
@@ -475,7 +462,4 @@ mongoose
       console.log(`Node server running on port ${PORT}`)
     );
   })
-  .catch((err) => {
-    console.error("❌ Mongo connection error:", err.message);
-    process.exit(1);
-  });
+  .catch((err) => console.error("MongoDB connection error:", err));
