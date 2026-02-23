@@ -1,128 +1,16 @@
-const http = require("http");
-const url = require("url");
-const mongoose = require("mongoose");
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
 
-require("dotenv").config();
+import milestoneTypeRoutes from "./routes/milestoneTypeRoutes.js";
+import userMilestoneRoutes from "./routes/userMilestoneRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
-const Feedback = require("./models/feedback.model");
-const Guideline = require("./models/guideline.model");
-
-const RefereeUu = require("./models/RefereeUu");
-const ReferralUu = require("./models/ReferralUu");
-const { Referral } = require("./models/Referral");
-
-const PORT = process.env.PORT || 5000;
-
-// ---------------- helpers ----------------
-function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-  );
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-}
-
-function sendJson(res, status, data) {
-  setCors(res);
-  res.writeHead(status, { "Content-Type": "application/json" });
-  res.end(JSON.stringify(data));
-}
-
-function readJsonBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => {
-      if (!body) return resolve({});
-      try {
-        resolve(JSON.parse(body));
-      } catch (e) {
-        reject(new Error("Invalid JSON"));
-      }
-    });
-  });
-}
-
-function isValidObjectId(id) {
-  return mongoose.Types.ObjectId.isValid(id);
-}
-
-// ---- UU helpers ----
-function toYYYYMMDD(d) {
-  return d.toISOString().slice(0, 10);
-}
-
-function parseRange(query) {
-  const fromQ = query.from;
-  const toQ = query.to;
-  const days = Number(query.days || 7);
-
-  if (fromQ && toQ) return { from: fromQ, to: toQ };
-
-  const end = new Date();
-  const start = new Date();
-  start.setDate(end.getDate() - (days - 1));
-  return { from: toYYYYMMDD(start), to: toYYYYMMDD(end) };
-}
-
-function buildSummary(series) {
-  if (!series.length) {
-    return { totalUu: 0, avgDailyUu: 0, peakUu: 0, peakDate: null };
-  }
-
-  let total = 0;
-  let peakUu = -1;
-  let peakDate = null;
-
-  for (const p of series) {
-    total += p.uu;
-    if (p.uu > peakUu) {
-      peakUu = p.uu;
-      peakDate = p.date;
-    }
-  }
-
-  const avg = Math.round((total / series.length) * 100) / 100;
-  return { totalUu: total, avgDailyUu: avg, peakUu, peakDate };
-}
-
-// ---------------- server ----------------
-const server = http.createServer(async (req, res) => {
-  setCors(res);
-
-  // Preflight
-  if (req.method === "OPTIONS") {
-    res.writeHead(204);
-    return res.end();
-  }
-
-  const parsed = url.parse(req.url, true);
-  const path = parsed.pathname;
-  const query = parsed.query || {};
-  const segments = path.split("/").filter(Boolean); // no empty
-
-// =====================
-// DATABASE
-// =====================
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.log(err));
-
-// =====================
-// ROUTES
-// =====================
-app.use("/api/rewards", require("./routes/rewardRoutes"));
-app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
-app.use("/api/trainings", require("./routes/trainingRoutes"));
-app.use("/api/profiles", require("./routes/profileRoutes"));
-app.use("/api/uu", require("./routes/uuRoutes"));
-app.use("/api/events", require("./routes/eventRoutes"));
-app.use("/api/referrals", require("./routes/referralRoutes"));
-app.use("/api/lead", require("./routes/leadRoutes"));
-app.use("/api/visits", require("./routes/visitRoutes"));
+import User from "./models/user.model.js";
+import trainingRoutes from "./routes/trainingRoutes.js";
+import eventRoutes from "./routes/eventRoutes.js";
 
 
 // GUIDELINES ROUTE
@@ -139,20 +27,46 @@ const PORT = process.env.PORT || 5000;
 // =====================
 // MIDDLEWARE
 // =====================
+app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(
-  cors({
-    origin: ["http://localhost:3000"],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
-app.options("*", cors());
- 
+
+// Health check
+app.get("/", (_req, res) => {
+  res.json({ status: "ok", service: "ugc-backend" });
+});
 // =====================
-// DEFAULT ADMIN CREATION
+// ROUTES
+// =====================
+app.use("/api/auth", authRoutes);
+
+app.use("/api/trainings", trainingRoutes);
+app.use("/api/events", eventRoutes);
+
+app.use("/milestone-types", milestoneTypeRoutes);
+app.use("/user-milestones", userMilestoneRoutes);
+
+// If you have these routes, import them first, then uncomment:
+// import rewardRoutes from "./routes/rewardRoutes.js";
+// import reviewRequestRoutes from "./routes/reviewRequestRoutes.js";
+// import trainingRoutes from "./routes/trainingRoutes.js";
+// import profileRoutes from "./routes/profileRoutes.js";
+// import uuRoutes from "./routes/uuRoutes.js";
+// import eventRoutes from "./routes/eventRoutes.js";
+// import guidelinesRoutes from "./routes/guidelinesRoutes.js";
+// import feedbackRoutes from "./routes/feedbackRoutes.js";
+//
+// app.use("/api/rewards", rewardRoutes);
+// app.use("/api/review-requests", reviewRequestRoutes);
+// app.use("/api/trainings", trainingRoutes);
+// app.use("/api/profiles", profileRoutes);
+// app.use("/api/uu", uuRoutes);
+// app.use("/api/events", eventRoutes);
+// app.use("/api/guidelines", guidelinesRoutes);
+// app.use("/api/feedback", feedbackRoutes);
+
+// =====================
+// DEFAULT ADMIN CREATION (optional)
 // =====================
 const createDefaultAdmin = async () => {
   try {
@@ -484,13 +398,26 @@ const createDefaultAdmin = async () => {
   } catch (err) {
     console.error("Failed to create/reset default admin:", err);
   }
-});
+};
 
-// ---------------- connect & listen ----------------
+// =====================
+// DB + SERVER START
+// =====================
+const PORT = process.env.PORT || 5000;
+
+if (!process.env.MONGO_URI) {
+  console.error("❌ MONGO_URI is missing in backend/.env");
+  process.exit(1);
+}
+
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGO_URI, { autoIndex: true })
   .then(async () => {
-    console.log("MongoDB connected");
-    server.listen(PORT, () => console.log(`Node server running on port ${PORT}`));
+    console.log("✅ MongoDB connected");
+    await createDefaultAdmin();
+    app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
   })
-  .catch((err) => console.error("MongoDB connection error:", err));
+  .catch((err) => {
+    console.error("❌ Mongo connection error:", err.message);
+    process.exit(1);
+  });
