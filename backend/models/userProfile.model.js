@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const userProfileSchema = new mongoose.Schema(
   {
@@ -7,13 +7,12 @@ const userProfileSchema = new mongoose.Schema(
       ref: "User",
       required: true,
       unique: true,
-      index: true,
     },
 
     firstName: { type: String, default: "" },
     lastName: { type: String, default: "" },
 
-    primaryEmail: { type: String, required: true, lowercase: true, trim: true },
+    primaryEmail: { type: String, default: "" },
     secondaryEmail: { type: String, default: "" },
 
     gender: { type: String, default: "" },
@@ -26,15 +25,14 @@ const userProfileSchema = new mongoose.Schema(
     intake: { type: String, default: "" },
     primaryLanguage: { type: String, default: "" },
 
-    // store as array
     socialAccounts: { type: [String], default: [] },
-
-    // You currently use base64 string in frontend, so store base64 string here
     profilePic: { type: String, default: "" },
   },
   { timestamps: true }
 );
 
-module.exports =
+const UserProfile =
   mongoose.models.UserProfile ||
   mongoose.model("UserProfile", userProfileSchema);
+
+export default UserProfile;

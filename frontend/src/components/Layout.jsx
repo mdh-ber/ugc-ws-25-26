@@ -21,30 +21,8 @@ import {
 function Layout() {
   const [isOpen, setIsOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
-
   const location = useLocation();
-  const nav = useNavigate();
-
-  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-
-  // ✅ URL-based mode switch: add ?mode=manager to any URL
-  const params = new URLSearchParams(location.search);
-  const isMarketingManager = params.get("mode") === "manager";
-
-  const handleLogout = () => {
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("role");
-
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("role");
-
-    nav("/login");
-  };
-
-  // If not logged in, just render pages (login/register)
-  if (!token) return <Outlet />;
+  const navigate = useNavigate();
 
   // ✅ Keep query string (so mode stays when you click menu items)
   const withQuery = (path) => `${path}${location.search || ""}`;
@@ -56,7 +34,6 @@ function Layout() {
     { name: "Profile", path: "/profile", icon: User },
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
-    { name: "Referral List", path: "/referrals", icon: UserSearch },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
     { name: "Milestones", path: "/milestones", icon: Target },
@@ -66,7 +43,7 @@ function Layout() {
       ? [
           {
             name: "Campaigns", // ✅ NEW
-            path: "/campaigns",
+            path: "/campaigns",s
             icon: Megaphone,
           },
           {
@@ -77,6 +54,15 @@ function Layout() {
         ]
       : []),
   ];
+
+  // ✅ DEFINE logout INSIDE the component
+  const logout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login", { replace: true });
+  };
 
   const NotificationPlaceholder = () => (
     <div className="relative">
@@ -95,9 +81,7 @@ function Layout() {
           <h3 className="text-lg font-semibold mb-4">
             Notifications (Coming Soon)
           </h3>
-          <p className="text-gray-600">
-            Real-time notifications will appear here.
-          </p>
+          <p className="text-gray-600">Real-time notifications will appear here.</p>
         </div>
       )}
     </div>
@@ -124,19 +108,15 @@ function Layout() {
         <nav className="p-4 flex flex-col space-y-2">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
-
-            const isActive =
-              item.path === "/home"
-                ? location.pathname === "/home"
-                : location.pathname.startsWith(item.path);
+            const isActive = location.pathname.startsWith(item.path);
 
             return (
               <Link
                 key={index}
-                to={withQuery(item.path)}
-                className={`flex items-center space-x-3 p-3 rounded ${
+                to={item.path}
+                className={`flex items-center space-x-3 p-3 rounded-lg transition ${
                   isActive
-                    ? "bg-blue-600 text-white"
+                    ? "bg-blue-600 text-white shadow-md"
                     : "hover:bg-gray-100 text-gray-700"
                 }`}
               >
@@ -147,12 +127,16 @@ function Layout() {
           })}
         </nav>
 
-        <button
-          onClick={handleLogout}
-          className="m-4 bg-red-500 text-white p-2 rounded"
-        >
-          Logout
-        </button>
+        {/* Logout button */}
+        <div className="p-4 border-t">
+          <button
+            onClick={logout}
+            className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600"
+          >
+            <LogOut size={18} />
+            {isOpen && <span>Logout</span>}
+          </button>
+        </div>
       </div>
 
       {/* Main */}
@@ -162,17 +146,7 @@ function Layout() {
             <h1 className="font-semibold text-xl">UGC Platform</h1>
             <span className="text-sm text-gray-500">MDH University</span>
           </div>
-
-          <div className="flex items-center gap-2">
-            <NotificationPlaceholder />
-
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-lg hover:bg-gray-100"
-            >
-              <LogOut size={20} className="text-gray-700" />
-            </button>
-          </div>
+          <NotificationPlaceholder />
         </div>
 
         <div className="p-6">
