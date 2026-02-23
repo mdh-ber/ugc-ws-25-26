@@ -1,23 +1,32 @@
-const Feedback = require("../models/feedback");
+const Feedback = require("../models/feedback.model");
 
-// ===== SAVE FEEDBACK =====
-exports.submitFeedback = async (req, res) => {
+// POST /api/feedback
+const createFeedback = async (req, res) => {
   try {
-    const { feedback } = req.body;
+    const { message } = req.body;
 
-    if (!feedback || !feedback.trim()) {
-      return res.status(400).json({ message: "Feedback is required" });
+    if (!message || !message.trim()) {
+      return res.status(400).json({ message: "Feedback message is required" });
     }
 
-    const newFeedback = new Feedback({ feedback });
-    await newFeedback.save();
-
-    res.status(201).json({
-      message: "Feedback saved successfully",
-      data: newFeedback,
-    });
+    const saved = await Feedback.create({ message: message.trim() });
+    res.status(201).json(saved);
   } catch (err) {
-    console.error("Feedback error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message });
   }
+};
+
+// GET /api/feedback  (get all feedback)
+const getAllFeedback = async (req, res) => {
+  try {
+    const data = await Feedback.find().sort({ createdAt: -1 });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = {
+  createFeedback,
+  getAllFeedback,
 };

@@ -1,28 +1,20 @@
-const mongoose = require("mongoose");
-const Profile = require("../models/Profile");
+const jwt = require("jsonwebtoken");
 
-module.exports = async function (req, res, next) {
+module.exports = function auth(req, res, next) {
   try {
-    // const userId = req.headers.userid;
-    const userId = req.params.userId;
+    const header = req.headers.authorization || "";
+    const token = header.startsWith("Bearer ") ? header.slice(7) : null;
 
-    if (!userId) {
-      return res.status(401).json({ message: "UserId missing" });
+    if (!token) {
+      return res.status(401).json({ message: "Missing token" });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: "Invalid UserId format" });
-    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // decoded should contain: { id, email, role }
+    req.user = { id: decoded.id, email: decoded.email, role: decoded.role };
 
-    // const profile = await Profile.findOne({ userId });
-
-    // if (!profile) {
-    //   return res.status(401).json({ message: "User not found" });
-    // }
-
-    req.user = { _id: userId };
     next();
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
