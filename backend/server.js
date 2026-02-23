@@ -18,7 +18,7 @@ function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
   res.setHeader(
     "Access-Control-Allow-Methods",
-    "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
   );
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -103,58 +103,6 @@ const server = http.createServer(async (req, res) => {
   const query = parsed.query || {};
   const segments = path.split("/").filter(Boolean); // no empty
 
-// =====================
-// DATABASE
-// =====================
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.log(err));
-
-// =====================
-// ROUTES
-// =====================
-app.use("/api/rewards", require("./routes/rewardRoutes"));
-app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
-app.use("/api/trainings", require("./routes/trainingRoutes"));
-app.use("/api/profiles", require("./routes/profileRoutes"));
-app.use("/api/uu", require("./routes/uuRoutes"));
-app.use("/api/events", require("./routes/eventRoutes"));
-app.use("/api/referrals", require("./routes/referralRoutes"));
-app.use("/api/lead", require("./routes/leadRoutes"));
-app.use("/api/visits", require("./routes/visitRoutes"));
-
-
-// GUIDELINES ROUTE
-app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
-
-app.use("/api/auth", require("./routes/authRoutes"));
-// =====================
-// SERVER START
-// =====================
-2b01ec51397b652c10e1c8c9f3aadd9fe968d3cc
-main
-const PORT = process.env.PORT || 5000;
- 
-// =====================
-// MIDDLEWARE
-// =====================
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(
-  cors({
-    origin: ["http://localhost:3000"],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
-app.options("*", cors());
- 
-// =====================
-// DEFAULT ADMIN CREATION
-// =====================
-const createDefaultAdmin = async () => {
   try {
     // ===========================
     // AUTH
@@ -211,8 +159,9 @@ const createDefaultAdmin = async () => {
       const category = (body.category || "general").trim();
       const tags = Array.isArray(body.tags) ? body.tags : [];
 
-      if (!text)
+      if (!text) {
         return sendJson(res, 400, { message: "Guideline text is required" });
+      }
       if (type !== "do" && type !== "dont") {
         return sendJson(res, 400, {
           message: 'Type must be either "do" or "dont"',
@@ -272,7 +221,7 @@ const createDefaultAdmin = async () => {
       const updated = await Guideline.findByIdAndUpdate(
         id,
         { isActive: false },
-        { new: true },
+        { new: true }
       );
       if (!updated)
         return sendJson(res, 404, { message: "Guideline not found" });
@@ -281,7 +230,7 @@ const createDefaultAdmin = async () => {
     }
 
     // =========================================================
-    // ✅ REFERRALS CRUD (your ReferralList uses /api/referrals)
+    // REFERRALS CRUD (your ReferralList uses /api/referrals)
     // =========================================================
     if (segments[0] === "api" && segments[1] === "referrals") {
       // GET /api/referrals
@@ -344,7 +293,7 @@ const createDefaultAdmin = async () => {
     }
 
     // =========================================================
-    // ✅ UU ROUTES (NO EXPRESS)
+    // UU ROUTES (NO EXPRESS)
     // Base: /api/uu/...
     // =========================================================
     if (segments[0] === "api" && segments[1] === "uu") {
@@ -381,7 +330,12 @@ const createDefaultAdmin = async () => {
               },
             },
           ]);
-          return sendJson(res, 200, { count: members.length, members, from, to });
+          return sendJson(res, 200, {
+            count: members.length,
+            members,
+            from,
+            to,
+          });
         }
 
         // GET /api/uu/referee/:refereeId
@@ -398,7 +352,13 @@ const createDefaultAdmin = async () => {
           const series = docs.map((d) => ({ date: d.date, uu: d.uu }));
           const summary = buildSummary(series);
 
-          return sendJson(res, 200, { id: refereeId, summary, series, from, to });
+          return sendJson(res, 200, {
+            id: refereeId,
+            summary,
+            series,
+            from,
+            to,
+          });
         }
       }
 
@@ -415,7 +375,7 @@ const createDefaultAdmin = async () => {
           return sendJson(res, 200, { series: data, from, to });
         }
 
-        // GET /api/uu/referral/members  (safe lookup without $toObjectId errors)
+        // GET /api/uu/referral/members
         if (req.method === "GET" && action === "members") {
           const base = await ReferralUu.aggregate([
             { $match: { date: { $gte: from, $lte: to } } },
@@ -433,7 +393,10 @@ const createDefaultAdmin = async () => {
             : [];
 
           const profileMap = new Map(
-            profiles.map((p) => [String(p._id), `${p.firstName} ${p.surName}`]),
+            profiles.map((p) => [
+              String(p._id),
+              `${p.firstName} ${p.surName}`,
+            ])
           );
 
           const members = base.map((x) => ({
@@ -442,10 +405,15 @@ const createDefaultAdmin = async () => {
             name: profileMap.get(String(x._id)) || x._id,
           }));
 
-          return sendJson(res, 200, { count: members.length, members, from, to });
+          return sendJson(res, 200, {
+            count: members.length,
+            members,
+            from,
+            to,
+          });
         }
 
-        // GET /api/uu/referral/:referralId  (returns series + summary + profile)
+        // GET /api/uu/referral/:referralId
         if (req.method === "GET" && segments.length === 4 && action) {
           const referralId = action;
 
@@ -475,22 +443,23 @@ const createDefaultAdmin = async () => {
         }
       }
 
-      // if /api/uu/... not matched
       return sendJson(res, 404, { message: "Route not found" });
     }
 
-    // Not found
     return sendJson(res, 404, { message: "Route not found" });
   } catch (err) {
-    console.error("Failed to create/reset default admin:", err);
+    console.error(err);
+    return sendJson(res, 500, { message: "Server error" });
   }
 });
 
 // ---------------- connect & listen ----------------
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(async () => {
+  .then(() => {
     console.log("MongoDB connected");
-    server.listen(PORT, () => console.log(`Node server running on port ${PORT}`));
+    server.listen(PORT, () =>
+      console.log(`Node server running on port ${PORT}`)
+    );
   })
   .catch((err) => console.error("MongoDB connection error:", err));
