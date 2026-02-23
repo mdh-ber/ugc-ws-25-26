@@ -15,7 +15,7 @@ import {
   Target
 } from "lucide-react";
 
-function Layout() {
+function Layout() 
   const [isOpen, setIsOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const location = useLocation();
