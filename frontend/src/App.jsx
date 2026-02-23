@@ -27,6 +27,7 @@ import CampaignsList from "./pages/CampaignsList";
 import CampaignForm from "./pages/CampaignForm";
 
 import CampaignROI from "./pages/CampaignROI";
+import RefereeUuDashboard from "./pages/Refereeuudashboard";
 
 function App() {
   // keep your existing auth gate (still requires login to access protected pages)
@@ -80,6 +81,7 @@ function App() {
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="/milestones" element={<Milestones />} />
+            <Route path="/referee-overview" element={<RefereeUuDashboard />} />
 
             {/* Campaigns */}
             <Route path="/campaigns" element={<CampaignsList />} />
