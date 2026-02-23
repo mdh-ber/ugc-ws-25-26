@@ -1,87 +1,3 @@
-<<<<<<< 163-frontend-for-mdh-managers-customizable-financial-report
-<<<<<<< HEAD
-const express = require("express");
-const mongoose = require("mongoose");
-const dns = require("dns"); // 0️⃣ Fix SRV DNS resolution
-require("dotenv").config();
-
-const cors = require("cors");
-const app = express();
-
-// =====================
-// DNS FIX FOR WINDOWS SRV
-// =====================
-dns.setServers(['8.8.8.8', '1.1.1.1']); // Use Google's DNS servers
-
-// =====================
-// MIDDLEWARE
-// =====================
-app.use(express.json());
-
-// CORS 
-app.use(cors());
-app.options("*", cors());
-
-// =====================
-// DATABASE
-// =====================
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
-  .then(() =>  console.log('✅ MongoDB connected to database:', mongoose.connection.name))
-  .catch((err) => {
-    console.error("❌ MongoDB connection failed:", err.message);
-    process.exit(1);
-  });
-=======
-// server.js
-import express from "express";
-import mongoose from "mongoose";
-import cors from "cors";
-import dotenv from "dotenv";
-import bcrypt from "bcryptjs";
->>>>>>> c1d8eb004e3b5ee3df64bd2d5d80b2341121385e
-
-// =====================
-// ROUTES
-// =====================
-<<<<<<< HEAD
-app.use("/api/rewards", require("./routes/rewardRoutes"));
-app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
-app.use("/api/trainings", require("./routes/trainingRoutes"));
-app.use("/api/profiles", require("./routes/profileRoutes"));
-app.use("/api/uu", require("./routes/uuRoutes"));
-app.use("/api/events", require("./routes/eventRoutes"));
-app.use("/api/referrals", require("./routes/referralRoutes"));
-app.use("/api/financial-report", require("./routes/financialReportRoutes"));
-app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
-app.use("/api/auth", require("./routes/authRoutes"));
-app.use("/api/analytics", require("./routes/financialReportRoutes"));
-=======
-import rewardRoutes from "./routes/rewardRoutes.js";
-import reviewRequestRoutes from "./routes/reviewRequestRoutes.js";
-import trainingRoutes from "./routes/trainingRoutes.js";
-import profileRoutes from "./routes/profileRoutes.js";
-import uuRoutes from "./routes/uuRoutes.js";
-import eventRoutes from "./routes/eventRoutes.js";
-import guidelinesRoutes from "./routes/guidelinesRoutes.js";
-import authRoutes from "./routes/authRoutes.js";
-import feedbackRoutes from "./routes/feedbackRoutes.js";
-
-// =====================
-// MODELS
-// =====================
-import User from "./models/user.model.js";
->>>>>>> c1d8eb004e3b5ee3df64bd2d5d80b2341121385e
-
-// =====================
-// CONFIG
-// =====================
-dotenv.config();
-const app = express();
-=======
 const http = require("http");
 const url = require("url");
 const mongoose = require("mongoose");
@@ -105,7 +21,6 @@ const Campaign = require("./models/Campaign");
 // ✅ NEW (Sub-issue #158)
 const CampaignMetric = require("./models/CampaignMetric");
 
->>>>>>> main
 const PORT = process.env.PORT || 5000;
 
 // ---------------- helpers ----------------

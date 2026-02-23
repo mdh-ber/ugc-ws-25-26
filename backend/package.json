@@ -19,10 +19,7 @@
     "dotenv": "^16.6.1",
     "express": "^4.22.1",
     "jsonwebtoken": "^9.0.3",
-<<<<<<< HEAD
-=======
     "luxon": "^3.7.2",
->>>>>>> c1d8eb004e3b5ee3df64bd2d5d80b2341121385e
     "mongoose": "^8.23.0",
     "multer": "^2.0.2"
   },
