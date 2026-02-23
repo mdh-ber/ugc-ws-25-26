@@ -1,8 +1,11 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Footer from "./components/Footer";
+
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
@@ -12,8 +15,6 @@ import Trainings from "./pages/Trainings";
 import Guidelines from "./pages/Guidelines";
 import Reviews from "./pages/Reviews";
 import UuOverview from "./pages/UuOverview";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
 import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
@@ -21,39 +22,75 @@ import FinancialReport from "./pages/FinancialReport";
 
 localStorage.removeItem("token");
 localStorage.removeItem("role");
+import ReferralList from "./pages/ReferralList";
+
+import WebsiteAnalytics from "./pages/WebsiteAnalytics";
 
 function App() {
-  const token = sessionStorage.getItem("token");
+  // keep your existing auth gate (still requires login to access protected pages)
+  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+
+  // ✅ URL-based mode switch
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const isMarketingManager = params.get("mode") === "manager";
 
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route path="/register" element={token ? <Navigate to="/dashboard" replace /> : <Register />} />
+    <>
+      <Routes>
+        {/* Entry */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-      {/* Protected Routes with Layout */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Layout />}>
-          {/* Nested routes render in <Outlet /> */}
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="home" element={<Home />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="create" element={<ContentCreation />} />
-          <Route path="trainings" element={<Trainings />} />
-          <Route path="guidelines" element={<Guidelines />} />
-          <Route path="reviews" element={<Reviews />} />
-          <Route path="uu-overview" element={<UuOverview />} />
-          <Route path="rewards" element={<Rewards />} />
-          <Route path="certificates" element={<CertificatesPage />} />
-          <Route path="milestones" element={<Milestones />} />
-          <Route path="financial-report" element={<FinancialReport />} />
-          {/* Fallback inside app */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* Public routes */}
+        <Route
+          path="/login"
+          element={token ? <Navigate to="/dashboard" replace /> : <Login />}
+        />
+        <Route
+          path="/register"
+          element={token ? <Navigate to="/dashboard" replace /> : <Register />}
+        />
+
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/create" element={<ContentCreation />} />
+            <Route path="/trainings" element={<Trainings />} />
+            <Route path="/guidelines" element={<Guidelines />} />
+            <Route path="/reviews" element={<Reviews />} />
+            <Route path="/uu-overview" element={<UuOverview />} />
+            <Route path="/referrals" element={<ReferralList />} />
+            <Route path="/rewards" element={<Rewards />} />
+            <Route path="/certificates" element={<CertificatesPage />} />
+            <Route path="/milestones" element={<Milestones />} />
+             <Route path="financial-report" element={<FinancialReport />} />
+
+            {/* ✅ Website Analytics: ONLY when URL has ?mode=manager */}
+            <Route
+              path="/website-analytics"
+              element={
+                isMarketingManager ? (
+                  <WebsiteAnalytics />
+                ) : (
+                  <Navigate to="/dashboard" replace />
+                )
+              }
+            />
+
+            {/* fallback inside protected area */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Route>
         </Route>
-      </Route>
-    </Routes>
+
+        {/* global fallback */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+
+      {token ? <Footer /> : null}
+    </>
   );
 }
 

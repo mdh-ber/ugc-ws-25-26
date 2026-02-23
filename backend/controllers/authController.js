@@ -1,9 +1,9 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
-const User = require("../models/user.model");
-const UserProfile = require("../models/userProfile.model");
-const PointsProfile = require("../models/pointsProfile.model");
+import User from "../models/user.model.js";
+import UserProfile from "../models/userProfile.model.js";
+import PointsProfile from "../models/pointsProfile.model.js";
 
 // helper to sign JWT
 const signToken = (user) =>
@@ -17,18 +17,16 @@ const signToken = (user) =>
     { expiresIn: "7d" }
   );
 
-// ==============================
+// ======================
 // POST /api/auth/login
-// ==============================
-exports.login = async (req, res) => {
+// ======================
+const login = async (req, res) => {
   try {
     const email = (req.body.email || "").trim().toLowerCase();
     const password = (req.body.password || "").trim();
 
     if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Email and password required" });
+      return res.status(400).json({ message: "Email and password required" });
     }
     
     const user = await User.findOne({ email });
@@ -55,14 +53,14 @@ exports.login = async (req, res) => {
     });
   } catch (err) {
     console.error("Login error:", err);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Login failed" });
   }
 };
 
 // ==============================
 // POST /api/auth/register
 // ==============================
-exports.register = async (req, res) => {
+const register = async (req, res) => {
   try {
     const email = (req.body.primaryEmail || req.body.email || "")
       .trim()
@@ -148,3 +146,5 @@ console.log("User registered:", user._id);
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+export { login, register };
