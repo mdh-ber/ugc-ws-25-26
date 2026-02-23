@@ -9,7 +9,7 @@ const Rewards = () => {
   useEffect(() => {
     const fetchRewards = async () => {
       try {
-        const res = await axios.get("/api/rewards");
+        const res = await axios.get("/api/rewards/summary/123"); 
         setRewards(res.data);
       } catch (e) {
         setError(e?.message || "Request failed");
@@ -17,6 +17,7 @@ const Rewards = () => {
         setLoading(false);
       }
     };
+
     fetchRewards();
   }, []);
 
@@ -27,27 +28,32 @@ const Rewards = () => {
     return Number((totalPoints * conversionRate).toFixed(2));
   }, [totalPoints, conversionRate]);
 
-  const breakdown =
-    rewards?.breakdown ?? [
-      { title: "Trainings", points: 400 },
-      { title: "Reviews", points: 250 },
-      { title: "Events", points: 300 },
-      { title: "Referrals", points: 300 },
-    ];
+  const breakdown = [
+    { title: "Trainings", points: 400 },
+    { title: "Reviews", points: 250 },
+    { title: "Events", points: 300 },
+    { title: "Referrals", points: 300 },
+  ];
 
   return (
     <div style={{ padding: "20px" }}>
       <h2>Rewards Earned</h2>
 
-      {loading && <p>Loading...</p>}
+      {loading && <p>Loading rewards...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <h3>Total Points: {totalPoints}</h3>
-      <p>Value: €{moneyValue}</p>
+      <div style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
+        <h3>Total Points</h3>
+        <h1>{totalPoints}</h1>
+        <p>Equivalent Value: €{moneyValue}</p>
+      </div>
 
-      <div>
-        {breakdown.map((b, i) => (
-          <div key={i}>{b.title}: {b.points}</div>
+      <div style={{ display: "grid", gap: 15, marginTop: 20 }}>
+        {breakdown.map((item, i) => (
+          <div key={i} style={{ background: "#fff", padding: 15 }}>
+            <h4>{item.title}</h4>
+            <p>{item.points} Points</p>
+          </div>
         ))}
       </div>
     </div>
