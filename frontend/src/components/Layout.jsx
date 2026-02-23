@@ -14,9 +14,8 @@ import {
   Award,
   Target,
   LogOut,
-  UserSearch,
   BarChart3,
-  Megaphone, // ✅ NEW
+  Megaphone,
 } from "lucide-react";
 
 function Layout() {
@@ -27,6 +26,14 @@ function Layout() {
 
   const token = sessionStorage.getItem("token") || localStorage.getItem("token");
 
+  // ✅ Keep query string (e.g., ?mode=manager)
+  const withQuery = (path) => `${path}${location.search || ""}`;
+
+  // ✅ Define manager mode from query (adjust if you use a different key)
+  const searchParams = new URLSearchParams(location.search);
+  const mode = searchParams.get("mode"); // "manager" if ?mode=manager
+  const isMarketingManager = mode === "manager";
+
   // ----------------------
   // Logout Function
   // ----------------------
@@ -35,10 +42,15 @@ function Layout() {
     sessionStorage.removeItem("user");
     sessionStorage.removeItem("role");
 
-  // ✅ Keep query string
-  const withQuery = (path) => `${path}${location.search || ""}`;
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
 
-  // If no token, allow rendering login/outlet pages
+    // ✅ Send them to login (and you can keep query or drop it)
+    nav("/login");
+  };
+
+  // ✅ If no token, show only child routes (login/register pages)
   if (!token) return <Outlet />;
 
   // ----------------------
@@ -58,16 +70,8 @@ function Layout() {
     // ✅ Visible only in manager mode
     ...(isMarketingManager
       ? [
-          {
-            name: "Campaigns", // ✅ NEW
-            path: "/campaigns",
-            icon: Megaphone,
-          },
-          {
-            name: "Website Analytics",
-            path: "/website-analytics",
-            icon: BarChart3,
-          },
+          { name: "Campaigns", path: "/campaigns", icon: Megaphone },
+          { name: "Website Analytics", path: "/website-analytics", icon: BarChart3 },
         ]
       : []),
   ];
@@ -92,9 +96,7 @@ function Layout() {
           <h3 className="text-lg font-semibold mb-4">
             Notifications (Coming Soon)
           </h3>
-          <p className="text-gray-600">
-            Real-time notifications will appear here.
-          </p>
+          <p className="text-gray-600">Real-time notifications will appear here.</p>
         </div>
       )}
     </div>
@@ -109,9 +111,7 @@ function Layout() {
         }`}
       >
         <div className="p-4 flex justify-between items-center border-b">
-          {isOpen && (
-            <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>
-          )}
+          {isOpen && <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 rounded hover:bg-gray-100"
@@ -131,7 +131,7 @@ function Layout() {
             return (
               <Link
                 key={index}
-                to={withQuery(item.path)}   // ✅ keeps ?mode=manager
+                to={withQuery(item.path)} // ✅ keeps ?mode=manager
                 className={`flex items-center space-x-3 p-3 rounded-lg transition ${
                   isActive
                     ? "bg-blue-600 text-white shadow-md"
