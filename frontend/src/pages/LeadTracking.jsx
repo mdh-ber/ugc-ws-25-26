@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getLeadStats } from '../services/leadService';
+import { getLeadStats } from '../services/Leadservice';
 import { BarChart3, Users, Globe } from 'lucide-react';
 
 export default function LeadTracking() {
