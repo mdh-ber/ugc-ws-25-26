@@ -1,5 +1,11 @@
+<<<<<<< HEAD
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/user.model");
+=======
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+>>>>>>> be39e094de459f371d04eed4fb8ebb8e6b80dce7
 
 import User from "../models/user.model.js";
 import UserProfile from "../models/userProfile.model.js";
@@ -145,4 +151,4 @@ const register = async (req, res) => {
   }
 };
 
-export { login, register };
+module.exports = { login, register };

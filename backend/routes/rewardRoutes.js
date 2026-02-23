@@ -3,8 +3,6 @@ const router = express.Router();
 
 const Reward = require("../models/reward");
 const Profile = require("../models/profile");
-const RewardTransaction = require("../models/rewardTransaction");
-
 router.get("/", async (req, res) => {
   const rewards = await Reward.find({ isActive: true });
   res.json(rewards);
@@ -29,12 +27,6 @@ router.post("/redeem", async (req, res) => {
     await profile.save();
     await reward.save();
 
-    await RewardTransaction.create({
-      userId,
-      rewardId,
-      pointsUsed: reward.pointsRequired
-    });
-
     res.json({ message: "Reward redeemed successfully" });
 
   } catch (err) {
@@ -42,4 +34,25 @@ router.post("/redeem", async (req, res) => {
   }
 });
 
+router.get("/summary/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const profile = await Profile.findOne({ userId });
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+    const rewards = await Reward.find({ isActive: true });
+
+    res.json({
+      totalPoints: profile.points,
+      conversionRate: 0.5,
+      rewards
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
+
