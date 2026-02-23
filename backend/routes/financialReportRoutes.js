@@ -1,9 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const { getFinancialReport, exportFinancialReportCSV } = require("../controllers/financialReportController");
+const analyticsController = require("../controllers/financialReportController");
 
-// Financial report routes
-router.get("/", getFinancialReport);
-router.get("/export", exportFinancialReportCSV);
+router.get("/compare", analyticsController.compareCampaigns);
+router.get("/roi", analyticsController.spentVsROI);
+router.get("/timeseries", analyticsController.timeSeries);
+router.get("/cpc", analyticsController.costPerClick);
+router.get("/ctr", analyticsController.clickThroughRate);
 
 module.exports = router;

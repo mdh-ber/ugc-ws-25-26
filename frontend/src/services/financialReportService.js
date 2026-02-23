@@ -1,48 +1,40 @@
 import api from "./api";
 
-// Fetch financial report data from backend API
-export const getFinancialReport = async (filters = {}) => {
-  try {
-    const params = new URLSearchParams();
-
-    if (filters.creator) params.append('creator', filters.creator);
-    if (filters.platform) params.append('platform', filters.platform);
-    if (filters.allTime !== undefined) params.append('allTime', filters.allTime);
-
-    const response = await api.get(`/financial-report?${params.toString()}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching financial report:', error);
-    throw error;
-  }
+// 1️⃣ Campaign vs Campaign Comparison
+export const compareCampaigns = async (campaignIds = []) => {
+  const params = new URLSearchParams();
+  console.log("Comparing campaigns:", campaignIds);
+  params.append("campaignIds", campaignIds.join(","));
+  const res = await api.get(`/financial-report/compare?${params.toString()}`);
+  return res.data;
 };
 
-// Export financial report as CSV from backend API
-export const exportFinancialReportCSV = async (filters = {}) => {
-  try {
-    const params = new URLSearchParams();
+// 2️⃣ Campaign Actual Spending vs ROI
+export const spentVsROI = async () => {
+  const res = await api.get("/financial-report/roi");
+  return res.data;
+};
 
-    if (filters.creator) params.append('creator', filters.creator);
-    if (filters.platform) params.append('platform', filters.platform);
-    if (filters.allTime !== undefined) params.append('allTime', filters.allTime);
+// 3️⃣ Time Series capture
+export const getTimeSeries = async (period = "month") => {
+  const params = new URLSearchParams();
+  params.append("period", period);
+  const res = await api.get(`/financial-report/timeseries?${params.toString()}`);
+  return res.data;
+};
 
-    const response = await api.get(`/financial-report/export?${params.toString()}`, {
-      responseType: 'blob'
-    });
+// 4️⃣ Cost Per Click (CPC)
+export const getCostPerClick = async (campaignId) => {
+  const params = new URLSearchParams();
+  if (campaignId) params.append("campaignId", campaignId);
+  const res = await api.get(`/financial-report/cpc?${params.toString()}`);
+  return res.data;
+};
 
-    // Create a download link for the CSV file
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'financial-report.csv');
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-
-    return true;
-  } catch (error) {
-    console.error('Error exporting financial report:', error);
-    throw error;
-  }
+// 5️⃣ Click Through Rate (CTR)
+export const getClickThroughRate = async (campaignId) => {
+  const params = new URLSearchParams();
+  if (campaignId) params.append("campaignId", campaignId);
+  const res = await api.get(`/financial-report/ctr?${params.toString()}`);
+  return res.data;
 };

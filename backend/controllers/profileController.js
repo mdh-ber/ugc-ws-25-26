@@ -4,7 +4,7 @@ const Profile = require("../models/pointsProfile.model");
 exports.getProfile = async (req, res) => {
   try {
     let profile = await Profile.findOne({ userId: req.user._id });
-
+console.log("Fetched profile:", profile);
     if (!profile) {
       profile = await Profile.create({ userId: req.user._id });
     }

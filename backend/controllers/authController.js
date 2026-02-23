@@ -30,8 +30,9 @@ exports.login = async (req, res) => {
         .status(400)
         .json({ message: "Email and password required" });
     }
-
+    
     const user = await User.findOne({ email });
+    console.log("User found:", user);
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -42,6 +43,7 @@ exports.login = async (req, res) => {
     }
 
     const token = signToken(user);
+    console.log("User logged in:", token);
 
     return res.json({
       token,
@@ -123,7 +125,7 @@ exports.register = async (req, res) => {
       socialAccounts,
       profilePic: req.body.profilePic || "", // base64 string
     });
-
+console.log("User profile created:", profile._id);
     // create points profile
     await PointsProfile.create({
       userId: user._id,
@@ -131,7 +133,7 @@ exports.register = async (req, res) => {
     });
 
     const token = signToken(user);
-
+console.log("User registered:", user._id);
     return res.status(201).json({
       token,
       user: {

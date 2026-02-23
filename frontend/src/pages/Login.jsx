@@ -14,6 +14,7 @@ function Login() {
     try {
       setLoading(true);
       const res = await api.post("/auth/login", { email, password });
+      console.log("Login response:", res);
 
       sessionStorage.setItem("token", res.data.token);
       sessionStorage.setItem("user", JSON.stringify(res.data.user));

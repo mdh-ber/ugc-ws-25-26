@@ -38,3 +38,8 @@ logs/
 # Misc
 .eslintignore
 .prettierignore
+
+node_modules/
+.env
+backend/node_modules/
+frontend/node_modules/

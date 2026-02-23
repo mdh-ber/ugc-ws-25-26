@@ -18,65 +18,40 @@ import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
 import FinancialReport from "./pages/FinancialReport";
-// Clear auth on app reload (no persistent login)
+
 localStorage.removeItem("token");
 localStorage.removeItem("role");
+
 function App() {
   const token = sessionStorage.getItem("token");
 
   return (
     <Routes>
-      {/* 🔹 APP ENTRY POINT */}
-      <Route
-        path="/"
-        element={<Navigate to={"/login"} replace />}
-      />
+      {/* Public Routes */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route path="/register" element={token ? <Navigate to="/dashboard" replace /> : <Register />} />
 
-      {/* 🔓 PUBLIC ROUTES (NO LAYOUT) */}
-      <Route
-        path="/login"
-        element={token ? <Navigate to="/dashboard" replace /> : <Login />}
-      />
-
-      <Route
-        path="/register"
-        element={token ? <Navigate to="/dashboard" replace /> : <Register />}
-      />
-
-      {/* 🔐 PROTECTED ROUTES */}
+      {/* Protected Routes with Layout */}
       <Route element={<ProtectedRoute />}>
-        <Route
-          path="/*"
-          element={
-            <>
-              <Layout>
-                <Routes>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/create" element={<ContentCreation />} />
-                  <Route path="/trainings" element={<Trainings />} />
-                  <Route path="/guidelines" element={<Guidelines />} />
-                  <Route path="/reviews" element={<Reviews />} />
-                  <Route path="/uu-overview" element={<UuOverview />} />
-                  <Route path="/rewards" element={<Rewards />} />
-                  <Route path="/certificates" element={<CertificatesPage />} />
-                  <Route path="/milestones" element={<Milestones />} />
-                  <Route path="/financial-report" element={<FinancialReport />} />
-                  {/* <Route path="/admin/feedback" element={<AdminFeedback />} /> */}
-
-                  {/* fallback inside app */}
-                  <Route
-                    path="*"
-                    element={<Navigate to="/dashboard" replace />}
-                  />
-                </Routes>
-              </Layout>
-
-              <Footer />
-            </>
-          }
-        />
+        <Route path="/" element={<Layout />}>
+          {/* Nested routes render in <Outlet /> */}
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="home" element={<Home />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="create" element={<ContentCreation />} />
+          <Route path="trainings" element={<Trainings />} />
+          <Route path="guidelines" element={<Guidelines />} />
+          <Route path="reviews" element={<Reviews />} />
+          <Route path="uu-overview" element={<UuOverview />} />
+          <Route path="rewards" element={<Rewards />} />
+          <Route path="certificates" element={<CertificatesPage />} />
+          <Route path="milestones" element={<Milestones />} />
+          <Route path="financial-report" element={<FinancialReport />} />
+          {/* Fallback inside app */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Route>
       </Route>
     </Routes>
   );

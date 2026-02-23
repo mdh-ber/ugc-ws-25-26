@@ -1,146 +1,190 @@
-const Earning = require('../models/Earning');
-const Campaign = require('../models/Campaign');
-
-exports.getFinancialReport = async (req, res) => {
+const mongoose = require("mongoose");
+const Earning = require("../models/Earning");// 1️⃣ Compare multiple campaigns (ROI, revenue, cost)
+const compareCampaigns = async (req, res) => {
   try {
-    const { creator, platform, allTime } = req.query;
+    // Fetch all earnings
+    const earnings = await Earning.find({});
 
-    let query = {};
+    // Group by campaignId
+    const campaignMap = {};
 
-    // Apply filters
-    if (creator) {
-      query.creator = new RegExp(creator, 'i');
-    }
-    if (platform) {
-      query.platform = new RegExp(platform, 'i');
-    }
+    earnings.forEach(e => {
+      const id = e.campaignId.toString();
+      if (!campaignMap[id]) {
+        campaignMap[id] = {
+          campaignId: id,
+          totalRevenue: 0,
+          totalCost: 0,
+          totalClicks: 0,
+          totalImpressions: 0
+        };
+      }
 
-    // If not allTime, filter by recent date (e.g., last 30 days)
-    if (allTime !== 'true') {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      query.date = { $gte: thirtyDaysAgo };
-    }
+      campaignMap[id].totalRevenue += e.revenue || 0;
+      campaignMap[id].totalCost += e.cost || 0;
+      campaignMap[id].totalClicks += e.clicks || 0;
+      campaignMap[id].totalImpressions += e.impressions || 0;
+    });
 
-    // Get earnings with populated campaign data
-    const earnings = await Earning.find(query).populate('campaignId');
-
-    // Calculate totals and ROI for each earning
-    const reportData = earnings.map(earning => ({
-      _id: earning._id,
-      creator: earning.creator,
-      platform: earning.platform,
-      revenue: earning.revenue,
-      cost: earning.cost,
-      roi: earning.roi,
-      impressions: earning.impressions,
-      engagement: earning.engagement,
-      clicks: earning.clicks,
-      conversions: earning.conversions,
-      date: earning.date,
-      campaignName: earning.campaignId ? earning.campaignId.name : 'Unknown Campaign',
-      campaignBudget: earning.campaignId ? earning.campaignId.budget : 0,
-      description: earning.description
+    // Compute ROI and convert map to array
+    const result = Object.values(campaignMap).map(c => ({
+      ...c,
+      roi: c.totalCost === 0 ? 0 : ((c.totalRevenue - c.totalCost) / c.totalCost) * 100
     }));
 
-    // If no data in DB, return mock data for demo
-    if (reportData.length === 0) {
-      let mockData = [
-        { creator: 'Creator1', platform: 'Instagram', revenue: 1000, cost: 500, roi: 100, campaignName: 'Summer Campaign', impressions: 50000, engagement: 2500 },
-        { creator: 'Creator2', platform: 'TikTok', revenue: 800, cost: 400, roi: 100, campaignName: 'Product Launch', impressions: 75000, engagement: 3750 },
-        { creator: 'Creator1', platform: 'YouTube', revenue: 1200, cost: 600, roi: 100, campaignName: 'Brand Awareness', impressions: 100000, engagement: 5000 },
-        { creator: 'Creator3', platform: 'Instagram', revenue: 900, cost: 450, roi: 100, campaignName: 'Holiday Promo', impressions: 60000, engagement: 3000 },
-        { creator: 'Creator4', platform: 'TikTok', revenue: 750, cost: 375, roi: 100, campaignName: 'User Generated', impressions: 80000, engagement: 4000 },
-        { creator: 'Creator2', platform: 'YouTube', revenue: 1100, cost: 550, roi: 100, campaignName: 'Influencer Collab', impressions: 90000, engagement: 4500 }
-      ];
-
-      if (creator) {
-        mockData = mockData.filter(item => item.creator.toLowerCase().includes(creator.toLowerCase()));
-      }
-      if (platform) {
-        mockData = mockData.filter(item => item.platform.toLowerCase().includes(platform.toLowerCase()));
-      }
-
-      return res.json(mockData);
-    }
-
-    res.json(reportData);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 
-exports.exportFinancialReportCSV = async (req, res) => {
+
+
+const spentVsROI = async (req, res) => {
   try {
-    const { creator, platform, allTime } = req.query;
-
-    let query = {};
-
-    // Apply filters
-    if (creator) {
-      query.creator = new RegExp(creator, 'i');
-    }
-    if (platform) {
-      query.platform = new RegExp(platform, 'i');
-    }
-
-    // If not allTime, filter by recent date
-    if (allTime !== 'true') {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      query.date = { $gte: thirtyDaysAgo };
-    }
-
-    // Get earnings with populated campaign data
-    let earnings = await Earning.find(query).populate('campaignId');
-
-    let data = earnings.map(earning => ({
-      creator: earning.creator,
-      platform: earning.platform,
-      revenue: earning.revenue,
-      cost: earning.cost,
-      roi: earning.roi,
-      campaignName: earning.campaignId ? earning.campaignId.name : 'Unknown Campaign',
-      impressions: earning.impressions,
-      engagement: earning.engagement,
-      clicks: earning.clicks,
-      conversions: earning.conversions,
-      date: earning.date
-    }));
-
-    // If no data in DB, use mock data
-    if (data.length === 0) {
-      data = [
-        { creator: 'Creator1', platform: 'Instagram', revenue: 1000, cost: 500, roi: 100, campaignName: 'Summer Campaign', impressions: 50000, engagement: 2500 },
-        { creator: 'Creator2', platform: 'TikTok', revenue: 800, cost: 400, roi: 100, campaignName: 'Product Launch', impressions: 75000, engagement: 3750 },
-        { creator: 'Creator1', platform: 'YouTube', revenue: 1200, cost: 600, roi: 100, campaignName: 'Brand Awareness', impressions: 100000, engagement: 5000 },
-        { creator: 'Creator3', platform: 'Instagram', revenue: 900, cost: 450, roi: 100, campaignName: 'Holiday Promo', impressions: 60000, engagement: 3000 },
-        { creator: 'Creator4', platform: 'TikTok', revenue: 750, cost: 375, roi: 100, campaignName: 'User Generated', impressions: 80000, engagement: 4000 },
-        { creator: 'Creator2', platform: 'YouTube', revenue: 1100, cost: 550, roi: 100, campaignName: 'Influencer Collab', impressions: 90000, engagement: 4500 }
-      ];
-
-      if (creator) {
-        data = data.filter(item => item.creator.toLowerCase().includes(creator.toLowerCase()));
+    const data = await Earning.aggregate([
+      {
+        $group: {
+          _id: "$campaignId",
+          totalRevenue: { $sum: "$revenue" },
+          totalCost: { $sum: "$cost" }
+        }
+      },
+      {
+        $lookup: {
+          from: "campaigns", // name of campaigns collection in MongoDB
+          localField: "_id",
+          foreignField: "_id",
+          as: "campaign"
+        }
+      },
+      { $unwind: "$campaign" }, // Flatten the campaign array
+      {
+        $project: {
+          _id: 0,
+          campaignId: "$_id",
+          campaignName: "$campaign.name",
+          spent: "$totalCost",
+          totalRevenue: 1,
+          roi: {
+            $cond: [
+              { $eq: ["$totalCost", 0] },
+              0,
+              { $multiply: [{ $divide: [{ $subtract: ["$totalRevenue", "$totalCost"] }, "$totalCost"] }, 100] }
+            ]
+          }
+        }
       }
-      if (platform) {
-        data = data.filter(item => item.platform.toLowerCase().includes(platform.toLowerCase()));
-      }
-    }
+    ]);
 
-    // Create CSV
-    const csvHeader = 'Creator,Platform,Campaign,Revenue,Cost,ROI,Impressions,Engagement,Clicks,Conversions,Date\n';
-    const csvRows = data.map(item => {
-      const roi = typeof item.roi === 'number' ? item.roi.toFixed(2) + '%' : item.roi;
-      const date = item.date ? new Date(item.date).toLocaleDateString() : 'N/A';
-      return `${item.creator},${item.platform},${item.campaignName},${item.revenue},${item.cost},${roi},${item.impressions || 0},${item.engagement || 0},${item.clicks || 0},${item.conversions || 0},${date}`;
-    }).join('\n');
-
-    const csv = csvHeader + csvRows;
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="financial-report.csv"');
-    res.send(csv);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
+};
+
+// 3️⃣ Time Series (day/week/month/hour)
+const timeSeries = async (req, res) => {
+  try {
+    const { period = "month" } = req.query; // day, week, month, hour
+
+    const groupId = {
+      day: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+      week: { $isoWeek: "$date" },
+      month: { $dateToString: { format: "%Y-%m", date: "$date" } },
+      year: { $year: "$date" },
+      hour: { $hour: "$date" }
+    };
+    const data1 = await Earning.find({}).sort({ date: 1 }); // sorted by date ascending
+    console.log("Earnings data for time series:", data1);
+
+
+
+    const data = await Earning.aggregate([
+      {
+        $group: {
+          _id: groupId[period],
+          totalRevenue: { $sum: "$revenue" },
+          totalCost: { $sum: "$cost" },
+          totalClicks: { $sum: "$clicks" },
+          totalImpressions: { $sum: "$impressions" }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+console.log("Time series data:", data);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// 4️⃣ Cost Per Click (CPC)
+const costPerClick = async (req, res) => {
+  try {
+    const { campaignId } = req.query;
+
+    const match = campaignId ? { campaignId: mongoose.Types.ObjectId(campaignId) } : {};
+
+    const data = await Earning.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: "$campaignId",
+          totalCost: { $sum: "$cost" },
+          totalClicks: { $sum: "$clicks" }
+        }
+      },
+      {
+        $project: {
+          cpc: { $cond: [{ $eq: ["$totalClicks", 0] }, 0, { $divide: ["$totalCost", "$totalClicks"] }] },
+          totalCost: 1,
+          totalClicks: 1
+        }
+      }
+    ]);
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// 5️⃣ Click Through Rate (CTR)
+const clickThroughRate = async (req, res) => {
+  try {
+    const { campaignId } = req.query;
+
+    const match = campaignId ? { campaignId: mongoose.Types.ObjectId(campaignId) } : {};
+
+    const data = await Earning.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: "$campaignId",
+          totalClicks: { $sum: "$clicks" },
+          totalImpressions: { $sum: "$impressions" }
+        }
+      },
+      {
+        $project: {
+          ctr: { $cond: [{ $eq: ["$totalImpressions", 0] }, 0, { $multiply: [{ $divide: ["$totalClicks", "$totalImpressions"] }, 100] }] },
+          totalClicks: 1,
+          totalImpressions: 1
+        }
+      }
+    ]);
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = {
+  compareCampaigns,
+  spentVsROI,
+  timeSeries,
+  costPerClick,
+  clickThroughRate,
 };
