@@ -43,7 +43,7 @@ function Layout() {
       ? [
           {
             name: "Campaigns", // ✅ NEW
-            path: "/campaigns",s
+            path: "/campaigns",
             icon: Megaphone,
           },
           {
