@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-
+ 
 const API_BASE = "http://localhost:5000/api";
-
+ 
 const passwordRules = {
   length: (pwd) => pwd.length >= 8,
   upper: (pwd) => /[A-Z]/.test(pwd),
@@ -11,7 +11,7 @@ const passwordRules = {
   digit: (pwd) => /[0-9]/.test(pwd),
   special: (pwd) => /[^A-Za-z0-9]/.test(pwd),
 };
-
+ 
 function Rule({ ok, text }) {
   return (
     <li className={`flex items-center gap-2 ${ok ? "text-green-600" : "text-gray-500"}`}>
@@ -20,14 +20,14 @@ function Rule({ ok, text }) {
     </li>
   );
 }
-
+ 
 function Register() {
   const nav = useNavigate();
   const fileRef = useRef(null);
-
+ 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-
+ 
   const [avatarBase64, setAvatarBase64] = useState("");
   const [profile, setProfile] = useState({
     firstName: "",
@@ -44,11 +44,11 @@ function Register() {
     primaryLanguage: "",
     socialAccounts: [""],
   });
-
+ 
   // ✅ Keep these ONLY ONCE (you had duplicates)
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-
+ 
   const passwordChecks = {
     length: passwordRules.length(password),
     upper: passwordRules.upper(password),
@@ -56,23 +56,23 @@ function Register() {
     digit: passwordRules.digit(password),
     special: passwordRules.special(password),
   };
-
+ 
   const isPasswordValid = Object.values(passwordChecks).every(Boolean);
-
+ 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
-
+ 
   const handleSocialChange = (index, value) => {
     const updated = [...profile.socialAccounts];
     updated[index] = value;
     setProfile({ ...profile, socialAccounts: updated });
   };
-
+ 
   const addSocialAccount = () => {
     setProfile({ ...profile, socialAccounts: [...profile.socialAccounts, ""] });
   };
-
+ 
   const fileToBase64 = (file) =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -80,7 +80,7 @@ function Register() {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-
+ 
   const handleAvatarUpload = async (e) => {
     try {
       const file = e.target.files?.[0];
@@ -92,41 +92,42 @@ function Register() {
       setError("Failed to read image file");
     }
   };
-
+ 
   const handleRegister = async () => {
     setError("");
-
+ 
     if (!profile.primaryEmail.trim()) {
       setError("Primary email is required");
       return;
     }
-
+ 
     if (!isPasswordValid) {
       setError("Password does not meet the required criteria");
       return;
     }
-
+ 
     if (password !== confirm) {
       setError("Passwords do not match");
       return;
     }
-
+ 
     try {
       setSubmitting(true);
-
+ 
       const payload = {
         ...profile,
         password,
         socialAccounts: profile.socialAccounts.map((s) => s.trim()).filter(Boolean),
         profilePic: avatarBase64, // base64 string
       };
-
+ 
       const res = await axios.post(`${API_BASE}/auth/register`, payload);
-
+ 
+      // auto-login (session-based)
       sessionStorage.setItem("token", res.data.token);
-sessionStorage.setItem("user", JSON.stringify(res.data.user));
-sessionStorage.setItem("role", res.data.user.role);
-nav("/profile");
+      sessionStorage.setItem("role", res.data.user.role);
+ 
+      nav("/profile");
     } catch (err) {
       console.error(err);
       setError(err?.response?.data?.message || "Registration failed");
@@ -134,18 +135,18 @@ nav("/profile");
       setSubmitting(false);
     }
   };
-
+ 
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center items-start p-6">
       <div className="w-full max-w-5xl">
         <h1 className="text-2xl font-bold mb-6">Register</h1>
-
+ 
         {error && (
           <div className="mb-4 p-3 rounded-lg border border-red-200 bg-red-50 text-red-700">
             {error}
           </div>
         )}
-
+ 
         <div className="bg-white p-6 rounded-xl shadow space-y-6">
           {/* Photo */}
           <div className="flex items-center gap-5">
@@ -162,7 +163,7 @@ nav("/profile");
                 </div>
               )}
             </div>
-
+ 
             <label className="cursor-pointer text-blue-600 text-sm">
               Upload Photo
               <input
@@ -175,32 +176,32 @@ nav("/profile");
               />
             </label>
           </div>
-
+ 
           {/* Form */}
           <div className="grid md:grid-cols-2 gap-4">
             <Input label="First Name" name="firstName" value={profile.firstName} onChange={handleChange} />
             <Input label="Last Name" name="lastName" value={profile.lastName} onChange={handleChange} />
-
+ 
             <Input label="Primary Email (MDH)" name="primaryEmail" value={profile.primaryEmail} onChange={handleChange} />
             <Input label="Secondary Email" name="secondaryEmail" value={profile.secondaryEmail} onChange={handleChange} />
-
+ 
             <Select label="Gender" name="gender" value={profile.gender} onChange={handleChange} />
             <Input label="DOB" name="dob" type="date" value={profile.dob} onChange={handleChange} />
-
+ 
             <Input label="City" name="city" value={profile.city} onChange={handleChange} />
             <Input label="Mobile (Optional)" name="mobile" value={profile.mobile} onChange={handleChange} />
-
+ 
             <Input label="Joined Date (UGC Campaign)" name="joinedDate" value={profile.joinedDate} onChange={handleChange} />
             <Input label="Enrolled Course" name="course" value={profile.course} onChange={handleChange} />
-
+ 
             <Input label="Which Intake" name="intake" value={profile.intake} onChange={handleChange} />
             <Input label="Primary Language" name="primaryLanguage" value={profile.primaryLanguage} onChange={handleChange} />
           </div>
-
+ 
           {/* Socials */}
           <div>
             <p className="font-semibold mb-2">Social Media Accounts</p>
-
+ 
             {profile.socialAccounts.map((link, index) => (
               <input
                 key={index}
@@ -211,7 +212,7 @@ nav("/profile");
                 disabled={submitting}
               />
             ))}
-
+ 
             <button
               onClick={addSocialAccount}
               className="text-blue-600 text-sm"
@@ -221,7 +222,7 @@ nav("/profile");
               + Add another social account
             </button>
           </div>
-
+ 
           {/* Password */}
           <div className="grid md:grid-cols-2 gap-4">
             <div>
@@ -232,7 +233,7 @@ nav("/profile");
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-
+ 
               {/* ✅ Rules list below password */}
               <ul className="mt-2 text-sm space-y-1">
                 <Rule ok={passwordChecks.length} text="Minimum 8 characters" />
@@ -242,7 +243,7 @@ nav("/profile");
                 <Rule ok={passwordChecks.special} text="At least one special character (!@#$%^&*)" />
               </ul>
             </div>
-
+ 
             <Input
               label="Confirm Password"
               name="confirm"
@@ -251,7 +252,7 @@ nav("/profile");
               onChange={(e) => setConfirm(e.target.value)}
             />
           </div>
-
+ 
           <div className="flex justify-end">
             <button
               onClick={handleRegister}
@@ -261,7 +262,7 @@ nav("/profile");
               {submitting ? "Registering..." : "Register"}
             </button>
           </div>
-
+ 
           {/* Optional: link back to login */}
           <div className="text-sm text-gray-600 text-center">
             Already have an account?{" "}
@@ -278,7 +279,7 @@ nav("/profile");
     </div>
   );
 }
-
+ 
 function Input({ label, name, value, type = "text", onChange }) {
   return (
     <div>
@@ -294,7 +295,7 @@ function Input({ label, name, value, type = "text", onChange }) {
     </div>
   );
 }
-
+ 
 function Select({ label, name, value, onChange }) {
   return (
     <div>
@@ -313,5 +314,6 @@ function Select({ label, name, value, onChange }) {
     </div>
   );
 }
-
+ 
 export default Register;
+ 

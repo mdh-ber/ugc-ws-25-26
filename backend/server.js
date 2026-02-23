@@ -1,8 +1,13 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-require("dotenv").config();
+// server.js
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
 
+// =====================
+// ROUTES
+// =====================
 import rewardRoutes from "./routes/rewardRoutes.js";
 import reviewRequestRoutes from "./routes/reviewRequestRoutes.js";
 import trainingRoutes from "./routes/trainingRoutes.js";
@@ -13,20 +18,23 @@ import guidelinesRoutes from "./routes/guidelinesRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
 
-import bcrypt from "bcryptjs";
-// import User from "./models/user.model.js"
+// =====================
+// MODELS
+// =====================
 import User from "./models/user.model.js";
 
+// =====================
+// CONFIG
+// =====================
 dotenv.config();
-
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 // =====================
 // MIDDLEWARE
 // =====================
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
 app.use(
   cors({
     origin: ["http://localhost:3000"],
@@ -89,8 +97,6 @@ app.use("/api/feedback", feedbackRoutes);
 // =====================
 // DB + SERVER START
 // =====================
-const PORT = process.env.PORT || 5000;
-
 mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
@@ -98,4 +104,4 @@ mongoose
     await createDefaultAdmin();
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
-  .catch((err) => console.log(err));
+  .catch((err) => console.error("MongoDB connection error:", err));
