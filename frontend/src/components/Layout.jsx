@@ -21,6 +21,9 @@ function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // ✅ Keep query string (so mode stays when you click menu items)
+  const withQuery = (path) => `${path}${location.search || ""}`;
+
   const menuItems = [
     { name: "Home", path: "/home", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -31,6 +34,17 @@ function Layout() {
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
     { name: "Milestones", path: "/milestones", icon: Target },
+
+    // ✅ Only visible when URL has ?mode=manager
+    ...(isMarketingManager
+      ? [
+          {
+            name: "Website Analytics",
+            path: "/website-analytics",
+            icon: BarChart3,
+          },
+        ]
+      : []),
   ];
 
   // ✅ DEFINE logout INSIDE the component
