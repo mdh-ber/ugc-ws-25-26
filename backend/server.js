@@ -1,7 +1,7 @@
 const http = require("http");
 const url = require("url");
 const mongoose = require("mongoose");
-
+const crypto = require("crypto");
 require("dotenv").config();
 
 const Feedback = require("./models/feedback.model");
@@ -22,7 +22,7 @@ const Campaign = require("./models/Campaign");
 const CampaignMetric = require("./models/CampaignMetric");
 
 const PORT = process.env.PORT || 5000;
-
+const Visit = require("./models/visit");
 // ---------------- helpers ----------------
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
@@ -132,10 +132,24 @@ const server = http.createServer(async (req, res) => {
   const query = parsed.query || {};
   const segments = path.split("/").filter(Boolean); // no empty
 
+
+
   try {
     // ===========================
     // AUTH
     // ===========================
+ if (req.method === "POST" && path === "/api/visits/track"){
+  const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
+  const userAgent = req.headers['user-agent'] || "unknown";
+  const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
+  await Visit.create({ ipHash, userAgent });
+  return sendJson(res, 200, { message: "Visit tracked" });
+ }
+  if (req.method === "GET" && path === "/api/visits/stats"){
+    const totalVisits = await Visit.countDocuments();
+    const uniqueIps = await Visit.distinct("ipHash");
+    return sendJson(res, 200, { totalVisits, uniqueVisits: uniqueIps.length });
+  }
     if (req.method === "POST" && path === "/api/auth/login") {
       const body = await readJsonBody(req);
       const email = (body.email || "").trim().toLowerCase();
