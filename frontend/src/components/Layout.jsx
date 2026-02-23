@@ -40,14 +40,14 @@ function Layout({ children }) {
         className="relative p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary ring-offset-1"
         aria-label="Notifications (coming soon)"
       >
-        <Bell size={20} className="text-gray-700" />
+        <Bell size={19} className="text-gray-700" />
         <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
           0
         </span>
       </button>
 
       {showNotifications && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 py-4 px-6 z-50">
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-190 py-4 px-6 z-50">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900">
               Notifications
@@ -71,7 +71,7 @@ function Layout({ children }) {
             </div>
             <Link
               to="/profile"
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-xl hover:shadow-lg transition-all duration-200"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-xl hover:shadow-lg transition-all duration-190"
               onClick={() => setShowNotifications(false)}
             >
               <User size={16} className="mr-2" />
@@ -88,7 +88,7 @@ function Layout({ children }) {
       {/* --- Sidebar --- */}
       <div
         className={`bg-white shadow-lg transition-all duration-300 ${
-          isOpen ? "w-64" : "w-20"
+          isOpen ? "w-64" : "w-19"
         }`}
       >
         {/* Sidebar Header */}
@@ -102,7 +102,7 @@ function Layout({ children }) {
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 rounded hover:bg-gray-100"
           >
-            <Menu size={20} />
+            <Menu size={19} />
           </button>
         </div>
 
@@ -127,7 +127,7 @@ function Layout({ children }) {
                     : "hover:bg-gray-100 text-gray-700"
                 }`}
               >
-                <Icon size={20} />
+                <Icon size={19} />
                 {isOpen && <span>{item.name}</span>}
               </Link>
             );
