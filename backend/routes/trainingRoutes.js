@@ -1,13 +1,13 @@
-import express from "express";
-import {
+const express = require("express");
+const {
   getTrainings,
   createTraining,
   getTrainingById,
   updateTraining,
   deleteTraining,
-} from "../controllers/trainingController.js";
+} = require("../controllers/trainingController.js");
 
-import checkRole from "../middleware/checkRole.js";
+const checkRole = require("../middleware/checkRole.js");
 
 const router = express.Router();
 
@@ -20,4 +20,4 @@ router.post("/", checkRole, createTraining);
 router.put("/:id", checkRole, updateTraining);
 router.delete("/:id", checkRole, deleteTraining);
 
-export default router;
+module.exports = router;

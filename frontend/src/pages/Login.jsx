@@ -1,9 +1,9 @@
 import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
-import api from "../services/api";
+import api from "../services/api";  
 
 function Login() {
-  const nav = useNavigate();
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -12,14 +12,36 @@ function Login() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    // Here you will call your backend login API and get JWT
-    // For now, we can just simulate
-    if (email && password) {
-      // Example: save fake token
-      localStorage.setItem("token", "fake-jwt-token");
-      navigate("/dashboard"); // redirect after login
-    } else {
-      alert("Enter email and password");
+    setErr("");
+    
+    if (!email || !password) {
+      setErr("Enter email and password");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Call the hardcoded route in your server.js
+      const res = await api.post("/auth/login", {
+        email: email,
+        password: password
+      });
+
+      // Save the token and user data returned by your server.js
+      sessionStorage.setItem("token", res.data.token);
+      sessionStorage.setItem("user", JSON.stringify(res.data.user));
+      sessionStorage.setItem("role", res.data.user.role);
+
+      // Redirect to the dashboard!
+      navigate("/dashboard");
+
+    } catch (error) {
+      // If the backend returns a 401 (Invalid credentials)
+      const message = error.response?.data?.message || "Login failed.";
+      setErr(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -52,12 +74,13 @@ function Login() {
 
         <button
           onClick={handleLogin}
-          className="w-full bg-primary text-white py-2 rounded-lg mb-4"
+          disabled={loading}
+          className="w-full bg-blue-600 text-white py-2 rounded-lg mb-4 disabled:opacity-50"
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
 
-        {/* ✅ New User Button */}
+        {/* New User Button */}
         <button
           onClick={() => navigate("/Register")}
           className="w-full border border-blue-600 text-blue-600 py-2 rounded-lg hover:bg-blue-50 transition mb-4"

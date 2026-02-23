@@ -1,10 +1,20 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const leadSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true },
-  platform: { type: String, required: true },
-  creatorId: { type: String, default: 'Internal' } // ✅ Added this to track the person
-}, { timestamps: true });
+  platform: { 
+    type: String, 
+    required: true,
+    // Expanded to include all major platforms
+    enum: [
+      'tiktok', 'instagram', 'youtube', 'facebook', 
+      'twitter', 'linkedin', 'snapchat', 'pinterest', 
+      'reddit', 'threads'
+    ] 
+  },
+  clickedAt: { 
+    type: Date, 
+    default: Date.now 
+  }
+});
 
-module.exports = mongoose.model('Lead', leadSchema);
+module.exports = mongoose.model("Lead", leadSchema);

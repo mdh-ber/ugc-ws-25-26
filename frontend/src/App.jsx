@@ -1,82 +1,94 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-
+import { useEffect } from "react";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import TrackLead from "./pages/TrackLead";
 import Layout from "./components/Layout";
-import Footer from "./components/Footer";
-import ProtectedRoute from "./components/ProtectedRoute";
-
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-
+import LeadTracking from "./pages/LeadTracking";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
-import Trainings from "./pages/Trainings";
 import Profile from "./pages/Profile";
+import ContentCreation from "./pages/ContentCreation";
+import Trainings from "./pages/Trainings";
+import Guidelines from "./pages/Guidelines";
 import Reviews from "./pages/Reviews";
 import UuOverview from "./pages/UuOverview";
 import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
-// import AdminFeedback from "./pages/AdminFeedback";
-// Clear auth on app reload (no persistent login)
-localStorage.removeItem("token");
-localStorage.removeItem("role");
+import ReferralList from "./pages/ReferralList";
+import WebsiteAnalytics from "./pages/WebsiteAnalytics";
+import Footer from "./components/Footer";
+import CampaignsList from "./pages/CampaignsList";
+import CampaignForm from "./pages/CampaignForm";
+import CampaignROI from "./pages/CampaignROI";
+
 function App() {
-  const token = sessionStorage.getItem("token");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
+  const isMarketingManager = params.get("mode") === "manager";
+
+  // AUTO add ?mode=manager after load so sidebar shows Campaigns automatically
+  useEffect(() => {
+    const mode = params.get("mode");
+    if (!mode) {
+      navigate(`${location.pathname}?mode=manager`, { replace: true });
+    }
+  }, [location.pathname, navigate]);
 
   return (
-    <Routes>
-      {/* 🔹 APP ENTRY POINT */}
-      <Route
-        path="/"
-        element={<Navigate to={"/login"} replace />}
-      />
+    <>
+      <Routes>
+        {/* Redirect root and login straight to dashboard */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/register" element={<Navigate to="/dashboard" replace />} />
 
-      {/* 🔓 PUBLIC ROUTES (NO LAYOUT) */}
-      <Route
-        path="/login"
-        element={token ? <Navigate to="/dashboard" replace /> : <Login />}
-      />
+        {/* Render the Layout and all pages directly with NO login required */}
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/create" element={<ContentCreation />} />
+          <Route path="/trainings" element={<Trainings />} />
+          <Route path="/guidelines" element={<Guidelines />} />
+          <Route path="/reviews" element={<Reviews />} />
+          <Route path="/uu-overview" element={<UuOverview />} />
+          <Route path="/referrals" element={<ReferralList />} />
+          <Route path="/rewards" element={<Rewards />} />
+          <Route path="/certificates" element={<CertificatesPage />} />
+          <Route path="/milestones" element={<Milestones />} />
 
-      <Route
-        path="/register"
-        element={token ? <Navigate to="/dashboard" replace /> : <Register />}
-      />
+          {/* Campaigns */}
+          <Route path="/campaigns" element={<CampaignsList />} />
+          <Route path="/campaigns/new" element={<CampaignForm />} />
+          <Route path="/campaigns/:id/edit" element={<CampaignForm />} />
+          <Route path="/campaigns/:id/roi" element={<CampaignROI />} />
+          <Route path="/leads" element={<LeadTracking />} />
+          {/* NEW: The silent tracking route */}
+        <Route path="/track/:platform" element={<TrackLead />} />
 
-      {/* 🔐 PROTECTED ROUTES */}
-      <Route element={<ProtectedRoute />}>
-        <Route
-          path="/*"
-          element={
-            <>
-              <Layout>
-                <Routes>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/create" element={<ContentCreation />} />
-                  <Route path="/trainings" element={<Trainings />} />
-                  <Route path="/guidelines" element={<Guidelines />} />
-                  <Route path="/reviews" element={<Reviews />} />
-                  <Route path="/uu-overview" element={<UuOverview />} />
-                  <Route path="/rewards" element={<Rewards />} />
-                  <Route path="/certificates" element={<CertificatesPage />} />
-                  <Route path="/milestones" element={<Milestones />} />
-                  {/* <Route path="/admin/feedback" element={<AdminFeedback />} /> */}
+        {/* Redirect root and login straight to dashboard */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-                  {/* fallback inside app */}
-                  <Route
-                    path="*"
-                    element={<Navigate to="/dashboard" replace />}
-                  />
-                </Routes>
-              </Layout>
+          {/* Website Analytics */}
+          <Route
+            path="/website-analytics"
+            element={
+              isMarketingManager ? (
+                <WebsiteAnalytics />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
 
-              <Footer />
-            </>
-          }
-        />
-      </Route>
-    </Routes>
+          {/* fallback inside protected area */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Route>
+      </Routes>
+
+      <Footer />
+    </>
   );
 }
 

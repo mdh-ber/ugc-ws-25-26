@@ -1,17 +1,17 @@
-const http = require("http");
-const url = require("url");
+const express = require("express");
 const mongoose = require("mongoose");
+const cors = require("cors");
 require("dotenv").config();
 
-const cors = require("cors");
+// ✅ 1. UNCOMMENTED EXPRESS INITIALIZATION
 const app = express();
 
 // =====================
 // MIDDLEWARE
 // =====================
-app.use(express.json());
+// ✅ 2. UNCOMMENTED JSON PARSER (Crucial for forms!)
+app.use(express.json()); 
 
-// CORS 
 app.use(cors());
 app.options("*", cors());
 
@@ -33,9 +33,18 @@ app.use("/api/profiles", require("./routes/profileRoutes"));
 app.use("/api/uu", require("./routes/uuRoutes"));
 app.use("/api/events", require("./routes/eventRoutes"));
 app.use("/api/referrals", require("./routes/referralRoutes"));
-
-// GUIDELINES ROUTE
 app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
+app.use("/api/leads", require("./routes/leadRoutes"));
+
+// ✅ 3. ADDED LEADS MOCK DATA ROUTE
+app.get("/api/leads", (req, res) => {
+  const leadStats = [
+    { _id: "TikTok", count: 842 },
+    { _id: "Instagram", count: 530 },
+    { _id: "YouTube", count: 215 }
+  ];
+  res.status(200).json(leadStats);
+});
 
 // =====================
 // SERVER START
