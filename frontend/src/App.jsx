@@ -10,6 +10,7 @@ import Guidelines from "./pages/Guidelines";
 import Footer from "./components/Footer"
 import LeadsChart from "./components/LeadsChart";
 
+import Suggestions from "./pages/Suggestions";
 import Reviews from "./pages/Reviews";
 import UuOverview from "./pages/UuOverview";
 
@@ -29,6 +30,7 @@ function App() {
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/uu-overview" element={<UuOverview />} />
         <Route path="/leads" element={<LeadsChart/>} />
+        <Route path="/suggestions" element={<Suggestions />} />
         
         
       </Routes>

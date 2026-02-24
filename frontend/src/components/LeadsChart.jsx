@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import {
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 import {
   FaInstagram,
@@ -62,16 +61,13 @@ export default function LeadsChart() {
             item.Tiktok,
           0
         )
-      : leadsData.reduce(
-          (sum, item) => sum + (item[selectedPlatform] || 0),
-          0
-        );
+      : leadsData.reduce((sum, item) => sum + (item[selectedPlatform] || 0), 0);
 
   // Animated total
   useEffect(() => {
     let start = 0;
     const duration = 600;
-    const increment = totalLeads / (duration / 16);
+    const increment = totalLeads / (duration / 16 || 1);
 
     const counter = setInterval(() => {
       start += increment;
@@ -85,6 +81,9 @@ export default function LeadsChart() {
 
     return () => clearInterval(counter);
   }, [totalLeads]);
+
+  const axisStroke = darkMode ? "#fff" : "#000";
+  const gridOpacity = 0.3;
 
   return (
     <div
@@ -142,12 +141,15 @@ export default function LeadsChart() {
           <>
             {/* Platform Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
-              {platforms.map((plat, index) => (
+              {platforms.map((plat) => (
                 <div
                   key={plat.name}
                   className="rounded-xl p-3 sm:p-4 text-center bg-white/30 backdrop-blur-lg shadow-md hover:scale-105 transition duration-300"
                 >
-                  <div className="text-xl sm:text-2xl mb-1" style={{ color: plat.color }}>
+                  <div
+                    className="text-xl sm:text-2xl mb-1"
+                    style={{ color: plat.color }}
+                  >
                     {plat.icon}
                   </div>
                   <div className="font-medium text-xs sm:text-sm">{plat.name}</div>
@@ -169,17 +171,21 @@ export default function LeadsChart() {
               </p>
             </div>
 
-            {/* Chart */}
+            {/* LINE Chart */}
             <div className="w-full h-72 sm:h-96">
               <ResponsiveContainer>
-                <BarChart data={leadsData}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <LineChart data={leadsData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={gridOpacity} />
                   <XAxis
                     dataKey="date"
-                    stroke={darkMode ? "#fff" : "#000"}
+                    stroke={axisStroke}
                     tick={{ fontSize: 10 }}
                   />
-                  <YAxis stroke={darkMode ? "#fff" : "#000"} tick={{ fontSize: 10 }} />
+                  <YAxis
+                    stroke={axisStroke}
+                    tick={{ fontSize: 10 }}
+                    allowDecimals={false}
+                  />
                   <Tooltip
                     contentStyle={{
                       borderRadius: "10px",
@@ -187,26 +193,30 @@ export default function LeadsChart() {
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  {selectedPlatform === "All"
-                    ? platforms.map((plat, index) => (
-                        <Bar
-                          key={plat.name}
-                          dataKey={plat.name}
-                          radius={[10, 10, 0, 0]}
-                        >
-                          {leadsData.map((entry, idx) => (
-                            <Cell key={idx} fill={plat.color} />
-                          ))}
-                        </Bar>
-                      ))
-                    : (
-                        <Bar dataKey={selectedPlatform} radius={[10, 10, 0, 0]}>
-                          {leadsData.map((entry, idx) => (
-                            <Cell key={idx} fill="#6366f1" />
-                          ))}
-                        </Bar>
-                      )}
-                </BarChart>
+
+                  {selectedPlatform === "All" ? (
+                    platforms.map((plat) => (
+                      <Line
+                        key={plat.name}
+                        type="monotone"
+                        dataKey={plat.name}
+                        stroke={plat.color}
+                        strokeWidth={3}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    ))
+                  ) : (
+                    <Line
+                      type="monotone"
+                      dataKey={selectedPlatform}
+                      stroke="#6366f1"
+                      strokeWidth={3}
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  )}
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </>

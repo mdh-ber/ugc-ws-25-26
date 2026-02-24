@@ -28,7 +28,8 @@ function Layout({ children }) {
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "UU Overview", path: "/uu-overview", icon: FileText },
     { name: "Leads", path: "/leads", icon: ChartBar },
-  ];
+    { name: "Suggestions", path: "/suggestions", icon: ChartBar },
+   ];
 
   // --- Notification Placeholder Component ---
   const NotificationPlaceholder = () => (

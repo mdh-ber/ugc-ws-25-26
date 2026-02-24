@@ -10,10 +10,8 @@ function Navbar() {
         <Link to="/dashboard" className="hover:text-primary">Dashboard</Link>
         <Link to="/create" className="hover:text-primary">Create</Link>
         <Link to="/profile" className="hover:text-primary">Profile</Link>
-<<<<<<< HEAD
-                <Link to="/reviews" className="hover:text-primary">Reviews</Link>
-=======
->>>>>>> main
+        <Link to="/reviews" className="hover:text-primary">Reviews</Link>
+        <Link to="/suggestions" className="hover:text-primary">Suggestions</Link>
         <Link to="/guidelines" className="hover:text-primary">Guidelines</Link>
         <Link to="/login" className="bg-primary text-white px-4 py-2 rounded-lg">
           Login
