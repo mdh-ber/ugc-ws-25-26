@@ -37,6 +37,8 @@ function Layout() {
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
     sessionStorage.removeItem("role");
+      nav("/login");
+};
 
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -78,7 +80,10 @@ function Layout() {
     { name: "Referral List", path: "/referrals", icon: UserSearch },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
+    { name: "Certificates", path: "/certificates", icon: Award },
     { name: "Milestones", path: "/milestones", icon: Target },
+    { name: "Suggestions", path: "/suggestions", icon: Target },
+
 
     // ✅ Visible only in manager mode
     ...(isMarketingManager

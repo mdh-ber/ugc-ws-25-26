@@ -19,6 +19,7 @@ import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
 import ReferralList from "./pages/ReferralList";
+import Suggestions from "./pages/Suggestions";
 
 
 import WebsiteAnalytics from "./pages/WebsiteAnalytics";
@@ -82,7 +83,7 @@ function App() {
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="/milestones" element={<Milestones />} />
-
+            <Route path="/suggestions" element={<Suggestions />} />
             {/* Campaigns */}
             <Route path="/campaigns" element={<CampaignsList />} />
             <Route path="/campaigns/new" element={<CampaignForm />} />
