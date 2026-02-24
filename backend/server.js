@@ -4,22 +4,31 @@ const mongoose = require("mongoose");
 const crypto = require("crypto");
 require("dotenv").config();
 
-const Feedback = require("./models/feedback.model");
-const Guideline = require("./models/guideline.model");
 
-// ✅ IMPORTANT: these match your filenames in models folder
-const Training = require("./models/Training");
-const Event = require("./models/Event");
+const cors = require("cors");
+const connectDB = require("./config/db");
+const eventRoutes = require('./routes/eventRoutes');
 
-const RefereeUu = require("./models/RefereeUu");
-const ReferralUu = require("./models/ReferralUu");
-const { Referral } = require("./models/Referral");
+const app = express();
+app.use(express.json());
 
-// ✅ NEW (Sub-issue #155)
-const Campaign = require("./models/Campaign");
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.log(err));
 
-// ✅ NEW (Sub-issue #158)
-const CampaignMetric = require("./models/CampaignMetric");
+const rewardRoutes = require("./routes/rewardRoutes");
+app.use("/api/rewards", rewardRoutes);
+
+
+// Routes
+app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
+app.use("/api/trainings", require("./routes/trainingRoutes"));
+app.use("/api/profiles", require("./routes/profileRoutes"));
+app.use("/api/uu", require("./routes/uuRoutes"));
+app.use("/api/guidelines", require("./routes/guidelinesRoutes.")); 
+app.use('/api/events', eventRoutes);
+
+
 
 const PORT = process.env.PORT || 5000;
 const Visit = require("./models/visit");
