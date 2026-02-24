@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import React, { useEffect, useState } from "react";
 import { getClicksPerCreator } from "../services/analyticsService";
 
@@ -89,3 +90,30 @@ const tdStyle = {
 };
 
 export default ClicksPerCreatorCard;
+=======
+import { useEffect, useState } from "react";
+import { getClicksPerCreator } from "../services/creatorPerformanceService";
+
+export default function ClicksPerCreatorCard() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    getClicksPerCreator()
+      .then(setData)
+      .catch(console.error);
+  }, []);
+
+  return (
+    <div className="bg-white shadow p-4 rounded">
+      <h2 className="text-xl font-bold mb-4">Clicks Per Creator</h2>
+
+      {data.map((creator) => (
+        <div key={creator.creatorId} className="mb-2">
+          <p className="font-semibold">{creator.creatorName}</p>
+          <p>Total Clicks: {creator.totalClicks}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+>>>>>>> Stashed changes

@@ -11,7 +11,16 @@ import {
   Star,
   Bell,
   NotebookPen,
+<<<<<<< Updated upstream
   Wallet
+=======
+  Wallet,
+  Award,
+  Target,
+  LogOut,
+  BarChart3,
+  Megaphone,
+>>>>>>> Stashed changes
 } from "lucide-react";
 
 function Layout({ children }) {
@@ -19,7 +28,41 @@ function Layout({ children }) {
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
 
+<<<<<<< Updated upstream
   // --- MVP Menu Items ---
+=======
+  const token =
+    sessionStorage.getItem("token") || localStorage.getItem("token");
+
+  const role =
+    sessionStorage.getItem("role") || localStorage.getItem("role");
+
+  const isMarketingManager = role === "marketingManager";
+
+  // ----------------------
+  // Logout Function
+  // ----------------------
+  const handleLogout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("role");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+
+    nav("/login");
+  }; // ✅ CLOSED PROPERLY
+
+  // ✅ Keep query string
+  const withQuery = (path) => `${path}${location.search || ""}`;
+
+  // If no token, allow rendering login/outlet pages
+  if (!token) return <Outlet />;
+
+  // ----------------------
+  // Menu Items
+  // ----------------------
+>>>>>>> Stashed changes
   const menuItems = [
     { name: "Home", path: "/", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -33,6 +76,26 @@ function Layout({ children }) {
 
     // ✅ NEW REWARDS PAGE
     { name: "Rewards", path: "/rewards", icon: Wallet },
+<<<<<<< Updated upstream
+=======
+    { name: "Certificates", path: "/certificates", icon: Award },
+    { name: "Milestones", path: "/milestones", icon: Target },
+
+    ...(isMarketingManager
+      ? [
+          {
+            name: "Campaigns",
+            path: "/campaigns",
+            icon: Megaphone,
+          },
+          {
+            name: "Website Analytics",
+            path: "/website-analytics",
+            icon: BarChart3,
+          },
+        ]
+      : []),
+>>>>>>> Stashed changes
   ];
   
   // --- Notification Placeholder Component ---
@@ -110,7 +173,11 @@ function Layout({ children }) {
             return (
               <Link
                 key={index}
+<<<<<<< Updated upstream
                 to={item.path}
+=======
+                to={withQuery(item.path)}
+>>>>>>> Stashed changes
                 className={`flex items-center space-x-3 p-3 rounded-lg transition ${
                   isActive
                     ? "bg-primary text-white"
@@ -123,6 +190,16 @@ function Layout({ children }) {
             );
           })}
         </nav>
+<<<<<<< Updated upstream
+=======
+
+        <button
+          onClick={handleLogout}
+          className="m-4 bg-red-500 text-white p-2 rounded flex items-center justify-center gap-2"
+        >
+          <LogOut size={18} /> {isOpen && "Logout"}
+        </button>
+>>>>>>> Stashed changes
       </div>
 
       {/* --- Main Content --- */}
@@ -137,10 +214,28 @@ function Layout({ children }) {
           
           <div className="flex items-center space-x-2">
             <NotificationPlaceholder />
+<<<<<<< Updated upstream
           </div>
         </div>
 
         <div className="p-6">{children}</div>
+=======
+
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-gray-100"
+              title="Logout"
+              aria-label="Logout"
+            >
+              <LogOut size={20} className="text-gray-700" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <Outlet />
+        </div>
+>>>>>>> Stashed changes
       </div>
     </div>
   );
