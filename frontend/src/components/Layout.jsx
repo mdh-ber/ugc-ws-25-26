@@ -47,15 +47,15 @@ function Layout() {
   // If not logged in, just render pages (login/register)
   if (!token) return <Outlet />;
 
-  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+  // const token = sessionStorage.getItem("token") || localStorage.getItem("token");
 
   // ----------------------
   // Logout Function
   // ----------------------
-  const handleLogout = () => {
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("role");
+  // const handleLogout = () => {
+  //   sessionStorage.removeItem("token");
+  //   sessionStorage.removeItem("user");
+  //   sessionStorage.removeItem("role");
 
   // ✅ Keep query string
   const withQuery = (path) => `${path}${location.search || ""}`;
@@ -177,9 +177,11 @@ function Layout() {
       <div className="flex-1">
         {/* Header */}
         <div className="bg-white shadow p-4 flex justify-between items-center">
-          <div>
+          <div className="flex items-center space-x-4">
             <h1 className="font-semibold text-xl">UGC Platform</h1>
-            <span className="text-sm text-gray-500">MDH University</span>
+            <span className="text-sm text-gray-500">
+              MDH University
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
