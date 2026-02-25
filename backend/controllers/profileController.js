@@ -1,4 +1,4 @@
-const Profile = require("../models/Profile");
+const Profile = require("../models/pointsProfile.model");
 
 // ===== GET PROFILE =====
 exports.getProfile = async (req, res) => {

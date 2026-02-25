@@ -1,47 +1,105 @@
+// Layout.jsx
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
   Menu,
   Home,
   LayoutDashboard,
   User,
   BookOpen,
-  Book,
   FileText,
-  Star,
   Bell,
   NotebookPen,
-  Wallet
+  Wallet,
+  Award,
+  Target,
+  LogOut,
+  UserSearch,
+  BarChart3,
+  Megaphone, // ✅ NEW
 } from "lucide-react";
 
-function Layout({ children }) {
+function Layout() {
   const [isOpen, setIsOpen] = useState(true);
-  const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // --- MVP Menu Items ---
+  const location = useLocation();
+  const nav = useNavigate();
+
+  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+
+  // ✅ URL-based mode switch: add ?mode=manager to any URL
+  const params = new URLSearchParams(location.search);
+  const isMarketingManager = params.get("mode") === "manager";
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("role");
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+
+    nav("/login");
+  };
+
+  // If not logged in, just render pages (login/register)
+  if (!token) return <Outlet />;
+
+  // const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+
+  // ----------------------
+  // Logout Function
+  // ----------------------
+  // const handleLogout = () => {
+  //   sessionStorage.removeItem("token");
+  //   sessionStorage.removeItem("user");
+  //   sessionStorage.removeItem("role");
+
+  // ✅ Keep query string
+  const withQuery = (path) => `${path}${location.search || ""}`;
+
+  // If no token, allow rendering login/outlet pages
+  if (!token) return <Outlet />;
+
+  // ----------------------
+  // Menu Items
+  // ----------------------
   const menuItems = [
-    { name: "Home", path: "/", icon: Home },
+    { name: "Home", path: "/home", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Trainings & Events", path: "/trainings", icon: BookOpen },
     { name: "Profile", path: "/profile", icon: User },
-
-    // { name: "Guidelines", path: "/ui_guidelines", icon: FileText },
-
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
-
-    // ✅ NEW REWARDS PAGE
+    { name: "Referral List", path: "/referrals", icon: UserSearch },
     { name: "Rewards", path: "/rewards", icon: Wallet },
+    { name: "Certificates", path: "/certificates", icon: Award },
+    { name: "Milestones", path: "/milestones", icon: Target },
+
+    // ✅ Visible only in manager mode
+    ...(isMarketingManager
+      ? [
+          {
+            name: "Campaigns", // ✅ NEW
+            path: "/campaigns",
+            icon: Megaphone,
+          },
+          {
+            name: "Website Analytics",
+            path: "/website-analytics",
+            icon: BarChart3,
+          },
+        ]
+      : []),
   ];
-  
-  // --- Notification Placeholder Component ---
+
   const NotificationPlaceholder = () => (
     <div className="relative">
       <button
         onClick={() => setShowNotifications(!showNotifications)}
-        className="relative p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary ring-offset-1"
-        aria-label="Notifications (coming soon)"
+        className="relative p-2 rounded-lg hover:bg-gray-100"
       >
         <Bell size={20} className="text-gray-700" />
         <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
@@ -50,33 +108,13 @@ function Layout({ children }) {
       </button>
 
       {showNotifications && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 py-4 px-6 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
-            <span className="text-sm text-gray-500 font-medium">Coming soon</span>
-          </div>
-          
-          <div className="text-center py-8 space-y-3">
-            <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center">
-              <Bell size={24} className="text-white" />
-            </div>
-            <div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-1">
-                Engagement alerts coming soon!
-              </h4>
-              <p className="text-gray-600 max-w-sm mx-auto">
-                Real-time notifications for likes, comments, new followers, and content approvals will appear here.
-              </p>
-            </div>
-            <Link
-              to="/profile"
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-xl hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
-              onClick={() => setShowNotifications(false)}
-            >
-              <User size={16} className="mr-2" />
-              Complete your profile first
-            </Link>
-          </div>
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border py-4 px-6 z-50">
+          <h3 className="text-lg font-semibold mb-4">
+            Notifications (Coming Soon)
+          </h3>
+          <p className="text-gray-600">
+            Real-time notifications will appear here.
+          </p>
         </div>
       )}
     </div>
@@ -84,7 +122,7 @@ function Layout({ children }) {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* --- Sidebar --- */}
+      {/* Sidebar */}
       <div
         className={`bg-white shadow-lg transition-all duration-300 ${
           isOpen ? "w-64" : "w-20"
@@ -92,7 +130,7 @@ function Layout({ children }) {
       >
         <div className="p-4 flex justify-between items-center border-b">
           {isOpen && (
-            <h2 className="font-bold text-primary text-lg">MDH UGC</h2>
+            <h2 className="font-bold text-blue-600 text-lg">MDH UGC</h2>
           )}
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -105,16 +143,19 @@ function Layout({ children }) {
         <nav className="p-4 flex flex-col space-y-2">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive =
+              item.path === "/home"
+                ? location.pathname === "/home"
+                : location.pathname.startsWith(item.path);
 
             return (
               <Link
                 key={index}
-                to={item.path}
-                className={`flex items-center space-x-3 p-3 rounded-lg transition ${
+                to={withQuery(item.path)}
+                className={`flex items-center space-x-3 p-3 rounded ${
                   isActive
-                    ? "bg-primary text-white"
-                    : "hover:bg-gray-100"
+                    ? "bg-blue-600 text-white"
+                    : "hover:bg-gray-100 text-gray-700"
                 }`}
               >
                 <Icon size={20} />
@@ -123,10 +164,18 @@ function Layout({ children }) {
             );
           })}
         </nav>
+
+        <button
+          onClick={handleLogout}
+          className="m-4 bg-red-500 text-white p-2 rounded"
+        >
+          Logout
+        </button>
       </div>
 
-      {/* --- Main Content --- */}
+      {/* Main Content */}
       <div className="flex-1">
+        {/* Header */}
         <div className="bg-white shadow p-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <h1 className="font-semibold text-xl">UGC Platform</h1>
@@ -134,13 +183,23 @@ function Layout({ children }) {
               MDH University
             </span>
           </div>
-          
-          <div className="flex items-center space-x-2">
+
+          <div className="flex items-center gap-2">
             <NotificationPlaceholder />
+
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-gray-100"
+            >
+              <LogOut size={20} className="text-gray-700" />
+            </button>
           </div>
         </div>
 
-        <div className="p-6">{children}</div>
+        {/* Page Content */}
+        <div className="p-6">
+          <Outlet />
+        </div>
       </div>
     </div>
   );
