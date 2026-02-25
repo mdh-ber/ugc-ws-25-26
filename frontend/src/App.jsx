@@ -20,6 +20,7 @@ import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
 import ReferralList from "./pages/ReferralList";
 
+
 import WebsiteAnalytics from "./pages/WebsiteAnalytics";
 import Footer from "./components/Footer";
 
