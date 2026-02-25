@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { createDummyLead } from "../services/Leadservice";
+import { createDummyLead } from "../services/leadService";
 
 function Home() {
   useEffect(() => {

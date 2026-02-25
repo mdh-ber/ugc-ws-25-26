@@ -10,6 +10,7 @@ const Guideline = require("./models/guideline.model");
 // ✅ IMPORTANT: these match your filenames in models folder
 const Training = require("./models/Training");
 const Event = require("./models/Event");
+const Reward = require("./models/reward");
 
 const RefereeUu = require("./models/RefereeUu");
 const ReferralUu = require("./models/ReferralUu");
@@ -177,6 +178,14 @@ const server = http.createServer(async (req, res) => {
     // ===========================
     if (req.method === "GET" && path === "/api/events") {
       const items = await Event.find().sort({ createdAt: -1 }).lean();
+      return sendJson(res, 200, items);
+    }
+
+    // ===========================
+    // REWARDS ✅ NEW
+    // ===========================
+    if (req.method === "GET" && path === "/api/rewards") {
+      const items = await Reward.find().sort({ createdAt: -1 }).lean();
       return sendJson(res, 200, items);
     }
 
