@@ -19,9 +19,41 @@ import {
 function Layout() { 
   const [isOpen, setIsOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
+
   const location = useLocation();
 
-  // Keep query string
+  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+
+  // ✅ URL-based mode switch: add ?mode=manager to any URL
+  const params = new URLSearchParams(location.search);
+  const isMarketingManager = params.get("mode") === "manager";
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("role");
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+
+    nav("/login");
+  };
+
+  // If not logged in, just render pages (login/register)
+  if (!token) return <Outlet />;
+
+  // const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+
+  // ----------------------
+  // Logout Function
+  // ----------------------
+  // const handleLogout = () => {
+  //   sessionStorage.removeItem("token");
+  //   sessionStorage.removeItem("user");
+  //   sessionStorage.removeItem("role");
+
+  // ✅ Keep query string
   const withQuery = (path) => `${path}${location.search || ""}`;
 
   // ----------------------
@@ -35,14 +67,12 @@ function Layout() {
     { name: "Profile", path: "/profile", icon: User },
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
+    { name: "Referral List", path: "/referrals", icon: UserSearch },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
     { name: "Milestones", path: "/milestones", icon: Target }
   ];
 
-  // ----------------------
-  // Notifications Placeholder
-  // ----------------------
   const NotificationPlaceholder = () => (
     <div className="relative">
       <button
@@ -100,9 +130,9 @@ function Layout() {
               <Link
                 key={index}
                 to={withQuery(item.path)}
-                className={`flex items-center space-x-3 p-3 rounded-lg transition ${
+                className={`flex items-center space-x-3 p-3 rounded ${
                   isActive
-                    ? "bg-blue-600 text-white shadow-md"
+                    ? "bg-blue-600 text-white"
                     : "hover:bg-gray-100 text-gray-700"
                 }`}
               >
@@ -112,19 +142,35 @@ function Layout() {
             );
           })}
         </nav>
+
+        <button
+          onClick={handleLogout}
+          className="m-4 bg-red-500 text-white p-2 rounded"
+        >
+          Logout
+        </button>
       </div>
 
       {/* Main Content */}
       <div className="flex-1">
         {/* Header */}
         <div className="bg-white shadow p-4 flex justify-between items-center">
-          <div>
+          <div className="flex items-center space-x-4">
             <h1 className="font-semibold text-xl">UGC Platform</h1>
-            <span className="text-sm text-gray-500">MDH University</span>
+            <span className="text-sm text-gray-500">
+              MDH University
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
             <NotificationPlaceholder />
+
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-gray-100"
+            >
+              <LogOut size={20} className="text-gray-700" />
+            </button>
           </div>
         </div>
 
