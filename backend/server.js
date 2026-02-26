@@ -310,29 +310,36 @@ const server = http.createServer(async (req, res) => {
       }
 
       // POST /api/campaigns
-      if (req.method === "POST" && segments.length === 2) {
-        const body = await readJsonBody(req);
+if (req.method === "POST" && segments.length === 2) {
+  const body = await readJsonBody(req);
 
-        if (!body.name) return sendJson(res, 400, { message: "name is required" });
-        if (!body.startDate) return sendJson(res, 400, { message: "startDate is required" });
-        if (!body.endDate) return sendJson(res, 400, { message: "endDate is required" });
-        if (!body.utmCampaign) return sendJson(res, 400, { message: "utmCampaign is required" });
+  if (!body.name) return sendJson(res, 400, { message: "name is required" });
+  if (!body.startDate) return sendJson(res, 400, { message: "startDate is required" });
+  if (!body.endDate) return sendJson(res, 400, { message: "endDate is required" });
+  if (!body.utmCampaign) return sendJson(res, 400, { message: "utmCampaign is required" });
 
-        const created = await Campaign.create({
-          name: String(body.name).trim(),
-          startDate: new Date(body.startDate),
-          endDate: new Date(body.endDate),
-          target: String(body.target || "").trim(),
-          platforms: Array.isArray(body.platforms) ? body.platforms : [],
-          creators: Array.isArray(body.creators) ? body.creators : [],
-          rewardsDelivered: Number(body.rewardsDelivered || 0),
-          totalAmount: Number(body.totalAmount || 0),
-          utmCampaign: String(body.utmCampaign).trim().toLowerCase(),
-          status: "active",
-        });
+  const created = await Campaign.create({
+    name: String(body.name).trim(),
+    description: String(body.description || "").trim(),
+    platform: String(body.platform || "Instagram").trim(),
+    targetAudience: String(body.targetAudience || "").trim(),
+    goals: String(body.goals || "").trim(),
 
-        return sendJson(res, 201, created);
-      }
+    // ✅ SAVE budget/spent
+    budget: Number(body.budget || 0),
+    spent: Number(body.spent || 0),
+
+    startDate: new Date(body.startDate),
+    endDate: new Date(body.endDate),
+
+    assignedCreators: Array.isArray(body.assignedCreators) ? body.assignedCreators : [],
+
+    utmCampaign: String(body.utmCampaign).trim().toLowerCase(),
+    status: "active",
+  });
+
+  return sendJson(res, 201, created);
+}
 
       // /api/campaigns/:id
       const id = segments[2];
@@ -347,32 +354,55 @@ const server = http.createServer(async (req, res) => {
       }
 
       // PUT /api/campaigns/:id
-      if (req.method === "PUT" && segments.length === 3) {
-        const body = await readJsonBody(req);
+if (req.method === "PUT" && segments.length === 3) {
+  const body = await readJsonBody(req);
 
-        const updates = {};
-        if (body.name !== undefined) updates.name = String(body.name).trim();
-        if (body.startDate !== undefined) updates.startDate = new Date(body.startDate);
-        if (body.endDate !== undefined) updates.endDate = new Date(body.endDate);
-        if (body.target !== undefined) updates.target = String(body.target).trim();
-        if (body.platforms !== undefined) updates.platforms = Array.isArray(body.platforms) ? body.platforms : [];
-        if (body.creators !== undefined) updates.creators = Array.isArray(body.creators) ? body.creators : [];
-        if (body.rewardsDelivered !== undefined) updates.rewardsDelivered = Number(body.rewardsDelivered || 0);
-        if (body.totalAmount !== undefined) updates.totalAmount = Number(body.totalAmount || 0);
-        if (body.utmCampaign !== undefined) updates.utmCampaign = String(body.utmCampaign).trim().toLowerCase();
+  const updates = {};
 
-        const updated = await Campaign.findByIdAndUpdate(id, updates, {
-          new: true,
-          runValidators: true,
-        }).lean();
+  if (body.name !== undefined) updates.name = String(body.name).trim();
+  if (body.description !== undefined) updates.description = String(body.description).trim();
 
-        if (!updated) return sendJson(res, 404, { message: "Campaign not found" });
+  if (body.platform !== undefined) updates.platform = String(body.platform).trim();
 
-        return sendJson(res, 200, {
-          message: "Campaign updated successfully",
-          campaign: updated,
-        });
-      }
+  if (body.targetAudience !== undefined)
+    updates.targetAudience = String(body.targetAudience).trim();
+
+  if (body.goals !== undefined) updates.goals = String(body.goals).trim();
+
+  // ✅ FIXED: budget & spent
+  if (body.budget !== undefined)
+    updates.budget = Number(body.budget);
+
+  if (body.spent !== undefined)
+    updates.spent = Number(body.spent);
+
+  if (body.startDate !== undefined)
+    updates.startDate = new Date(body.startDate);
+
+  if (body.endDate !== undefined)
+    updates.endDate = new Date(body.endDate);
+
+  if (body.assignedCreators !== undefined)
+    updates.assignedCreators = Array.isArray(body.assignedCreators)
+      ? body.assignedCreators
+      : [];
+
+  if (body.utmCampaign !== undefined)
+    updates.utmCampaign = String(body.utmCampaign).trim().toLowerCase();
+
+  const updated = await Campaign.findByIdAndUpdate(id, updates, {
+    new: true,
+    runValidators: true,
+  }).lean();
+
+  if (!updated)
+    return sendJson(res, 404, { message: "Campaign not found" });
+
+  return sendJson(res, 200, {
+    message: "Campaign updated successfully",
+    campaign: updated,
+  });
+}
 
       // DELETE /api/campaigns/:id (archive)
       if (req.method === "DELETE" && segments.length === 3) {
