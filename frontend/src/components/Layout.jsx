@@ -38,7 +38,7 @@ function Layout() {
     sessionStorage.removeItem("user");
     sessionStorage.removeItem("role");
       nav("/login");
-};
+
 
     localStorage.removeItem("token");
     localStorage.removeItem("user");
