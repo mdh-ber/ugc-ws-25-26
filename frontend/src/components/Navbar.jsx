@@ -27,6 +27,7 @@ function Navbar() {
         <Link to="/create" className="hover:text-primary">Create</Link>
         <Link to="/profile" className="hover:text-primary">Profile</Link>
         <Link to="/reviews" className="hover:text-primary">Reviews</Link>
+        <Link to="/leads" className="hover:text-primary">Leads</Link>
         <Link to="/guidelines" className="hover:text-primary">Guidelines</Link>
 
         {!token ? (
