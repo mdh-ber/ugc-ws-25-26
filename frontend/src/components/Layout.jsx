@@ -1,4 +1,5 @@
 // Layout.jsx
+import { MessageSquare } from "lucide-react"; // Good icon for community feed
 import { useState } from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
@@ -16,7 +17,8 @@ import {
   LogOut,
   UserSearch,
   BarChart3,
-  Megaphone, // ✅ NEW
+  Megaphone,
+  Users, // ✅ NEW
 } from "lucide-react";
 
 function Layout() {
@@ -68,9 +70,11 @@ function Layout() {
   // ----------------------
   const menuItems = [
     { name: "Home", path: "/home", icon: Home },
+    { name: "Community", path: "/feed", icon: MessageSquare },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Trainings & Events", path: "/trainings", icon: BookOpen },
     { name: "Profile", path: "/profile", icon: User },
+    { name: "Leads", path: "/leads", icon: Users },
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
     { name: "Referral List", path: "/referrals", icon: UserSearch },

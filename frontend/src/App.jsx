@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-
+import LeadTracking from "./pages/LeadTracking";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
-
+import CommunityFeed from "./pages/CommunityFeed";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -75,6 +75,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/create" element={<ContentCreation />} />
             <Route path="/trainings" element={<Trainings />} />
+            <Route path="/leads" element={<LeadTracking />} />
             <Route path="/guidelines" element={<Guidelines />} />
             <Route path="/reviews" element={<Reviews />} />
             <Route path="/uu-overview" element={<UuOverview />} />
@@ -82,6 +83,7 @@ function App() {
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="/milestones" element={<Milestones />} />
+            <Route path="/feed" element={<CommunityFeed />} />
 
             <Route
   path="/creator-performance"
