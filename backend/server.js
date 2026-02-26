@@ -14,7 +14,8 @@ const Reward = require("./models/reward");
 
 const RefereeUu = require("./models/RefereeUu");
 const ReferralUu = require("./models/ReferralUu");
-const { Referral } = require("./models/Referral");
+const { Referral,ReferralCode } = require("./models/Referral");
+const Userprofile = require("./models/userprofile.model"); // Reference UserProfile for RefereeUu 
 
 // ✅ NEW (Sub-issue #155)
 const Campaign = require("./models/Campaign");
@@ -168,10 +169,36 @@ const server = http.createServer(async (req, res) => {
     // ===========================
     // TRAININGS ✅ NEW
     // ===========================
-    if (req.method === "GET" && path === "/api/trainings") {
-      const items = await Training.find().sort({ createdAt: -1 }).lean();
-      return sendJson(res, 200, items);
+    const trainingController = require("./controllers/trainingController");
+    if (path.startsWith("/api/trainings")) {
+      const id = segments[2];
+      if (req.method === "GET") {
+        if (id) {
+          return trainingController.getTrainingById({ params: { id } }, res);
+        } else {
+          return trainingController.getTrainings(req, res);
+        }
+      } else if (req.method === "POST") {
+        return trainingController.createTraining(req, res);
+      } else if (req.method === "PUT") {
+        if (id) {
+          return trainingController.updateTraining(req, id, res);
+        } else {
+          return sendJson(res, 400, {
+            message: "Training ID is required for update",
+          });
+        }
+      } else if (req.method === "DELETE") {
+        const id = segments[2];
+        if (!id) {
+          return sendJson(res, 400, {
+            message: "Training ID is required for deletion",
+          });
+        }
+        return trainingController.deleteTraining({ params: { id } }, res);
+      }
     }
+
 
     // ===========================
     // EVENTS ✅ NEW
@@ -542,7 +569,19 @@ if (req.method === "PUT" && segments.length === 3) {
     if (segments[0] === "api" && segments[1] === "referrals") {
       // GET /api/referrals
       if (req.method === "GET" && segments.length === 2) {
-        const referrals = await Referral.find().sort({ createdAt: -1 }).lean();
+        const referrals = await Referral.find()
+          .populate({
+            path: "referralCodeId",
+            populate: {
+              path: "userId",
+              model: "UserProfile",
+              
+            },
+          })
+          .populate("refereeUUID") // Populate RefereeUu details
+          .populate("referrerUUID") // Populate ReferralUu details
+          .lean()
+          .sort({ createdAt: -1 });
         return sendJson(res, 200, referrals);
       }
 
@@ -564,7 +603,18 @@ if (req.method === "PUT" && segments.length === 3) {
 
       // GET /api/referrals/:id
       if (req.method === "GET" && segments.length === 3) {
-        const doc = await Referral.findById(id).lean();
+        const doc = await Referral.findById(id)
+          .populate({
+            path: "referralCodeId",
+            populate: {
+              path: "userId",
+              model: "UserProfile",
+              
+            },
+          })
+          .populate('refereeUUID') // Populate RefereeUu details
+          .populate('referrerUUID') // Populate ReferralUu details
+          .lean();
         if (!doc) return sendJson(res, 404, { message: "Referral not found" });
         return sendJson(res, 200, doc);
       }
@@ -595,6 +645,69 @@ if (req.method === "PUT" && segments.length === 3) {
         return sendJson(res, 200, {
           message: "Referral deleted successfully",
           referral: deleted,
+        });
+      }
+    }
+
+    // =========================================================
+    // REFERRAL CODE CRUD (your ReferralCodeList uses /api/referral-codes)
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "referral-codes") {
+      // GET /api/referral-codes
+      if (req.method === "GET" && segments.length === 2) {
+        const referralCodes = await ReferralCode.find().sort({ createdAt: -1 }).lean();
+        return sendJson(res, 200, referralCodes);
+      }
+
+      // POST /api/referral-codes
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
+        const created = await ReferralCode.create(body);
+        return sendJson(res, 201, {
+          message: "Referral Code added successfully",
+          referralCode: created,
+        });
+      }
+
+      // /api/referral-codes/:id
+      const id = segments[2];
+      if (!id) return sendJson(res, 404, { message: "Route not found" });
+      if (!isValidObjectId(id))
+        return sendJson(res, 400, { message: "Invalid id" });
+
+      // GET /api/referral-codes/:id
+      if (req.method === "GET" && segments.length === 3) {
+        const doc = await ReferralCode.findById(id).lean();
+        if (!doc) return sendJson(res, 404, { message: "Referral Code not found" });
+        return sendJson(res, 200, doc);
+      }
+
+      // PUT /api/referral-codes/:id
+      if (req.method === "PUT" && segments.length === 3) {
+        const body = await readJsonBody(req);
+        const updated = await ReferralCode.findByIdAndUpdate(id, body, {
+          new: true,
+          runValidators: true,
+        }).lean();
+
+        if (!updated)
+          return sendJson(res, 404, { message: "Referral Code not found" });
+
+        return sendJson(res, 200, {
+          message: "Referral Code updated successfully",
+          referralCode: updated,
+        });
+      }
+
+      // DELETE /api/referral-codes/:id
+      if (req.method === "DELETE" && segments.length === 3) {
+        const deleted = await ReferralCode.findByIdAndDelete(id).lean();
+        if (!deleted)
+          return sendJson(res, 404, { message: "Referral Code not found" });
+
+        return sendJson(res, 200, {
+          message: "Referral Code deleted successfully",
+          referralCode: deleted,
         });
       }
     }
@@ -744,7 +857,7 @@ if (req.method === "PUT" && segments.length === 3) {
       }
 
       return sendJson(res, 404, { message: "Route not found" });
-    }
+    }    
 
     return sendJson(res, 404, { message: "Route not found" });
   } catch (err) {
