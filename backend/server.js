@@ -1,3 +1,5 @@
+const Post = require("./models/Post");
+const Comment = require("./models/Comment");
 const http = require("http");
 const url = require("url");
 const mongoose = require("mongoose");
@@ -11,6 +13,7 @@ const Guideline = require("./models/guideline.model");
 const Training = require("./models/Training");
 const Event = require("./models/Event");
 const Reward = require("./models/reward");
+const postRoutes = require("./routes/postRoutes");
 
 const RefereeUu = require("./models/RefereeUu");
 const ReferralUu = require("./models/ReferralUu");
@@ -25,6 +28,7 @@ const CampaignMetric = require("./models/CampaignMetric");
 
 const PORT = process.env.PORT || 5000;
 const Visit = require("./models/visit");
+
 // ---------------- helpers ----------------
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
@@ -129,29 +133,31 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  const parsed = url.parse(req.url, true);
+  // Modern URL Parsing to remove deprecation warning
+  const baseURL = `http://${req.headers.host || 'localhost'}`;
+  const parsed = new URL(req.url, baseURL);
   const path = parsed.pathname;
-  const query = parsed.query || {};
+  const query = Object.fromEntries(parsed.searchParams.entries());
   const segments = path.split("/").filter(Boolean); // no empty
-
-
 
   try {
     // ===========================
     // AUTH
     // ===========================
- if (req.method === "POST" && path === "/api/visits/track"){
-  const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
-  const userAgent = req.headers['user-agent'] || "unknown";
-  const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
-  await Visit.create({ ipHash, userAgent });
-  return sendJson(res, 200, { message: "Visit tracked" });
- }
-  if (req.method === "GET" && path === "/api/visits/stats"){
-    const totalVisits = await Visit.countDocuments();
-    const uniqueIps = await Visit.distinct("ipHash");
-    return sendJson(res, 200, { totalVisits, uniqueVisits: uniqueIps.length });
-  }
+    if (req.method === "POST" && path === "/api/visits/track"){
+      const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
+      const userAgent = req.headers['user-agent'] || "unknown";
+      const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
+      await Visit.create({ ipHash, userAgent });
+      return sendJson(res, 200, { message: "Visit tracked" });
+    }
+    
+    if (req.method === "GET" && path === "/api/visits/stats"){
+      const totalVisits = await Visit.countDocuments();
+      const uniqueIps = await Visit.distinct("ipHash");
+      return sendJson(res, 200, { totalVisits, uniqueVisits: uniqueIps.length });
+    }
+    
     if (req.method === "POST" && path === "/api/auth/login") {
       const body = await readJsonBody(req);
       const email = (body.email || "").trim().toLowerCase();
@@ -859,7 +865,105 @@ if (req.method === "PUT" && segments.length === 3) {
       return sendJson(res, 404, { message: "Route not found" });
     }    
 
+    // =========================================================
+    // COMMUNITY FEED / POSTS
+    // Base: /api/posts
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "posts") {
+      
+      // GET /api/posts (Fetch feed with Pagination)
+      if (req.method === "GET" && segments.length === 2) {
+        const sort = query.sort || "newest";
+        const page = parseInt(query.page) || 1;
+        const limit = 5; // Load 5 posts at a time
+        const skip = (page - 1) * limit;
+
+        let sortQuery = { createdAt: -1 };
+        if (sort === "popular") sortQuery = { likes: -1, createdAt: -1 };
+
+        const posts = await Post.find().sort(sortQuery).skip(skip).limit(limit);
+        const totalPosts = await Post.countDocuments();
+        const hasMore = totalPosts > skip + posts.length; // Check if there are more posts left
+
+        return sendJson(res, 200, { success: true, posts, hasMore });
+      }
+
+      // POST /api/posts (Create a post)
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
+        
+        // Using a dummy user ID for now
+        const newPost = await Post.create({
+          user: "650000000000000000000000", 
+          caption: body.caption,
+          mediaType: body.mediaType || "none",
+          mediaUrl: body.mediaUrl || null, // Ensure we save the mock URL!
+          hashtags: body.hashtags || [],
+        });
+        return sendJson(res, 201, { success: true, post: newPost });
+      }
+
+      const postId = segments[2];
+      if (!postId) return sendJson(res, 404, { message: "Route not found" });
+      if (!isValidObjectId(postId)) return sendJson(res, 400, { message: "Invalid post id" });
+
+      // ✅ NEW: DELETE /api/posts/:id (Delete a post)
+      if (req.method === "DELETE" && segments.length === 3) {
+        const deletedPost = await Post.findByIdAndDelete(postId);
+        if (!deletedPost) return sendJson(res, 404, { message: "Post not found" });
+        
+        // Cleanup: Delete all comments associated with this post
+        await Comment.deleteMany({ post: postId });
+        
+        return sendJson(res, 200, { success: true, message: "Post deleted successfully" });
+      }
+
+      // POST /api/posts/:id/like
+      if (req.method === "POST" && segments.length === 4 && segments[3] === "like") {
+        const post = await Post.findById(postId);
+        if (!post) return sendJson(res, 404, { message: "Post not found" });
+
+        const userId = "650000000000000000000000"; // Dummy user ID
+        const hasLiked = post.likes.includes(userId);
+
+        if (hasLiked) {
+          post.likes = post.likes.filter((id) => id.toString() !== userId);
+        } else {
+          post.likes.push(userId);
+        }
+        await post.save();
+        return sendJson(res, 200, { success: true, likes: post.likes.length, hasLiked: !hasLiked });
+      }
+
+      // POST /api/posts/:id/comment
+      if (req.method === "POST" && segments.length === 4 && segments[3] === "comment") {
+        const body = await readJsonBody(req);
+        const newComment = await Comment.create({
+          post: postId,
+          user: "650000000000000000000000", // Dummy user ID
+          text: body.text
+        });
+        return sendJson(res, 201, { success: true, comment: newComment });
+      }
+
+      // GET /api/posts/:id/comment
+      if (req.method === "GET" && segments.length === 4 && segments[3] === "comment") {
+        const comments = await Comment.find({ post: postId }).sort({ createdAt: -1 });
+        return sendJson(res, 200, { success: true, comments });
+      }
+
+      // POST /api/posts/:id/report
+      if (req.method === "POST" && segments.length === 4 && segments[3] === "report") {
+        await Post.findByIdAndUpdate(postId, { $inc: { reportCount: 1 } });
+        return sendJson(res, 200, { success: true, message: "Post reported" });
+      }
+
+      return sendJson(res, 404, { message: "Route not found" });
+    }
+
+    // FINAL CATCH-ALL 404 (This MUST be at the end, not above the posts block!)
     return sendJson(res, 404, { message: "Route not found" });
+
   } catch (err) {
     console.error(err);
     return sendJson(res, 500, { message: "Server error" });
