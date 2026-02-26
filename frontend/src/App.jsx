@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-
 import LeadTracking from "./pages/LeadTracking";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
-
+import CommunityFeed from "./pages/CommunityFeed";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -82,6 +82,7 @@ function App() {
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="/milestones" element={<Milestones />} />
+            <Route path="/feed" element={<CommunityFeed />} />
 
             {/* Campaigns */}
             <Route path="/campaigns" element={<CampaignsList />} />
