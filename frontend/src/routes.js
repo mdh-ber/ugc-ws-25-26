@@ -11,17 +11,14 @@ export default function AppRoutes() {
       <Route path="/rewards" element={<Rewards />} />
       <Route path="/milestones" element={<Milestones />} />
 
+      <Route path="/creator-performance" element={<CreatorPerformanceDashboard />} />
+
       <Route
         path="/mdh/creator-performance"
         element={<CreatorPerformanceDashboard />}
       />
 
-<<<<<<< cirasbharadwaz#33
       {/* keep other routes that were already here (add them below) */}
     </Routes>
   );
 }
-=======
-<Route path="/milestones" element={<Milestones />} />
-
->>>>>>> main

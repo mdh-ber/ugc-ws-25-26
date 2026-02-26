@@ -1,5 +1,6 @@
 // src/pages/CreatorPerformanceDashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { getCreatorPerformance } from "../services/creatorPerformanceService";
 
 // If your installed chart library is Recharts:
@@ -17,8 +18,7 @@ import {
 // --- minimal role check (adjust to your auth storage) ---
 function getCurrentUserRole() {
   try {
-    // common patterns: localStorage user or auth object
-    const raw = localStorage.getItem("user");
+    const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (!raw) return null;
     const user = JSON.parse(raw);
     return user?.role || user?.user?.role || null;
@@ -31,10 +31,89 @@ function formatISO(d) {
   return d.toISOString().slice(0, 10);
 }
 
+function isValidDateRange(from, to) {
+  if (!from || !to) return false;
+  return new Date(from).getTime() <= new Date(to).getTime();
+}
+
+// Ensure time series has cumulative values even if backend only provides count.
+function ensureCumulative(series = []) {
+  let run = 0;
+  return (series || []).map((p) => {
+    const count = Number(p?.count || 0);
+    const hasCum =
+      p?.cumulative !== undefined &&
+      p?.cumulative !== null &&
+      Number.isFinite(Number(p.cumulative));
+
+    run = hasCum ? Number(p.cumulative) : run + count;
+
+    return { date: p?.date, count, cumulative: run };
+  });
+}
+
+// Build a complete date list from clicks/leads/platform series dates.
+function buildAllDates(data) {
+  const dates = new Set();
+
+  (data?.clicks || []).forEach((p) => p?.date && dates.add(p.date));
+  (data?.leads || []).forEach((p) => p?.date && dates.add(p.date));
+
+  (data?.platforms || []).forEach((pl) => {
+    (pl?.series || []).forEach((p) => p?.date && dates.add(p.date));
+  });
+
+  return Array.from(dates).sort((a, b) => a.localeCompare(b));
+}
+
+// Carry-forward cumulative values per platform across missing dates.
+function buildPlatformCarryForward(data) {
+  const platforms = (data?.platforms || [])
+    .map((p) => p.platform)
+    .filter(Boolean);
+
+  if (!platforms.length) return { rows: [], keys: [] };
+
+  const allDates = buildAllDates(data);
+  if (!allDates.length) return { rows: [], keys: platforms };
+
+  const perPlatform = new Map();
+
+  for (const p of data.platforms) {
+    const series = ensureCumulative(p.series || []);
+    const m = new Map();
+    for (const point of series) {
+      if (point?.date) m.set(point.date, point.cumulative);
+    }
+    perPlatform.set(p.platform, m);
+  }
+
+  const lastSeen = Object.fromEntries(platforms.map((k) => [k, 0]));
+
+  const rows = allDates.map((date) => {
+    const row = { date };
+    for (const k of platforms) {
+      const m = perPlatform.get(k);
+      const val = m?.has(date) ? Number(m.get(date) || 0) : lastSeen[k];
+      lastSeen[k] = val;
+      row[k] = val;
+    }
+    return row;
+  });
+
+  return { rows, keys: platforms };
+}
+
 export default function CreatorPerformanceDashboard() {
+  const location = useLocation();
+
   // UI filters (defines backend query params)
-  const [from, setFrom] = useState("2026-02-01");
-  const [to, setTo] = useState("2026-02-04");
+  const today = new Date();
+  const startDefault = new Date();
+  startDefault.setDate(today.getDate() - 6);
+
+  const [from, setFrom] = useState(formatISO(startDefault));
+  const [to, setTo] = useState(formatISO(today));
   const [bucket, setBucket] = useState("daily");
   const [creatorId, setCreatorId] = useState(""); // optional
 
@@ -42,12 +121,22 @@ export default function CreatorPerformanceDashboard() {
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
 
-  const role = getCurrentUserRole();
+  // ✅ Accept either role-based OR URL mode-based manager access
+  const params = new URLSearchParams(location.search);
+  const isManagerMode = params.get("mode") === "manager";
 
-  const isAllowed = role === "MDH_MANAGER" || role === "MDH Manager"; // keep both until backend finalizes
+  const role = getCurrentUserRole();
+  const normalizedRole = (role || "").toUpperCase().replace(/\s+/g, "_");
+  const isAllowed = isManagerMode || normalizedRole === "MDH_MANAGER";
 
   useEffect(() => {
     if (!isAllowed) return;
+
+    if (!isValidDateRange(from, to)) {
+      setError("Invalid date range: 'From' must be earlier than or equal to 'To'.");
+      setData(null);
+      return;
+    }
 
     let alive = true;
     setLoading(true);
@@ -56,11 +145,20 @@ export default function CreatorPerformanceDashboard() {
     getCreatorPerformance({ from, to, bucket, creatorId: creatorId || null })
       .then((res) => {
         if (!alive) return;
-        setData(res);
+
+        const clicks = ensureCumulative(res?.clicks || []);
+        const leads = ensureCumulative(res?.leads || []);
+        const platforms = (res?.platforms || []).map((p) => ({
+          platform: p.platform,
+          series: ensureCumulative(p.series || []),
+        }));
+
+        setData({ ...res, clicks, leads, platforms });
       })
       .catch((e) => {
         if (!alive) return;
         setError(e?.message || "Failed to load dashboard data");
+        setData(null);
       })
       .finally(() => {
         if (!alive) return;
@@ -72,25 +170,9 @@ export default function CreatorPerformanceDashboard() {
     };
   }, [from, to, bucket, creatorId, isAllowed]);
 
-  // Build platform multi-series dataset: [{date, instagram: 11, youtube: 16}, ...] using cumulative
-  const platformChartData = useMemo(() => {
-    if (!data?.platforms?.length) return [];
-
-    const map = new Map(); // date -> {date, [platform]: cumulative}
-
-    for (const p of data.platforms) {
-      for (const point of p.series) {
-        const row = map.get(point.date) || { date: point.date };
-        row[p.platform] = point.cumulative;
-        map.set(point.date, row);
-      }
-    }
-
-    return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
-  }, [data]);
-
-  const platformKeys = useMemo(() => {
-    return (data?.platforms || []).map((p) => p.platform);
+  const { rows: platformChartData, keys: platformKeys } = useMemo(() => {
+    if (!data) return { rows: [], keys: [] };
+    return buildPlatformCarryForward(data);
   }, [data]);
 
   if (!isAllowed) {
@@ -98,9 +180,17 @@ export default function CreatorPerformanceDashboard() {
       <div style={{ padding: 20 }}>
         <h2>Not authorized</h2>
         <p>This dashboard is only for MDH Manager role.</p>
+        <p style={{ opacity: 0.7, marginTop: 6 }}>
+          Tip: open with <code>?mode=manager</code> or login as <code>MDH_MANAGER</code>.
+        </p>
       </div>
     );
   }
+
+  const hasAnyData =
+    (data?.clicks?.length || 0) > 0 ||
+    (data?.leads?.length || 0) > 0 ||
+    (data?.platforms?.length || 0) > 0;
 
   return (
     <div style={{ padding: 20 }}>
@@ -146,7 +236,6 @@ export default function CreatorPerformanceDashboard() {
         <div style={{ marginLeft: "auto" }}>
           <button
             onClick={() => {
-              // quick preset example: last 7 days from today
               const end = new Date();
               const start = new Date();
               start.setDate(end.getDate() - 6);
@@ -163,10 +252,10 @@ export default function CreatorPerformanceDashboard() {
       {/* State */}
       {loading && <p>Loading...</p>}
       {error && <p style={{ color: "crimson" }}>{error}</p>}
-      {!loading && !error && data && data.clicks?.length === 0 && <p>No data for selected range.</p>}
+      {!loading && !error && data && !hasAnyData && <p>No data for selected range.</p>}
 
       {/* Charts */}
-      {!loading && !error && data && (
+      {!loading && !error && data && hasAnyData && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 18 }}>
           {/* Clicks */}
           <div style={{ border: "1px solid #333", borderRadius: 10, padding: 12 }}>
@@ -180,7 +269,7 @@ export default function CreatorPerformanceDashboard() {
                   <Tooltip />
                   <Legend />
                   <Line type="monotone" dataKey="cumulative" name="Cumulative Clicks" dot={false} />
-                  <Line type="monotone" dataKey="count" name="Daily Clicks" dot={false} />
+                  <Line type="monotone" dataKey="count" name="Clicks" dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -198,7 +287,7 @@ export default function CreatorPerformanceDashboard() {
                   <Tooltip />
                   <Legend />
                   <Line type="monotone" dataKey="cumulative" name="Cumulative Leads" dot={false} />
-                  <Line type="monotone" dataKey="count" name="Daily Leads" dot={false} />
+                  <Line type="monotone" dataKey="count" name="Leads" dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

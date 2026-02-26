@@ -77,6 +77,7 @@ function Layout() {
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
     { name: "Milestones", path: "/milestones", icon: Target },
+    { name: "Creator Performance", path: "/creator-performance", icon: BarChart3 },
 
     // ✅ Visible only in manager mode
     ...(isMarketingManager
