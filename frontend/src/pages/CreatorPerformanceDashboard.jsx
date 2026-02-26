@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { getCreatorPerformance } from "../services/creatorPerformanceService";
 
-// If your installed chart library is Recharts:
 import {
   LineChart,
   Line,
@@ -15,7 +14,6 @@ import {
   Legend,
 } from "recharts";
 
-// --- minimal role check (adjust to your auth storage) ---
 function getCurrentUserRole() {
   try {
     const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -36,7 +34,8 @@ function isValidDateRange(from, to) {
   return new Date(from).getTime() <= new Date(to).getTime();
 }
 
-// Ensure time series has cumulative values even if backend only provides count.
+// If backend already sends cumulative, we keep it.
+// If backend sends only count, we compute cumulative.
 function ensureCumulative(series = []) {
   let run = 0;
   return (series || []).map((p) => {
@@ -45,86 +44,66 @@ function ensureCumulative(series = []) {
       p?.cumulative !== undefined &&
       p?.cumulative !== null &&
       Number.isFinite(Number(p.cumulative));
-
     run = hasCum ? Number(p.cumulative) : run + count;
-
-    return { date: p?.date, count, cumulative: run };
+    return { ...p, count, cumulative: run };
   });
 }
 
-// Build a complete date list from clicks/leads/platform series dates.
-function buildAllDates(data) {
-  const dates = new Set();
+// Creates a merged dataset for platform multi-lines using whatever keys exist.
+// DOES NOT pad beyond last backend point. Missing platform points on a timestamp are left undefined.
+function buildPlatformMergedRows(platforms = []) {
+  const map = new Map(); // timeKey -> row
 
-  (data?.clicks || []).forEach((p) => p?.date && dates.add(p.date));
-  (data?.leads || []).forEach((p) => p?.date && dates.add(p.date));
-
-  (data?.platforms || []).forEach((pl) => {
-    (pl?.series || []).forEach((p) => p?.date && dates.add(p.date));
-  });
-
-  return Array.from(dates).sort((a, b) => a.localeCompare(b));
-}
-
-// Carry-forward cumulative values per platform across missing dates.
-function buildPlatformCarryForward(data) {
-  const platforms = (data?.platforms || [])
-    .map((p) => p.platform)
-    .filter(Boolean);
-
-  if (!platforms.length) return { rows: [], keys: [] };
-
-  const allDates = buildAllDates(data);
-  if (!allDates.length) return { rows: [], keys: platforms };
-
-  const perPlatform = new Map();
-
-  for (const p of data.platforms) {
+  for (const p of platforms) {
+    const key = p.platform;
     const series = ensureCumulative(p.series || []);
-    const m = new Map();
-    for (const point of series) {
-      if (point?.date) m.set(point.date, point.cumulative);
+    for (const pt of series) {
+      const t = pt.date; // can be "YYYY-MM-DD" or hourly timestamp
+      if (!t) continue;
+      const row = map.get(t) || { date: t };
+      row[key] = pt.cumulative;
+      map.set(t, row);
     }
-    perPlatform.set(p.platform, m);
   }
 
-  const lastSeen = Object.fromEntries(platforms.map((k) => [k, 0]));
+  return Array.from(map.values()).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+}
 
-  const rows = allDates.map((date) => {
-    const row = { date };
-    for (const k of platforms) {
-      const m = perPlatform.get(k);
-      const val = m?.has(date) ? Number(m.get(date) || 0) : lastSeen[k];
-      lastSeen[k] = val;
-      row[k] = val;
-    }
-    return row;
-  });
-
-  return { rows, keys: platforms };
+// For X-axis label formatting: if hourly, show HH:mm; else show YYYY-MM-DD.
+function formatXAxisTick(value, bucketUsed) {
+  if (!value) return "";
+  if (bucketUsed === "hourly") {
+    // try to extract HH:mm from ISO or "YYYY-MM-DD HH:00"
+    const s = String(value);
+    const isoTime = s.includes("T") ? s.split("T")[1] : s.includes(" ") ? s.split(" ")[1] : "";
+    if (isoTime) return isoTime.slice(0, 5);
+    return s.slice(-5);
+  }
+  return String(value).slice(0, 10);
 }
 
 export default function CreatorPerformanceDashboard() {
   const location = useLocation();
 
-  // UI filters (defines backend query params)
+  // default: last 7 days
   const today = new Date();
   const startDefault = new Date();
   startDefault.setDate(today.getDate() - 6);
 
   const [from, setFrom] = useState(formatISO(startDefault));
   const [to, setTo] = useState(formatISO(today));
-  const [bucket, setBucket] = useState("daily");
-  const [creatorId, setCreatorId] = useState(""); // optional
+  const [creatorId, setCreatorId] = useState("");
+
+  // NEW: platform filter
+  const [selectedPlatforms, setSelectedPlatforms] = useState([]); // array of platform strings
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
 
-  // ✅ Accept either role-based OR URL mode-based manager access
+  // manager access
   const params = new URLSearchParams(location.search);
   const isManagerMode = params.get("mode") === "manager";
-
   const role = getCurrentUserRole();
   const normalizedRole = (role || "").toUpperCase().replace(/\s+/g, "_");
   const isAllowed = isManagerMode || normalizedRole === "MDH_MANAGER";
@@ -142,7 +121,14 @@ export default function CreatorPerformanceDashboard() {
     setLoading(true);
     setError("");
 
-    getCreatorPerformance({ from, to, bucket, creatorId: creatorId || null })
+    // IMPORTANT: bucket="auto" -> backend decides hourly/daily/etc
+    getCreatorPerformance({
+      from,
+      to,
+      bucket: "auto",
+      creatorId: creatorId || null,
+      platforms: selectedPlatforms, // array
+    })
       .then((res) => {
         if (!alive) return;
 
@@ -153,7 +139,17 @@ export default function CreatorPerformanceDashboard() {
           series: ensureCumulative(p.series || []),
         }));
 
-        setData({ ...res, clicks, leads, platforms });
+        setData({
+          ...res,
+          clicks,
+          leads,
+          platforms,
+          availablePlatforms: res?.availablePlatforms || (res?.platforms || []).map((p) => p.platform),
+          bucketUsed: res?.bucketUsed || "daily",
+        });
+
+        // If user selected platforms that backend no longer returns (new creator/range),
+        // keep them but also allow user to clear.
       })
       .catch((e) => {
         if (!alive) return;
@@ -168,11 +164,17 @@ export default function CreatorPerformanceDashboard() {
     return () => {
       alive = false;
     };
-  }, [from, to, bucket, creatorId, isAllowed]);
+  }, [from, to, creatorId, selectedPlatforms, isAllowed]);
 
-  const { rows: platformChartData, keys: platformKeys } = useMemo(() => {
-    if (!data) return { rows: [], keys: [] };
-    return buildPlatformCarryForward(data);
+  const availablePlatforms = useMemo(() => data?.availablePlatforms || [], [data]);
+
+  const platformChartData = useMemo(() => {
+    return buildPlatformMergedRows(data?.platforms || []);
+  }, [data]);
+
+  const platformKeys = useMemo(() => {
+    // display only currently returned platforms (already filtered by backend if platforms param used)
+    return (data?.platforms || []).map((p) => p.platform);
   }, [data]);
 
   if (!isAllowed) {
@@ -196,7 +198,7 @@ export default function CreatorPerformanceDashboard() {
     <div style={{ padding: 20 }}>
       <h2>Creator Performance Summary</h2>
       <p style={{ marginTop: 4, opacity: 0.8 }}>
-        Clicks, Leads, and Platforms (cumulative time series)
+        Clicks, Leads, and Platforms (time series, backend-controlled granularity)
       </p>
 
       {/* Filters */}
@@ -214,23 +216,47 @@ export default function CreatorPerformanceDashboard() {
         </div>
 
         <div>
-          <label>Bucket</label>
-          <br />
-          <select value={bucket} onChange={(e) => setBucket(e.target.value)}>
-            <option value="daily">daily</option>
-            <option value="weekly">weekly</option>
-            <option value="monthly">monthly</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Creator ID (optional)</label>
+          <label>Creator ID </label>
           <br />
           <input
             placeholder="e.g. creator_123"
             value={creatorId}
             onChange={(e) => setCreatorId(e.target.value)}
           />
+        </div>
+
+        <div>
+          <label>Platforms</label>
+          <br />
+          <select
+            multiple
+            value={selectedPlatforms}
+            onChange={(e) => {
+              const values = Array.from(e.target.selectedOptions).map((o) => o.value);
+              setSelectedPlatforms(values);
+            }}
+            style={{ minWidth: 220, height: 34 }}
+          >
+            {availablePlatforms.length === 0 ? (
+              <option value="" disabled>
+                (no platforms)
+              </option>
+            ) : (
+              availablePlatforms.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))
+            )}
+          </select>
+          <div style={{ marginTop: 4, display: "flex", gap: 8 }}>
+            <button type="button" onClick={() => setSelectedPlatforms([])}>
+              Clear
+            </button>
+            <small style={{ opacity: 0.7 }}>
+              (Ctrl/Shift to select multiple)
+            </small>
+          </div>
         </div>
 
         <div style={{ marginLeft: "auto" }}>
@@ -241,7 +267,6 @@ export default function CreatorPerformanceDashboard() {
               start.setDate(end.getDate() - 6);
               setFrom(formatISO(start));
               setTo(formatISO(end));
-              setBucket("daily");
             }}
           >
             Last 7 days
@@ -254,17 +279,26 @@ export default function CreatorPerformanceDashboard() {
       {error && <p style={{ color: "crimson" }}>{error}</p>}
       {!loading && !error && data && !hasAnyData && <p>No data for selected range.</p>}
 
+      {!loading && !error && data && (
+        <p style={{ opacity: 0.75, marginTop: 0 }}>
+          Granularity: <b>{data.bucketUsed || "daily"}</b>
+        </p>
+      )}
+
       {/* Charts */}
       {!loading && !error && data && hasAnyData && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 18 }}>
           {/* Clicks */}
           <div style={{ border: "1px solid #333", borderRadius: 10, padding: 12 }}>
-            <h3 style={{ margin: 0 }}>Clicks (Cumulative)</h3>
+            <h3 style={{ margin: 0 }}>Clicks</h3>
             <div style={{ height: 260, marginTop: 10 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.clicks}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(v) => formatXAxisTick(v, data.bucketUsed)}
+                  />
                   <YAxis />
                   <Tooltip />
                   <Legend />
@@ -277,12 +311,15 @@ export default function CreatorPerformanceDashboard() {
 
           {/* Leads */}
           <div style={{ border: "1px solid #333", borderRadius: 10, padding: 12 }}>
-            <h3 style={{ margin: 0 }}>Leads (Cumulative)</h3>
+            <h3 style={{ margin: 0 }}>Leads</h3>
             <div style={{ height: 260, marginTop: 10 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.leads}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(v) => formatXAxisTick(v, data.bucketUsed)}
+                  />
                   <YAxis />
                   <Tooltip />
                   <Legend />
@@ -295,12 +332,15 @@ export default function CreatorPerformanceDashboard() {
 
           {/* Platforms */}
           <div style={{ border: "1px solid #333", borderRadius: 10, padding: 12 }}>
-            <h3 style={{ margin: 0 }}>Platforms (Cumulative by Platform)</h3>
+            <h3 style={{ margin: 0 }}>Platforms (Cumulative)</h3>
             <div style={{ height: 300, marginTop: 10 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={platformChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(v) => formatXAxisTick(v, data.bucketUsed)}
+                  />
                   <YAxis />
                   <Tooltip />
                   <Legend />

@@ -1,109 +1,59 @@
 // src/services/creatorPerformanceService.js
+import axios from "axios";
 
-// MOCK DATABASE
-const MOCK_DB = {
-  creator_1: {
-    clicks: [12, 8, 5, 15],
-    leads: [3, 1, 2, 4],
-    instagram: [6, 4, 2, 7],
-    youtube: [6, 4, 3, 8],
-  },
-  creator_2: {
-    clicks: [5, 6, 4, 7],
-    leads: [1, 2, 1, 2],
-    instagram: [3, 3, 2, 4],
-    youtube: [2, 3, 2, 3],
-  },
-};
+/**
+ * Webpack/CRA-safe env var (NO import.meta).
+ * Set in frontend/.env as:
+ * REACT_APP_API_URL=http://localhost:5000
+ */
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
-const DATES = [
-  "2026-02-01",
-  "2026-02-02",
-  "2026-02-03",
-  "2026-02-04",
-];
-
-function buildSeries(values) {
-  let cumulative = 0;
-
-  return values.map((v, i) => {
-    cumulative += v;
-    return {
-      date: DATES[i],
-      count: v,
-      cumulative,
-    };
-  });
+function getToken() {
+  return sessionStorage.getItem("token") || localStorage.getItem("token") || "";
 }
 
-function buildPlatformSeries(insta, yt) {
-  return [
-    {
-      platform: "instagram",
-      series: buildSeries(insta),
-    },
-    {
-      platform: "youtube",
-      series: buildSeries(yt),
-    },
-  ];
-}
-
+/**
+ * GET /api/mdh/creator-performance
+ * params:
+ *  - from (YYYY-MM-DD)
+ *  - to (YYYY-MM-DD)
+ *  - bucket (auto | hourly | daily | weekly | monthly)
+ *  - creatorId (optional)
+ *  - platforms (optional) comma-separated e.g. "instagram,youtube"
+ */
 export async function getCreatorPerformance({
   from,
   to,
-  bucket = "daily",
+  bucket = "auto",
   creatorId = null,
+  platforms = [], // array of strings
 }) {
-  // simulate backend delay
-  await new Promise((r) => setTimeout(r, 400));
-
-  // If creator ID is provided
-  if (creatorId) {
-    const creator = MOCK_DB[creatorId];
-
-    if (!creator) {
-      return {
-        clicks: [],
-        leads: [],
-        platforms: [],
-      };
-    }
-
-    return {
-      range: { from, to, bucket, creatorId },
-      clicks: buildSeries(creator.clicks),
-      leads: buildSeries(creator.leads),
-      platforms: buildPlatformSeries(
-        creator.instagram,
-        creator.youtube
-      ),
-    };
+  if (!from || !to) {
+    throw new Error("from and to are required (YYYY-MM-DD)");
   }
 
-  // If no creator ID → return aggregated data
-  const allCreators = Object.values(MOCK_DB);
+  const token = getToken();
 
-  const totalClicks = DATES.map((_, i) =>
-    allCreators.reduce((sum, c) => sum + c.clicks[i], 0)
-  );
+  try {
+    const res = await axios.get(`${API_BASE}/api/mdh/creator-performance`, {
+      params: {
+        from,
+        to,
+        bucket,
+        ...(creatorId ? { creatorId } : {}),
+        ...(platforms?.length ? { platforms: platforms.join(",") } : {}),
+      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
 
-  const totalLeads = DATES.map((_, i) =>
-    allCreators.reduce((sum, c) => sum + c.leads[i], 0)
-  );
-
-  const totalInsta = DATES.map((_, i) =>
-    allCreators.reduce((sum, c) => sum + c.instagram[i], 0)
-  );
-
-  const totalYT = DATES.map((_, i) =>
-    allCreators.reduce((sum, c) => sum + c.youtube[i], 0)
-  );
-
-  return {
-    range: { from, to, bucket, creatorId },
-    clicks: buildSeries(totalClicks),
-    leads: buildSeries(totalLeads),
-    platforms: buildPlatformSeries(totalInsta, totalYT),
-  };
+    return res.data;
+  } catch (err) {
+    const msg =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      err?.message ||
+      "Failed to fetch creator performance data";
+    const status = err?.response?.status;
+    throw new Error(status ? `${msg} (HTTP ${status})` : msg);
+  }
 }
