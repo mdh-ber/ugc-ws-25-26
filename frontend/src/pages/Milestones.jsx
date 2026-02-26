@@ -1,64 +1,33 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
-/**
- * Public (NOT logged in):
- *  - show DEMO milestones (static) so page is never empty
- *
- * Logged in:
- *  - fetch milestone-types + user-milestones/:creatorId (+ leaderboards optional)
- *  - show real user progress
- */
-
-const demoMilestones = [
-  {
-    id: "demo-1",
-    title: "Clicks Goal",
-    description: "Reach 500 clicks to unlock reward points.",
-    metric: "clicks",
-    platform: null,
-    target: 500,
-    rewardPoints: 200,
-    current: null, // public mode (no user progress)
-  },
-  {
-    id: "demo-2",
-    title: "Posts Goal",
-    description: "Publish 10 posts.",
-    metric: "posts",
-    platform: null,
-    target: 10,
-    rewardPoints: 150,
-    current: null,
-  },
-  {
-    id: "demo-3",
-    title: "Creator of Platforms",
-    description: "Post across platforms to reach the goal.",
-    metric: "posts",
-    platform: "all",
-    target: 10,
-    rewardPoints: 300,
-    current: null,
-  },
-];
-
 function percent(current, target) {
   if (!target || target <= 0) return 0;
   return Math.min(100, Math.round((Number(current || 0) / Number(target)) * 100));
 }
 
-/**
- * ✅ Robust base+path discovery (fixes Network Error when ports/routes differ)
- * Add/remove candidates based on your repo setup.
- */
-const BASE_CANDIDATES = ["", "http://localhost:5000", "http://localhost:5000/api", "http://localhost:5004"];
+// ✅ Only backend data (no demo milestones).
+// ✅ Leaderboards always shown on top (Berlin + Düsseldorf side-by-side).
+// ✅ User progress shown only after login (token + userId).
+
+const BASE_CANDIDATES = [
+  "", // CRA proxy (recommended)
+  "http://localhost:5000",
+  "http://localhost:5000/api",
+  "http://localhost:5004",
+];
 
 const PATHS = {
   milestoneTypes: ["/milestone-types", "/api/milestone-types"],
-  userMilestones: (creatorId) => [`/user-milestones/${creatorId}`, `/api/user-milestones/${creatorId}`],
   bestMonth: ["/leaderboards/best-creators-month", "/api/leaderboards/best-creators-month"],
-  bestByCity: (cities) => [`/leaderboards/best-creator-by-city?cities=${cities}`, `/api/leaderboards/best-creator-by-city?cities=${cities}`],
+  bestByCity: (cities) => [
+    `/leaderboards/best-creator-by-city?cities=${cities}`,
+    `/api/leaderboards/best-creator-by-city?cities=${cities}`,
+  ],
+  userMilestones: (creatorId) => [
+    `/user-milestones/${creatorId}`,
+    `/api/user-milestones/${creatorId}`,
+  ],
 };
 
 function joinUrl(base, path) {
@@ -87,16 +56,18 @@ async function tryGetAny(paths, headers) {
 }
 
 export default function Milestones() {
-  const [milestones, setMilestones] = useState(demoMilestones);
+  const [milestones, setMilestones] = useState([]);
   const [bestCreatorsMonth, setBestCreatorsMonth] = useState([]);
-  const [bestCreatorByCity, setBestCreatorByCity] = useState({ Berlin: null, Düsseldorf: null });
+  const [bestCreatorByCity, setBestCreatorByCity] = useState({
+    Berlin: null,
+    Düsseldorf: null,
+  });
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   const token = sessionStorage.getItem("token");
-  const creatorId = sessionStorage.getItem("userId"); // must be set after login
-
+  const creatorId = sessionStorage.getItem("userId");
   const isLoggedIn = Boolean(token && creatorId);
 
   const authHeaders = useMemo(() => {
@@ -113,8 +84,9 @@ export default function Milestones() {
       platform: t.scope === "platform" ? t.scopeValue : null,
       target: t.goal ?? 0,
       rewardPoints: t.rewardPoints ?? 0,
-      current: 0, // logged-in progress starts at 0 unless user milestone exists
-      status: "in_progress",
+      // filled only after login
+      current: null,
+      status: null,
     }));
 
   const mergeTypesWithUser = (typesUi, userItems) => {
@@ -135,47 +107,36 @@ export default function Milestones() {
     });
   };
 
-  const fetchLoggedInData = async () => {
-    // 1) milestone types (required)
-    const typesRes = await tryGetAny(PATHS.milestoneTypes, authHeaders);
-    const typesUi = mapTypesToUi(typesRes.data);
-
-    // 2) user milestones (required for progress)
-    const userRes = await tryGetAny(PATHS.userMilestones(creatorId), authHeaders);
-    const merged = mergeTypesWithUser(typesUi, userRes.data || []);
-    setMilestones(merged);
-
-    // 3) leaderboards (optional)
-    const cities = `Berlin,${encodeURIComponent("Düsseldorf")}`;
-
-    try {
-      const monthRes = await tryGetAny(PATHS.bestMonth, authHeaders);
-      setBestCreatorsMonth(monthRes.data || []);
-    } catch {
-      setBestCreatorsMonth([]);
-    }
-
-    try {
-      const cityRes = await tryGetAny(PATHS.bestByCity(cities), authHeaders);
-      setBestCreatorByCity(cityRes.data || { Berlin: null, Düsseldorf: null });
-    } catch {
-      setBestCreatorByCity({ Berlin: null, Düsseldorf: null });
-    }
-  };
-
   const fetchAll = async () => {
     setLoading(true);
     setErrorMsg("");
 
     try {
-      if (!isLoggedIn) {
-        // ✅ Public: show demo (no network calls)
-        setMilestones(demoMilestones);
-        setBestCreatorsMonth([]);
-        setBestCreatorByCity({ Berlin: null, Düsseldorf: null });
+      // 1) Milestone catalog (always)
+      const typesRes = await tryGetAny(PATHS.milestoneTypes, authHeaders);
+      const typesUi = mapTypesToUi(typesRes.data);
+
+      // 2) Leaderboards (always)
+      const cities = `Berlin,${encodeURIComponent("Düsseldorf")}`;
+
+      const [monthRes, cityRes] = await Promise.allSettled([
+        tryGetAny(PATHS.bestMonth, authHeaders),
+        tryGetAny(PATHS.bestByCity(cities), authHeaders),
+      ]);
+
+      setBestCreatorsMonth(monthRes.status === "fulfilled" ? monthRes.value.data || [] : []);
+      setBestCreatorByCity(
+        cityRes.status === "fulfilled"
+          ? cityRes.value.data || { Berlin: null, Düsseldorf: null }
+          : { Berlin: null, Düsseldorf: null }
+      );
+
+      // 3) User progress (only after login)
+      if (isLoggedIn) {
+        const userRes = await tryGetAny(PATHS.userMilestones(creatorId), authHeaders);
+        setMilestones(mergeTypesWithUser(typesUi, userRes.data || []));
       } else {
-        // ✅ Logged in: fetch real data
-        await fetchLoggedInData();
+        setMilestones(typesUi);
       }
     } catch (err) {
       setErrorMsg(
@@ -184,9 +145,7 @@ export default function Milestones() {
           err?.message ||
           "Network Error"
       );
-
-      // fallback: keep page usable
-      setMilestones(isLoggedIn ? [] : demoMilestones);
+      setMilestones([]);
       setBestCreatorsMonth([]);
       setBestCreatorByCity({ Berlin: null, Düsseldorf: null });
     } finally {
@@ -194,9 +153,10 @@ export default function Milestones() {
     }
   };
 
+  // ✅ FIXED: no eslint-disable comment, so no missing rule error
   useEffect(() => {
     fetchAll();
-  }, []); // no eslint comment
+  }, [token, creatorId]); // re-fetch after login/logout
 
   return (
     <div className="p-6">
@@ -219,91 +179,81 @@ export default function Milestones() {
         </div>
       )}
 
-      {!loading && !isLoggedIn && (
-        <div className="border rounded p-4 bg-blue-50 text-blue-900 mb-6">
-          You are viewing demo milestones. Login to see your personal progress and leaderboards.
-        </div>
-      )}
+      {/* Top: Best Creator of the Month */}
+      <div className="border rounded-xl p-4 bg-white shadow-sm mb-4">
+        <h3 className="text-lg font-semibold">Best Creator of the Month</h3>
 
-      {!loading && isLoggedIn && (
-        <>
-          <div className="border rounded-xl p-4 bg-white shadow-sm mb-6">
-            <h3 className="text-lg font-semibold">Best Creators of the Month</h3>
-
-            {bestCreatorsMonth.length === 0 ? (
-              <div className="text-sm text-gray-500 mt-3">No data available</div>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {bestCreatorsMonth.map((c, idx) => (
-                  <div
-                    key={c.id || c._id || c.creatorId || `${c.name}-${idx}`}
-                    className="flex items-center justify-between border rounded-lg p-3 bg-gray-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold">
-                        {idx + 1}
-                      </div>
-                      <div>
-                        <div className="font-medium">
-                          {c.name || c.creatorName || c.creatorId}
-                        </div>
-                        {c.platform && (
-                          <div className="text-xs text-gray-600 capitalize">{c.platform}</div>
-                        )}
-                      </div>
+        {bestCreatorsMonth.length === 0 ? (
+          <div className="text-sm text-gray-500 mt-3">No data available</div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {bestCreatorsMonth.map((c, idx) => (
+              <div
+                key={c.id || c._id || c.creatorId || idx}
+                className="flex items-center justify-between border rounded-lg p-3 bg-gray-50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold">
+                    {idx + 1}
+                  </div>
+                  <div>
+                    <div className="font-medium">
+                      {c.name || c.creatorName || c.creatorId}
                     </div>
-
-                    <div className="text-sm text-gray-700 text-right">
-                      <div>
-                        <span className="font-semibold">
-                          {c.points ?? c.value ?? c.awardValue ?? 0}
-                        </span>{" "}
-                        pts
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {(c.clicks ?? 0)} clicks • {(c.leads ?? 0)} leads
-                      </div>
+                    <div className="text-xs text-gray-500">
+                      {(c.clicks ?? 0)} clicks • {(c.leads ?? 0)} leads
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-            {["Berlin", "Düsseldorf"].map((city) => {
-              const c = bestCreatorByCity?.[city];
-              return (
-                <div key={city} className="border rounded-xl p-4 bg-white shadow-sm">
-                  <h3 className="text-lg font-semibold">Best Creator of {city}</h3>
-
-                  {!c ? (
-                    <div className="text-sm text-gray-500 mt-3">No data available</div>
-                  ) : (
-                    <div className="mt-3 flex items-center justify-between">
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {c.name || c.creatorName || c.creatorId}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {(c.clicks ?? 0)} clicks • {(c.leads ?? 0)} leads
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        <span className="font-semibold">
-                          {c.points ?? c.value ?? c.awardValue ?? 0}
-                        </span>{" "}
-                        pts
-                      </div>
-                    </div>
-                  )}
                 </div>
-              );
-            })}
-          </div>
-        </>
-      )}
 
+                <div className="text-sm text-gray-700">
+                  <span className="font-semibold">
+                    {c.points ?? c.value ?? c.awardValue ?? 0}
+                  </span>{" "}
+                  pts
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Side-by-side: Berlin + Düsseldorf */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        {["Berlin", "Düsseldorf"].map((city) => {
+          const c = bestCreatorByCity?.[city];
+
+          return (
+            <div key={city} className="border rounded-xl p-4 bg-white shadow-sm">
+              <h3 className="text-lg font-semibold">Best Creator of {city}</h3>
+
+              {!c ? (
+                <div className="text-sm text-gray-500 mt-3">No data available</div>
+              ) : (
+                <div className="mt-3 flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-gray-900">
+                      {c.name || c.creatorName || c.creatorId}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {(c.clicks ?? 0)} clicks • {(c.leads ?? 0)} leads
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-gray-700">
+                    <span className="font-semibold">
+                      {c.points ?? c.value ?? c.awardValue ?? 0}
+                    </span>{" "}
+                    pts
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Milestones list (catalog always). Progress only after login */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {milestones.length === 0 ? (
           <div className="border rounded p-4 bg-gray-50 text-gray-600">
@@ -311,7 +261,7 @@ export default function Milestones() {
           </div>
         ) : (
           milestones.map((m) => {
-            const showProgress = isLoggedIn; // only show progress after login
+            const showProgress = isLoggedIn && m.current !== null;
             const pct = showProgress ? percent(m.current, m.target) : 0;
 
             return (
@@ -319,9 +269,11 @@ export default function Milestones() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-semibold">{m.title}</h3>
+
                     <div className="text-sm text-gray-600">
                       Metric: <span className="font-medium">{m.metric}</span>
                     </div>
+
                     {m.platform && (
                       <div className="text-sm text-gray-600">
                         Platform:{" "}
@@ -335,7 +287,7 @@ export default function Milestones() {
                   </span>
                 </div>
 
-                {showProgress ? (
+                {showProgress && (
                   <div className="mt-4">
                     <div className="flex justify-between text-sm text-gray-700 mb-2">
                       <span>
@@ -347,10 +299,6 @@ export default function Milestones() {
                     <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div className="h-2 bg-blue-600" style={{ width: `${pct}%` }} />
                     </div>
-                  </div>
-                ) : (
-                  <div className="mt-4 text-sm text-gray-500">
-                    Login to track your progress for this milestone.
                   </div>
                 )}
 
