@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-
+import LeadTracking from "./pages/LeadTracking";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -74,6 +74,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/create" element={<ContentCreation />} />
             <Route path="/trainings" element={<Trainings />} />
+            <Route path="/leads" element={<LeadTracking />} />
             <Route path="/guidelines" element={<Guidelines />} />
             <Route path="/reviews" element={<Reviews />} />
             <Route path="/uu-overview" element={<UuOverview />} />
