@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
+const DEFAULT_CATEGORIES = ["Trainings", "Reviews", "Events", "Referrals"];
+
 const Rewards = () => {
   const [rewards, setRewards] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -9,10 +11,12 @@ const Rewards = () => {
   useEffect(() => {
     const fetchRewards = async () => {
       try {
+        setLoading(true);
+        setError("");
         const res = await axios.get("/api/rewards");
         setRewards(res.data);
       } catch (e) {
-        setError(e?.message || "Request failed");
+        setError(e?.response?.data?.message || e?.message || "Request failed");
       } finally {
         setLoading(false);
       }
@@ -20,20 +24,44 @@ const Rewards = () => {
     fetchRewards();
   }, []);
 
-  const totalPoints = rewards?.totalPoints ?? 0;
-  const conversionRate = rewards?.conversionRate ?? 0.5;
+  const totalPoints = typeof rewards?.totalPoints === "number" ? rewards.totalPoints : 0;
+
+  const conversionRate =
+    typeof rewards?.conversionRate === "number" ? rewards.conversionRate : null;
+
+  const moneyValueFromBackend =
+    typeof rewards?.moneyValue === "number" ? rewards.moneyValue : null;
 
   const moneyValue = useMemo(() => {
-    return Number((totalPoints * conversionRate).toFixed(2));
-  }, [totalPoints, conversionRate]);
+    if (moneyValueFromBackend !== null) return Number(moneyValueFromBackend.toFixed(2));
+    if (conversionRate !== null) return Number((totalPoints * conversionRate).toFixed(2));
+    return 0;
+  }, [moneyValueFromBackend, conversionRate, totalPoints]);
 
-  const breakdown =
-    rewards?.breakdown ?? [
-      { title: "Trainings", points: 400 },
-      { title: "Reviews", points: 250 },
-      { title: "Events", points: 300 },
-      { title: "Referrals", points: 300 },
-    ];
+  const breakdownMap = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(rewards?.breakdown)) {
+      rewards.breakdown.forEach((item) => {
+        const title = String(item?.title || "").trim();
+        const points = typeof item?.points === "number" ? item.points : 0;
+        if (title) map.set(title.toLowerCase(), { title, points, id: item?.id });
+      });
+    }
+    return map;
+  }, [rewards]);
+
+  const breakdownCards = useMemo(() => {
+    return DEFAULT_CATEGORIES.map((title) => {
+      const found = breakdownMap.get(title.toLowerCase());
+      return {
+        id: found?.id || title.toLowerCase(),
+        title,
+        points: found?.points ?? 0,
+      };
+    });
+  }, [breakdownMap]);
+
+  const canRedeem = Boolean(rewards?.canRedeem);
 
   return (
     <div style={{ padding: "20px" }}>
@@ -42,7 +70,6 @@ const Rewards = () => {
       {loading && <p>Loading rewards...</p>}
       {error && <div style={{ color: "red", marginBottom: 12 }}>{error}</div>}
 
-      {/* TOTAL POINTS CARD */}
       <div
         style={{
           background: "#fff",
@@ -57,21 +84,24 @@ const Rewards = () => {
         <p>Equivalent Value: €{moneyValue}</p>
 
         <button
+          disabled={!canRedeem}
+          onClick={() => {
+            if (rewards?.redeemUrl) window.location.href = rewards.redeemUrl;
+          }}
           style={{
             marginTop: "10px",
             padding: "10px 20px",
-            background: "#2563eb",
+            background: canRedeem ? "#2563eb" : "#9ca3af",
             color: "#fff",
             border: "none",
             borderRadius: "6px",
-            cursor: "pointer",
+            cursor: canRedeem ? "pointer" : "not-allowed",
           }}
         >
           Redeem Now
         </button>
       </div>
 
-      {/* BREAKDOWN CARDS */}
       <div
         style={{
           display: "grid",
@@ -80,9 +110,9 @@ const Rewards = () => {
           marginBottom: "20px",
         }}
       >
-        {breakdown.map((item, index) => (
+        {breakdownCards.map((item) => (
           <div
-            key={index}
+            key={item.id}
             style={{
               background: "#fff",
               padding: "15px",
