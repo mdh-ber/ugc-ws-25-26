@@ -3,7 +3,7 @@ import api from "./api"; // Your existing axios instance
 export const getFeed = async (sort = "newest", page = 1) => {
   const response = await api.get(`/posts?sort=${sort}&page=${page}`);
   return response.data;
-};
+}
 
 export const createPost = async (postData) => {
   // If handling actual files, we'd use FormData. 
@@ -29,5 +29,9 @@ export const getComments = async (postId) => {
 
 export const reportPost = async (postId) => {
   const response = await api.post(`/posts/${postId}/report`);
+  return response.data;
+};
+export const deletePost = async (postId) => {
+  const response = await api.delete(`/posts/${postId}`);
   return response.data;
 };

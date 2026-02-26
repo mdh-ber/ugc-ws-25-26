@@ -728,14 +728,21 @@ const server = http.createServer(async (req, res) => {
     // =========================================================
     if (segments[0] === "api" && segments[1] === "posts") {
       
-      // GET /api/posts (Fetch feed)
+      // GET /api/posts (Fetch feed with Pagination)
       if (req.method === "GET" && segments.length === 2) {
         const sort = query.sort || "newest";
+        const page = parseInt(query.page) || 1;
+        const limit = 5; // Load 5 posts at a time
+        const skip = (page - 1) * limit;
+
         let sortQuery = { createdAt: -1 };
         if (sort === "popular") sortQuery = { likes: -1, createdAt: -1 };
 
-        const posts = await Post.find().sort(sortQuery).limit(50);
-        return sendJson(res, 200, { success: true, posts });
+        const posts = await Post.find().sort(sortQuery).skip(skip).limit(limit);
+        const totalPosts = await Post.countDocuments();
+        const hasMore = totalPosts > skip + posts.length; // Check if there are more posts left
+
+        return sendJson(res, 200, { success: true, posts, hasMore });
       }
 
       // POST /api/posts (Create a post)
@@ -756,6 +763,17 @@ const server = http.createServer(async (req, res) => {
       const postId = segments[2];
       if (!postId) return sendJson(res, 404, { message: "Route not found" });
       if (!isValidObjectId(postId)) return sendJson(res, 400, { message: "Invalid post id" });
+
+      // ✅ NEW: DELETE /api/posts/:id (Delete a post)
+      if (req.method === "DELETE" && segments.length === 3) {
+        const deletedPost = await Post.findByIdAndDelete(postId);
+        if (!deletedPost) return sendJson(res, 404, { message: "Post not found" });
+        
+        // Cleanup: Delete all comments associated with this post
+        await Comment.deleteMany({ post: postId });
+        
+        return sendJson(res, 200, { success: true, message: "Post deleted successfully" });
+      }
 
       // POST /api/posts/:id/like
       if (req.method === "POST" && segments.length === 4 && segments[3] === "like") {
