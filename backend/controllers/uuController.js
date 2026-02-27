@@ -7,6 +7,7 @@ function toYYYYMMDD(d) {
   return d.toISOString().slice(0, 10);
 }
 
+
 function parseRange(req) {
   // Option 1: explicit from/to
   const fromQ = req.query.from;

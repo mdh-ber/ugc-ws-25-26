@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-
 import LeadTracking from "./pages/LeadTracking";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Footer from "./components/Footer";
+
 import CommunityFeed from "./pages/CommunityFeed";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -18,12 +20,15 @@ import UuOverview from "./pages/UuOverview";
 import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
+import FinancialReport from "./pages/FinancialReport";
+
+localStorage.removeItem("token");
+localStorage.removeItem("role");
 import ReferralList from "./pages/ReferralList";
 import CreatorPerformanceDashboard from "./pages/CreatorPerformanceDashboard";
 
 
 import WebsiteAnalytics from "./pages/WebsiteAnalytics";
-import Footer from "./components/Footer";
 
 import CampaignsList from "./pages/CampaignsList";
 import CampaignForm from "./pages/CampaignForm";
@@ -83,6 +88,7 @@ function App() {
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="/milestones" element={<Milestones />} />
+             <Route path="financial-report" element={<FinancialReport />} />
             <Route path="/feed" element={<CommunityFeed />} />
 
             <Route
