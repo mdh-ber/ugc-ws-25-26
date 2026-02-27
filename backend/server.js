@@ -139,7 +139,20 @@ const server = http.createServer(async (req, res) => {
     // ===========================
     // AUTH
     // ===========================
- if (req.method === "POST" && path === "/api/visits/track"){
+    if (req.method === "POST" && path === "/api/auth/login") {
+      const body = await readJsonBody(req);
+      const email = (body.email || "").trim().toLowerCase();
+      const password = body.password || "";
+
+      if (email === "admin@mdh.com" && password === "admin123") {
+        return sendJson(res, 200, {
+          token: "demo-token-123",
+          user: { email, role: "admin" },
+        });
+      }
+      return sendJson(res, 401, { message: "Invalid email or password" });
+    }
+if (req.method === "POST" && path === "/api/visits/track"){
   const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
   const userAgent = req.headers['user-agent'] || "unknown";
   const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
@@ -178,20 +191,6 @@ const server = http.createServer(async (req, res) => {
     const uniqueIps = await Visit.distinct("ipHash");
     return sendJson(res, 200, { totalVisits, uniqueVisits: uniqueIps.length });
   }
-    if (req.method === "POST" && path === "/api/auth/login") {
-      const body = await readJsonBody(req);
-      const email = (body.email || "").trim().toLowerCase();
-      const password = body.password || "";
-
-      if (email === "admin@mdh.com" && password === "admin123") {
-        return sendJson(res, 200, {
-          token: "demo-token-123",
-          user: { email, role: "admin" },
-        });
-      }
-      return sendJson(res, 401, { message: "Invalid email or password" });
-    }
-
     // ===========================
     // TRAININGS ✅ NEW
     // ===========================
