@@ -146,6 +146,33 @@ const server = http.createServer(async (req, res) => {
   await Visit.create({ ipHash, userAgent });
   return sendJson(res, 200, { message: "Visit tracked" });
  }
+   // ✅ Visit Timeline
+  if (req.method === "GET" && path === "/api/visits/timeline") {
+    const monthlyData = await Visit.aggregate([
+      {
+        $group: {
+          // group by month (e.g. "2024-06")
+          _id: { $dateToString: { format: "%Y-%m", date: "$timestamp" } },
+          // count total visits in the month
+          totalVisits: { $sum: 1 },
+          // collect unique ipHashes in a Set to count later
+          uniqueIps: { $addToSet: "$ipHash" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          month: "$_id",
+          totalVisits: 1,
+          // count Array uniqueIps
+          uniqueVisits: { $size: "$uniqueIps" }
+        }
+      },
+      { $sort: { "month": 1 } } // sort by month
+    ]);
+
+    return sendJson(res, 200, monthlyData);
+  }
   if (req.method === "GET" && path === "/api/visits/stats"){
     const totalVisits = await Visit.countDocuments();
     const uniqueIps = await Visit.distinct("ipHash");
