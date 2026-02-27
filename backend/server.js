@@ -20,11 +20,7 @@ const ReferralUu = require("./models/ReferralUu");
 const { Referral,ReferralCode } = require("./models/Referral");
 const Userprofile = require("./models/userprofile.model"); // Reference UserProfile for RefereeUu 
 
-// ✅ NEW (Sub-issue #155)
-const Campaign = require("./models/Campaign");
-
-// ✅ NEW (Sub-issue #158)
-const CampaignMetric = require("./models/CampaignMetric");
+const { Campaign, CampaignMetric } = require("./models/Campaign");
 
 const PORT = process.env.PORT || 5000;
 const Visit = require("./models/visit");
@@ -172,6 +168,48 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 401, { message: "Invalid email or password" });
     }
 
+    //API VISIT TRACKING
+if (req.method === "POST" && path === "/api/visits/track"){
+  const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
+  const userAgent = req.headers['user-agent'] || "unknown";
+  const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
+  await Visit.create({ ipHash, userAgent });
+  return sendJson(res, 200, { message: "Visit tracked" });
+ }
+   // ✅ Visit Timeline (Daily)
+if (req.method === "GET" && path === "/api/visits/timeline") {
+  try {
+    const dailyData = await Visit.aggregate([
+      {
+        $addFields: {
+          ts: { $ifNull: ["$timestamp", "$createdAt"] },
+        },
+      },
+      { $match: { ts: { $type: "date" } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$ts" } },
+          totalVisits: { $sum: 1 },
+          uniqueIps: { $addToSet: "$ipHash" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id",
+          totalVisits: 1,
+          uniqueVisits: { $size: "$uniqueIps" },
+        },
+      },
+      { $sort: { date: 1 } },
+    ]);
+
+    return sendJson(res, 200, dailyData);
+  } catch (err) {
+    console.error("Timeline error:", err);
+    return sendJson(res, 500, { message: "Failed to fetch timeline" });
+  }
+}
     // ===========================
     // TRAININGS ✅ NEW
     // ===========================
@@ -492,6 +530,7 @@ if (req.method === "PUT" && segments.length === 3) {
 
         const totals = rows[0] || { spend: 0, revenue: 0, clicks: 0, conversions: 0 };
         const profit = totals.revenue - totals.spend;
+        //formula
         const roiPct = totals.spend === 0 ? 0 : (profit / totals.spend) * 100;
 
         return sendJson(res, 200, {
