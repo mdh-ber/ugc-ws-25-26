@@ -1,58 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+// frontend/src/pages/Milestones.jsx
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  getMilestoneTypes,
+  getUserMilestones,
+  getBestCreatorsMonth,
+  getBestCreatorByCity,
+} from "../services/milestoneService";
 
 function percent(current, target) {
   if (!target || target <= 0) return 0;
-  return Math.min(100, Math.round((Number(current || 0) / Number(target)) * 100));
-}
-
-// ✅ Only backend data (no demo milestones).
-// ✅ Leaderboards always shown on top (Berlin + Düsseldorf side-by-side).
-// ✅ User progress shown only after login (token + userId).
-
-const BASE_CANDIDATES = [
-  "", // CRA proxy (recommended)
-  "http://localhost:5000",
-  "http://localhost:5000/api",
-  "http://localhost:5004",
-];
-
-const PATHS = {
-  milestoneTypes: ["/milestone-types", "/api/milestone-types"],
-  bestMonth: ["/leaderboards/best-creators-month", "/api/leaderboards/best-creators-month"],
-  bestByCity: (cities) => [
-    `/leaderboards/best-creator-by-city?cities=${cities}`,
-    `/api/leaderboards/best-creator-by-city?cities=${cities}`,
-  ],
-  userMilestones: (creatorId) => [
-    `/user-milestones/${creatorId}`,
-    `/api/user-milestones/${creatorId}`,
-  ],
-};
-
-function joinUrl(base, path) {
-  if (!base) return path;
-  const b = base.endsWith("/") ? base.slice(0, -1) : base;
-  const p = path.startsWith("/") ? path : `/${path}`;
-  return `${b}${p}`;
-}
-
-async function tryGetAny(paths, headers) {
-  let lastErr = null;
-
-  for (const base of BASE_CANDIDATES) {
-    for (const path of paths) {
-      const url = joinUrl(base, path);
-      try {
-        const res = await axios.get(url, { headers });
-        return { data: res.data, base, path };
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-  }
-
-  throw lastErr || new Error("Network Error");
+  return Math.min(
+    100,
+    Math.round((Number(current || 0) / Number(target)) * 100)
+  );
 }
 
 export default function Milestones() {
@@ -68,15 +28,10 @@ export default function Milestones() {
 
   const token = sessionStorage.getItem("token");
   const creatorId = sessionStorage.getItem("userId");
-  const isLoggedIn = Boolean(token && creatorId);
+  const isLoggedIn = useMemo(() => Boolean(token && creatorId), [token, creatorId]);
 
-  const authHeaders = useMemo(() => {
-    if (!token) return undefined;
-    return { Authorization: `Bearer ${token}` };
-  }, [token]);
-
-  const mapTypesToUi = (types) =>
-    (types || []).map((t) => ({
+  const mapTypesToUi = useCallback((types) => {
+    return (types || []).map((t) => ({
       id: t._id || t.id,
       title: t.title || "Untitled",
       description: t.description || "",
@@ -84,12 +39,12 @@ export default function Milestones() {
       platform: t.scope === "platform" ? t.scopeValue : null,
       target: t.goal ?? 0,
       rewardPoints: t.rewardPoints ?? 0,
-      // filled only after login
-      current: null,
+      current: null, // ✅ only filled after login
       status: null,
     }));
+  }, []);
 
-  const mergeTypesWithUser = (typesUi, userItems) => {
+  const mergeTypesWithUser = useCallback((typesUi, userItems) => {
     const byTypeId = new Map(
       (userItems || []).map((u) => [
         String(u?.milestoneTypeId?._id || u?.milestoneTypeId),
@@ -105,38 +60,40 @@ export default function Milestones() {
         status: u?.status || "in_progress",
       };
     });
-  };
+  }, []);
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     setErrorMsg("");
 
     try {
-      // 1) Milestone catalog (always)
-      const typesRes = await tryGetAny(PATHS.milestoneTypes, authHeaders);
-      const typesUi = mapTypesToUi(typesRes.data);
+      // ✅ 1) Milestone catalog (required). If this fails, page is empty -> show error.
+      const types = await getMilestoneTypes();
+      const typesUi = mapTypesToUi(types);
 
-      // 2) Leaderboards (always)
-      const cities = `Berlin,${encodeURIComponent("Düsseldorf")}`;
-
+      // ✅ 2) Leaderboards (optional). Failure should NOT break page.
+      const cities = `Berlin,Düsseldorf`;
       const [monthRes, cityRes] = await Promise.allSettled([
-        tryGetAny(PATHS.bestMonth, authHeaders),
-        tryGetAny(PATHS.bestByCity(cities), authHeaders),
+        getBestCreatorsMonth(),
+        getBestCreatorByCity(cities),
       ]);
 
-      setBestCreatorsMonth(monthRes.status === "fulfilled" ? monthRes.value.data || [] : []);
+      setBestCreatorsMonth(
+        monthRes.status === "fulfilled" ? monthRes.value || [] : []
+      );
+
       setBestCreatorByCity(
         cityRes.status === "fulfilled"
-          ? cityRes.value.data || { Berlin: null, Düsseldorf: null }
+          ? cityRes.value || { Berlin: null, Düsseldorf: null }
           : { Berlin: null, Düsseldorf: null }
       );
 
-      // 3) User progress (only after login)
+      // ✅ 3) User progress only after login
       if (isLoggedIn) {
-        const userRes = await tryGetAny(PATHS.userMilestones(creatorId), authHeaders);
-        setMilestones(mergeTypesWithUser(typesUi, userRes.data || []));
+        const userItems = await getUserMilestones(creatorId);
+        setMilestones(mergeTypesWithUser(typesUi, userItems));
       } else {
-        setMilestones(typesUi);
+        setMilestones(typesUi); // ✅ show only what milestone page has (no progress)
       }
     } catch (err) {
       setErrorMsg(
@@ -151,12 +108,11 @@ export default function Milestones() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [creatorId, isLoggedIn, mapTypesToUi, mergeTypesWithUser]);
 
-  // ✅ FIXED: no eslint-disable comment, so no missing rule error
   useEffect(() => {
     fetchAll();
-  }, [token, creatorId]); // re-fetch after login/logout
+  }, [fetchAll]);
 
   return (
     <div className="p-6">
@@ -253,7 +209,7 @@ export default function Milestones() {
         })}
       </div>
 
-      {/* Milestones list (catalog always). Progress only after login */}
+      {/* Milestones list: show catalog always; show progress only after login */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {milestones.length === 0 ? (
           <div className="border rounded p-4 bg-gray-50 text-gray-600">
@@ -283,7 +239,11 @@ export default function Milestones() {
                   </div>
 
                   <span className="text-xs px-2 py-1 rounded-full border bg-gray-50">
-                    {!showProgress ? "available" : pct >= 100 ? "completed" : "in progress"}
+                    {!showProgress
+                      ? "available"
+                      : pct >= 100
+                      ? "completed"
+                      : "in progress"}
                   </span>
                 </div>
 
@@ -304,7 +264,8 @@ export default function Milestones() {
 
                 <div className="mt-4 text-sm text-gray-700">
                   <div>
-                    Reward: <span className="font-semibold">{m.rewardPoints}</span> points
+                    Reward: <span className="font-semibold">{m.rewardPoints}</span>{" "}
+                    points
                   </div>
                   <div className="text-gray-500 mt-1">{m.description}</div>
                 </div>
