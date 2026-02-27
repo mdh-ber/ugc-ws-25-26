@@ -152,6 +152,8 @@ const server = http.createServer(async (req, res) => {
       }
       return sendJson(res, 401, { message: "Invalid email or password" });
     }
+
+    //API VISIT TRACKING
 if (req.method === "POST" && path === "/api/visits/track"){
   const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
   const userAgent = req.headers['user-agent'] || "unknown";
