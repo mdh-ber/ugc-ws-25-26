@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-
+import LeadTracking from "./pages/LeadTracking";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Footer from "./components/Footer";
 
+import CommunityFeed from "./pages/CommunityFeed";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -24,6 +25,8 @@ import FinancialReport from "./pages/FinancialReport";
 localStorage.removeItem("token");
 localStorage.removeItem("role");
 import ReferralList from "./pages/ReferralList";
+import CreatorPerformanceDashboard from "./pages/CreatorPerformanceDashboard";
+
 
 import WebsiteAnalytics from "./pages/WebsiteAnalytics";
 
@@ -77,6 +80,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/create" element={<ContentCreation />} />
             <Route path="/trainings" element={<Trainings />} />
+            <Route path="/leads" element={<LeadTracking />} />
             <Route path="/guidelines" element={<Guidelines />} />
             <Route path="/reviews" element={<Reviews />} />
             <Route path="/uu-overview" element={<UuOverview />} />
@@ -85,6 +89,18 @@ function App() {
             <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="/milestones" element={<Milestones />} />
              <Route path="financial-report" element={<FinancialReport />} />
+            <Route path="/feed" element={<CommunityFeed />} />
+
+            <Route
+  path="/creator-performance"
+  element={
+    isMarketingManager ? (
+      <CreatorPerformanceDashboard />
+    ) : (
+      <Navigate to="/dashboard" replace />
+    )
+  }
+/>
 
             {/* Campaigns */}
             <Route path="/campaigns" element={<CampaignsList />} />

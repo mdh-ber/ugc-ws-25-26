@@ -10,3 +10,4 @@ export const updateProfile = async (formData, userId) => {
   });
   return res.data;
 };
+
