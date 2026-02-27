@@ -1,24 +1,38 @@
 import { useState } from "react";
 import { VscFeedback } from "react-icons/vsc";
+import axios from "axios";
+
+const API_BASE = "http://localhost:5000/api";
 
 export default function FeedbackModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!feedback.trim()) {
       setError(true);
-
-      // Remove animation class after animation ends
       setTimeout(() => setError(false), 500);
-
       return;
     }
 
-    console.log("User Feedback:", feedback);
-    setFeedback("");
-    setIsOpen(false);
+    try {
+      setSubmitting(true);
+
+      // ✅ send to backend
+      await axios.post(`${API_BASE}/feedback`, {
+        message: feedback.trim(),
+      });
+
+      setFeedback("");
+      setIsOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to submit feedback. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -26,7 +40,7 @@ export default function FeedbackModal() {
       {/* Open Modal Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 m-8"
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
       >
         <div className="flex items-center gap-2">
           <VscFeedback className="stroke-[1] w-8" size={25} title="feedback" />
@@ -54,21 +68,24 @@ export default function FeedbackModal() {
                     : "border-gray-300 focus:ring-blue-500"
                 }
               `}
+              disabled={submitting}
             />
 
             <div className="flex justify-end gap-3 mt-5">
               <button
                 onClick={() => setIsOpen(false)}
                 className="px-4 py-2 rounded-lg border hover:bg-gray-100"
+                disabled={submitting}
               >
                 Cancel
               </button>
 
               <button
                 onClick={handleSubmit}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60"
+                disabled={submitting}
               >
-                Submit
+                {submitting ? "Submitting..." : "Submit"}
               </button>
             </div>
           </div>
