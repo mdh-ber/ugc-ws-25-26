@@ -1,5 +1,4 @@
 // Layout.jsx
-import { MessageSquare } from "lucide-react"; // Good icon for community feed
 import { useState } from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
@@ -17,8 +16,7 @@ import {
   LogOut,
   UserSearch,
   BarChart3,
-  Megaphone,
-  Users, // ✅ NEW
+  Megaphone, // ✅ NEW
 } from "lucide-react";
 
 function Layout() {
@@ -32,8 +30,7 @@ function Layout() {
 
   // ✅ URL-based mode switch: add ?mode=manager to any URL
   const params = new URLSearchParams(location.search);
-  const isMarketingManager = params.get("mode") == "manager";
-  const isAdmissionOfficer = params.get("mode") == "admission-officer";
+  const isMarketingManager = params.get("mode") === "manager";
 
   const handleLogout = () => {
     sessionStorage.removeItem("token");
@@ -71,17 +68,15 @@ function Layout() {
   // ----------------------
   const menuItems = [
     { name: "Home", path: "/home", icon: Home },
-    { name: "Community", path: "/feed", icon: MessageSquare },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Trainings & Events", path: "/trainings", icon: BookOpen },
     { name: "Profile", path: "/profile", icon: User },
-    { name: "Leads", path: "/leads", icon: Users },
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
+    { name: "Referral List", path: "/referrals", icon: UserSearch },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
     { name: "Milestones", path: "/milestones", icon: Target },
-    { name: "Creator Performance", path: "/creator-performance", icon: BarChart3 },
 
     // ✅ Visible only in manager mode
     ...(isMarketingManager
@@ -96,16 +91,6 @@ function Layout() {
             path: "/website-analytics",
             icon: BarChart3,
           },
-        ]
-      : []),
-
-          // ✅ Visible only in admission-officer mode
-    ...(isAdmissionOfficer
-      ? [
-          {
-            name: "Referral List",
-            path: "/referrals",
-            icon: UserSearch },
         ]
       : []),
   ];
