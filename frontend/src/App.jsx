@@ -1,15 +1,14 @@
 import { useEffect } from "react";
-import {
-  Routes,
-  Route,
-  Navigate,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 
+// ✅ Mantine
+import "@mantine/core/styles.css";
+import { MantineProvider } from "@mantine/core";
+
+import LeadTracking from "./pages/LeadTracking";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
-
+import CommunityFeed from "./pages/CommunityFeed";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -25,10 +24,6 @@ import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
 import ReferralList from "./pages/ReferralList";
-import LeadTracking from "./pages/LeadTracking";
-
-import CommunityFeed from "./pages/CommunityFeed";
-import Suggestions from "./pages/Suggestions";
 import CreatorPerformanceDashboard from "./pages/CreatorPerformanceDashboard";
 
 import WebsiteAnalytics from "./pages/WebsiteAnalytics";
@@ -37,104 +32,108 @@ import Footer from "./components/Footer";
 import CampaignsList from "./pages/CampaignsList";
 import CampaignForm from "./pages/CampaignForm";
 import CampaignROI from "./pages/CampaignROI";
+import LeaderboardPage from "./pages/LeaderboardPage";
 
 function App() {
+  // keep your existing auth gate (still requires login to access protected pages)
   const token = sessionStorage.getItem("token") || localStorage.getItem("token");
 
+  // ✅ URL-based mode switch
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
   const isMarketingManager = params.get("mode") === "manager";
 
+  // ✅ AUTO add ?mode=manager after login (so sidebar shows Campaigns automatically)
   useEffect(() => {
     if (!token) return;
 
     const mode = params.get("mode");
     if (!mode) {
+      // preserve current path; add manager mode
       navigate(`${location.pathname}?mode=manager`, { replace: true });
     }
-  }, [token, location.pathname]);
+  }, [token, location.pathname]); // keep minimal deps
 
   return (
-    <>
-      <Routes>
-        {/* Entry */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+    <MantineProvider>
+      <>
+        <Routes>
+          {/* Entry */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Public routes */}
-        <Route
-          path="/login"
-          element={token ? <Navigate to="/dashboard" replace /> : <Login />}
-        />
-        <Route
-          path="/register"
-          element={token ? <Navigate to="/dashboard" replace /> : <Register />}
-        />
+          {/* Public routes */}
+          <Route
+            path="/login"
+            element={token ? <Navigate to="/dashboard" replace /> : <Login />}
+          />
+          <Route
+            path="/register"
+            element={token ? <Navigate to="/dashboard" replace /> : <Register />}
+          />
 
-        {/* Protected routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/create" element={<ContentCreation />} />
-            <Route path="/trainings" element={<Trainings />} />
-            <Route path="/leads" element={<LeadTracking />} />
-            <Route path="/guidelines" element={<Guidelines />} />
-            <Route path="/reviews" element={<Reviews />} />
-            <Route path="/uu-overview" element={<UuOverview />} />
-            <Route path="/referrals" element={<ReferralList />} />
-            <Route path="/rewards" element={<Rewards />} />
-            <Route path="/certificates" element={<CertificatesPage />} />
-            <Route path="/milestones" element={<Milestones />} />
+          {/* Protected routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<Layout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/create" element={<ContentCreation />} />
+              <Route path="/trainings" element={<Trainings />} />
+              <Route path="/leads" element={<LeadTracking />} />
+              <Route path="/guidelines" element={<Guidelines />} />
+              <Route path="/reviews" element={<Reviews />} />
+              <Route path="/uu-overview" element={<UuOverview />} />
+              <Route path="/referrals" element={<ReferralList />} />
+              <Route path="/rewards" element={<Rewards />} />
+              <Route path="/certificates" element={<CertificatesPage />} />
+              <Route path="/milestones" element={<Milestones />} />
+              <Route path="/feed" element={<CommunityFeed />} />
 
-            {/* Suggestions */}
-            <Route path="/suggestions" element={<Suggestions />} />
+              {/* ✅ Leaderboard */}
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
 
-            {/* Community feed */}
-            <Route path="/feed" element={<CommunityFeed />} />
+              <Route
+                path="/creator-performance"
+                element={
+                  isMarketingManager ? (
+                    <CreatorPerformanceDashboard />
+                  ) : (
+                    <Navigate to="/dashboard" replace />
+                  )
+                }
+              />
 
-            {/* Creator performance: manager only */}
-            <Route
-              path="/creator-performance"
-              element={
-                isMarketingManager ? (
-                  <CreatorPerformanceDashboard />
-                ) : (
-                  <Navigate to="/dashboard" replace />
-                )
-              }
-            />
+              {/* Campaigns */}
+              <Route path="/campaigns" element={<CampaignsList />} />
+              <Route path="/campaigns/new" element={<CampaignForm />} />
+              <Route path="/campaigns/:id/edit" element={<CampaignForm />} />
+              <Route path="/campaigns/:id/roi" element={<CampaignROI />} />
 
-            {/* Campaigns */}
-            <Route path="/campaigns" element={<CampaignsList />} />
-            <Route path="/campaigns/new" element={<CampaignForm />} />
-            <Route path="/campaigns/:id/edit" element={<CampaignForm />} />
-            <Route path="/campaigns/:id/roi" element={<CampaignROI />} />
+              {/* Website Analytics: ONLY when URL has ?mode=manager */}
+              <Route
+                path="/website-analytics"
+                element={
+                  isMarketingManager ? (
+                    <WebsiteAnalytics />
+                  ) : (
+                    <Navigate to="/dashboard" replace />
+                  )
+                }
+              />
 
-            {/* Website Analytics: manager only */}
-            <Route
-              path="/website-analytics"
-              element={
-                isMarketingManager ? (
-                  <WebsiteAnalytics />
-                ) : (
-                  <Navigate to="/dashboard" replace />
-                )
-              }
-            />
-
-            {/* fallback inside protected area */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              {/* fallback inside protected area */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Route>
           </Route>
-        </Route>
 
-        {/* global fallback */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+          {/* global fallback */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
 
-      {token ? <Footer /> : null}
-    </>
+        {token ? <Footer /> : null}
+      </>
+    </MantineProvider>
   );
 }
 
