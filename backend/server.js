@@ -143,21 +143,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // ===========================
     // AUTH
-    // ===========================
-    if (req.method === "POST" && path === "/api/visits/track"){
-      const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
-      const userAgent = req.headers['user-agent'] || "unknown";
-      const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
-      await Visit.create({ ipHash, userAgent });
-      return sendJson(res, 200, { message: "Visit tracked" });
-    }
-    
-    if (req.method === "GET" && path === "/api/visits/stats"){
-      const totalVisits = await Visit.countDocuments();
-      const uniqueIps = await Visit.distinct("ipHash");
-      return sendJson(res, 200, { totalVisits, uniqueVisits: uniqueIps.length });
-    }
-    
+    // ===========================  
     if (req.method === "POST" && path === "/api/auth/login") {
       const body = await readJsonBody(req);
       const email = (body.email || "").trim().toLowerCase();
