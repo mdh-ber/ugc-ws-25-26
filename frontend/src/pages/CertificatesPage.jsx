@@ -47,7 +47,7 @@ export default function Certificates() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      alert(err.message || "Failed to create certificate");
+      alert(err.message || "Failed to create Certificate");
       return;
     }
 
@@ -177,7 +177,7 @@ export default function Certificates() {
 
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <button type="submit" style={primaryBtn}>
-              Create certificate
+              Create Certificate
             </button>
             {loading && <span style={{ color: "#666" }}>Loading…</span>}
           </div>
