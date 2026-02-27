@@ -19,6 +19,7 @@ import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
 import ReferralList from "./pages/ReferralList";
+import CreatorPerformanceDashboard from "./pages/CreatorPerformanceDashboard";
 
 
 import WebsiteAnalytics from "./pages/WebsiteAnalytics";
@@ -83,6 +84,17 @@ function App() {
             <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="/milestones" element={<Milestones />} />
             <Route path="/feed" element={<CommunityFeed />} />
+
+            <Route
+  path="/creator-performance"
+  element={
+    isMarketingManager ? (
+      <CreatorPerformanceDashboard />
+    ) : (
+      <Navigate to="/dashboard" replace />
+    )
+  }
+/>
 
             {/* Campaigns */}
             <Route path="/campaigns" element={<CampaignsList />} />
