@@ -16,8 +16,7 @@ import {
   LogOut,
   UserSearch,
   BarChart3,
-  Megaphone,
-  Users, // ✅ NEW
+  Megaphone, // ✅ NEW
 } from "lucide-react";
 
 function Layout() {
@@ -74,7 +73,6 @@ function Layout() {
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Trainings & Events", path: "/trainings", icon: BookOpen },
     { name: "Profile", path: "/profile", icon: User },
-    { name: "Leads", path: "/leads", icon: Users },
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
     { name: "Referral List", path: "/referrals", icon: UserSearch },

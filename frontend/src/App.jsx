@@ -1,6 +1,12 @@
 import { useEffect } from "react";
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-import LeadTracking from "./pages/LeadTracking";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -19,37 +25,36 @@ import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
 import ReferralList from "./pages/ReferralList";
-import Suggestions from "./pages/Suggestions";
+import LeadTracking from "./pages/LeadTracking";
 
+import CommunityFeed from "./pages/CommunityFeed";
+import Suggestions from "./pages/Suggestions";
+import CreatorPerformanceDashboard from "./pages/CreatorPerformanceDashboard";
 
 import WebsiteAnalytics from "./pages/WebsiteAnalytics";
 import Footer from "./components/Footer";
 
 import CampaignsList from "./pages/CampaignsList";
 import CampaignForm from "./pages/CampaignForm";
-
 import CampaignROI from "./pages/CampaignROI";
 
 function App() {
-  // keep your existing auth gate (still requires login to access protected pages)
   const token = sessionStorage.getItem("token") || localStorage.getItem("token");
 
-  // ✅ URL-based mode switch
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
   const isMarketingManager = params.get("mode") === "manager";
 
-  // ✅ AUTO add ?mode=manager after login (so sidebar shows Campaigns automatically)
   useEffect(() => {
     if (!token) return;
 
     const mode = params.get("mode");
     if (!mode) {
-      // preserve current path; add manager mode
       navigate(`${location.pathname}?mode=manager`, { replace: true });
     }
-  }, [token, location.pathname]); // keep minimal deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, location.pathname]);
 
   return (
     <>
@@ -83,15 +88,32 @@ function App() {
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="/milestones" element={<Milestones />} />
+
+            {/* Suggestions */}
             <Route path="/suggestions" element={<Suggestions />} />
+
+            {/* Community feed */}
+            <Route path="/feed" element={<CommunityFeed />} />
+
+            {/* Creator performance: manager only */}
+            <Route
+              path="/creator-performance"
+              element={
+                isMarketingManager ? (
+                  <CreatorPerformanceDashboard />
+                ) : (
+                  <Navigate to="/dashboard" replace />
+                )
+              }
+            />
+
             {/* Campaigns */}
             <Route path="/campaigns" element={<CampaignsList />} />
             <Route path="/campaigns/new" element={<CampaignForm />} />
             <Route path="/campaigns/:id/edit" element={<CampaignForm />} />
-
             <Route path="/campaigns/:id/roi" element={<CampaignROI />} />
 
-            {/* Website Analytics: ONLY when URL has ?mode=manager */}
+            {/* Website Analytics: manager only */}
             <Route
               path="/website-analytics"
               element={

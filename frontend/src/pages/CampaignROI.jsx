@@ -110,7 +110,11 @@ function CampaignROI() {
 
 function formatMoney(n) {
   const num = Number(n || 0);
-  return `₹${num.toLocaleString()}`;
+
+  return new Intl.NumberFormat("en-IE", {
+    style: "currency",
+    currency: "EUR",
+  }).format(num);
 }
 
 function Card({ title, value }) {
