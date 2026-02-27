@@ -1,9 +1,33 @@
+// =====================
+// IMPORTS (COMMONJS)
+// =====================
+const express = require("express");
+const cors = require("cors");
+const Post = require("./models/Post");
+const Comment = require("./models/Comment");
 const http = require("http");
 const url = require("url");
 const mongoose = require("mongoose");
+const crypto = require("crypto");
 require("dotenv").config();
 
 const app = express();
+const Feedback = require("./models/feedback.model");
+const Guideline = require("./models/guideline.model");
+
+// ✅ IMPORTANT: these match your filenames in models folder
+const Training = require("./models/Training");
+const Event = require("./models/Event");
+const Reward = require("./models/reward");
+const postRoutes = require("./routes/postRoutes");
+
+const RefereeUu = require("./models/RefereeUu");
+const ReferralUu = require("./models/ReferralUu");
+const { Referral,ReferralCode } = require("./models/Referral");
+const Userprofile = require("./models/userprofile.model"); // Reference UserProfile for RefereeUu 
+
+const { Campaign, CampaignMetric } = require("./models/Campaign");
+
 const PORT = process.env.PORT || 5000;
 const Visit = require("./models/visit");
 
@@ -113,7 +137,84 @@ function safeNumber(n, fallback = 0) {
   return Number.isFinite(x) ? x : fallback;
 }
 
-// ---------------- server ----------------
+// =====================
+// TEST ROUTE
+// =====================
+app.get("/", (req, res) => {
+  res.json({ message: "Backend running successfully 🚀" });
+});
+
+// =====================
+// ROUTES
+// =====================
+app.use("/api/rewards", require("./routes/rewardRoutes"));
+app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
+app.use("/api/trainings", require("./routes/trainingRoutes"));
+app.use("/api/profiles", require("./routes/profileRoutes"));
+app.use("/api/uu", require("./routes/uuRoutes"));
+app.use("/api/events", require("./routes/eventRoutes"));
+app.use("/api/referrals", require("./routes/referralRoutes"));
+app.use("/api/lead", require("./routes/leadRoutes"));
+app.use("/api/visits", require("./routes/visitRoutes"));
+app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
+app.use("/api/auth", require("./routes/authRoutes"));
+
+// =====================
+// START SERVER
+// =====================
+// ---- connect & listen ----------------
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB connected");
+
+    app.listen(PORT, () => {
+      console.log(`✅ Server running on port ${PORT}`);
+    });
+
+    // =========================================================
+    // DYNAMIC ROI DATA GENERATOR (Sub-issue #158.3)
+    // Inserts/upserts metrics every 2 minutes
+    // Later replace with real Meta/Shopify/API ingestion
+    // =========================================================
+    setInterval(async () => {
+      try {
+        const day = yyyyMmDd(new Date());
+
+        // Only active campaigns
+        const campaigns = await Campaign.find({ status: "active" })
+          .select("_id platforms")
+          .lean();
+
+        for (const c of campaigns) {
+          // pick a platform name (your campaigns use "platforms" array)
+          const platform =
+            Array.isArray(c.platforms) && c.platforms.length
+              ? String(c.platforms[0])
+              : "unknown";
+
+          // random demo increments (dynamic)
+          const spend = Math.round(Math.random() * 200); // 0..200
+          const revenue = Math.round(Math.random() * 500); // 0..500
+          const clicks = Math.round(Math.random() * 120); // 0..120
+          const conversions = Math.round(Math.random() * 10); // 0..10
+
+          await CampaignMetric.findOneAndUpdate(
+            { campaignId: c._id, day, platform },
+            { $inc: { spend, revenue, clicks, conversions } },
+            { upsert: true, new: true }
+          );
+        }
+
+        console.log(`[ROI] metrics updated for ${campaigns.length} campaigns (${day})`);
+      } catch (e) {
+        console.error("[ROI] metric job failed:", e);
+      }
+    }, 2 * 60 * 1000); // every 2 minutes
+  })
+  .catch((err) => console.error("MongoDB connection error:", err));
+
+// ---- express server with request routing ----
 const server = http.createServer(async (req, res) => {
   setCors(res);
 
@@ -130,62 +231,24 @@ const server = http.createServer(async (req, res) => {
   const query = Object.fromEntries(parsed.searchParams.entries());
   const segments = path.split("/").filter(Boolean); // no empty
 
-// =====================
-// DATABASE
-// =====================
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.log(err));
-
-// =====================
-// ROUTES
-// =====================
-app.use("/api/rewards", require("./routes/rewardRoutes"));
-app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
-app.use("/api/trainings", require("./routes/trainingRoutes"));
-app.use("/api/profiles", require("./routes/profileRoutes"));
-app.use("/api/uu", require("./routes/uuRoutes"));
-app.use("/api/events", require("./routes/eventRoutes"));
-app.use("/api/referrals", require("./routes/referralRoutes"));
-app.use("/api/lead", require("./routes/leadRoutes"));
-app.use("/api/visits", require("./routes/visitRoutes"));
-
-
-// GUIDELINES ROUTE
-app.use("/api/guidelines", require("./routes/guidelinesRoutes"));
-
-app.use("/api/auth", require("./routes/authRoutes"));
-// =====================
-// SERVER START
-// =====================
-2b01ec51397b652c10e1c8c9f3aadd9fe968d3cc
-main
-const PORT = process.env.PORT || 5000;
- 
-// =====================
-// MIDDLEWARE
-// =====================
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(
-  cors({
-    origin: ["http://localhost:3000"],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
-app.options("*", cors());
- 
-// =====================
-// DEFAULT ADMIN CREATION
-// =====================
-const createDefaultAdmin = async () => {
   try {
     // ===========================
     // AUTH
     // ===========================
+    if (req.method === "POST" && path === "/api/visits/track"){
+      const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
+      const userAgent = req.headers['user-agent'] || "unknown";
+      const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
+      await Visit.create({ ipHash, userAgent });
+      return sendJson(res, 200, { message: "Visit tracked" });
+    }
+    
+    if (req.method === "GET" && path === "/api/visits/stats"){
+      const totalVisits = await Visit.countDocuments();
+      const uniqueIps = await Visit.distinct("ipHash");
+      return sendJson(res, 200, { totalVisits, uniqueVisits: uniqueIps.length });
+    }
+    
     if (req.method === "POST" && path === "/api/auth/login") {
       const body = await readJsonBody(req);
       const email = (body.email || "").trim().toLowerCase();
@@ -198,6 +261,98 @@ const createDefaultAdmin = async () => {
         });
       }
       return sendJson(res, 401, { message: "Invalid email or password" });
+    }
+
+    //API VISIT TRACKING
+if (req.method === "POST" && path === "/api/visits/track"){
+  const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
+  const userAgent = req.headers['user-agent'] || "unknown";
+  const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
+  await Visit.create({ ipHash, userAgent });
+  return sendJson(res, 200, { message: "Visit tracked" });
+ }
+   // ✅ Visit Timeline (Daily)
+if (req.method === "GET" && path === "/api/visits/timeline") {
+  try {
+    const dailyData = await Visit.aggregate([
+      {
+        $addFields: {
+          ts: { $ifNull: ["$timestamp", "$createdAt"] },
+        },
+      },
+      { $match: { ts: { $type: "date" } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$ts" } },
+          totalVisits: { $sum: 1 },
+          uniqueIps: { $addToSet: "$ipHash" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id",
+          totalVisits: 1,
+          uniqueVisits: { $size: "$uniqueIps" },
+        },
+      },
+      { $sort: { date: 1 } },
+    ]);
+
+    return sendJson(res, 200, dailyData);
+  } catch (err) {
+    console.error("Timeline error:", err);
+    return sendJson(res, 500, { message: "Failed to fetch timeline" });
+  }
+}
+    // ===========================
+    // TRAININGS ✅ NEW
+    // ===========================
+    const trainingController = require("./controllers/trainingController");
+    if (path.startsWith("/api/trainings")) {
+      const id = segments[2];
+      if (req.method === "GET") {
+        if (id) {
+          return trainingController.getTrainingById({ params: { id } }, res);
+        } else {
+          return trainingController.getTrainings(req, res);
+        }
+      } else if (req.method === "POST") {
+        return trainingController.createTraining(req, res);
+      } else if (req.method === "PUT") {
+        if (id) {
+          return trainingController.updateTraining(req, id, res);
+        } else {
+          return sendJson(res, 400, {
+            message: "Training ID is required for update",
+          });
+        }
+      } else if (req.method === "DELETE") {
+        const id = segments[2];
+        if (!id) {
+          return sendJson(res, 400, {
+            message: "Training ID is required for deletion",
+          });
+        }
+        return trainingController.deleteTraining({ params: { id } }, res);
+      }
+    }
+
+
+    // ===========================
+    // EVENTS ✅ NEW
+    // ===========================
+    if (req.method === "GET" && path === "/api/events") {
+      const items = await Event.find().sort({ createdAt: -1 }).lean();
+      return sendJson(res, 200, items);
+    }
+
+    // ===========================
+    // REWARDS ✅ NEW
+    // ===========================
+    if (req.method === "GET" && path === "/api/rewards") {
+      const items = await Reward.find().sort({ createdAt: -1 }).lean();
+      return sendJson(res, 200, items);
     }
 
     // ===========================
@@ -238,8 +393,9 @@ const createDefaultAdmin = async () => {
       const category = (body.category || "general").trim();
       const tags = Array.isArray(body.tags) ? body.tags : [];
 
-      if (!text)
+      if (!text) {
         return sendJson(res, 400, { message: "Guideline text is required" });
+      }
       if (type !== "do" && type !== "dont") {
         return sendJson(res, 400, {
           message: 'Type must be either "do" or "dont"',
@@ -257,7 +413,7 @@ const createDefaultAdmin = async () => {
     }
 
     if (req.method === "PUT" && path.startsWith("/api/guidelines/")) {
-      const id = segments[2]; // api/guidelines/:id => ["api","guidelines",":id"]
+      const id = segments[2]; // ["api","guidelines",":id"]
       if (!id) return sendJson(res, 404, { message: "Route not found" });
       if (!isValidObjectId(id))
         return sendJson(res, 400, { message: "Invalid id" });
@@ -299,7 +455,7 @@ const createDefaultAdmin = async () => {
       const updated = await Guideline.findByIdAndUpdate(
         id,
         { isActive: false },
-        { new: true },
+        { new: true }
       );
       if (!updated)
         return sendJson(res, 404, { message: "Guideline not found" });
@@ -308,12 +464,264 @@ const createDefaultAdmin = async () => {
     }
 
     // =========================================================
-    // ✅ REFERRALS CRUD (your ReferralList uses /api/referrals)
+    // CAMPAIGNS CRUD (Sub-issue #155)
+    // Base: /api/campaigns
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "campaigns") {
+      // GET /api/campaigns
+      if (req.method === "GET" && segments.length === 2) {
+        const items = await Campaign.find({ status: "active" })
+          .sort({ createdAt: -1 })
+          .lean();
+        return sendJson(res, 200, items);
+      }
+
+      // POST /api/campaigns
+if (req.method === "POST" && segments.length === 2) {
+  const body = await readJsonBody(req);
+
+  if (!body.name) return sendJson(res, 400, { message: "name is required" });
+  if (!body.startDate) return sendJson(res, 400, { message: "startDate is required" });
+  if (!body.endDate) return sendJson(res, 400, { message: "endDate is required" });
+  if (!body.utmCampaign) return sendJson(res, 400, { message: "utmCampaign is required" });
+
+  const created = await Campaign.create({
+    name: String(body.name).trim(),
+    description: String(body.description || "").trim(),
+    platform: String(body.platform || "Instagram").trim(),
+    targetAudience: String(body.targetAudience || "").trim(),
+    goals: String(body.goals || "").trim(),
+
+    // ✅ SAVE budget/spent
+    budget: Number(body.budget || 0),
+    spent: Number(body.spent || 0),
+
+    startDate: new Date(body.startDate),
+    endDate: new Date(body.endDate),
+
+    assignedCreators: Array.isArray(body.assignedCreators) ? body.assignedCreators : [],
+
+    utmCampaign: String(body.utmCampaign).trim().toLowerCase(),
+    status: "active",
+  });
+
+  return sendJson(res, 201, created);
+}
+
+      // /api/campaigns/:id
+      const id = segments[2];
+      if (!id) return sendJson(res, 404, { message: "Route not found" });
+      if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid id" });
+
+      // GET /api/campaigns/:id
+      if (req.method === "GET" && segments.length === 3) {
+        const doc = await Campaign.findById(id).lean();
+        if (!doc) return sendJson(res, 404, { message: "Campaign not found" });
+        return sendJson(res, 200, doc);
+      }
+
+      // PUT /api/campaigns/:id
+if (req.method === "PUT" && segments.length === 3) {
+  const body = await readJsonBody(req);
+
+  const updates = {};
+
+  if (body.name !== undefined) updates.name = String(body.name).trim();
+  if (body.description !== undefined) updates.description = String(body.description).trim();
+
+  if (body.platform !== undefined) updates.platform = String(body.platform).trim();
+
+  if (body.targetAudience !== undefined)
+    updates.targetAudience = String(body.targetAudience).trim();
+
+  if (body.goals !== undefined) updates.goals = String(body.goals).trim();
+
+  // ✅ FIXED: budget & spent
+  if (body.budget !== undefined)
+    updates.budget = Number(body.budget);
+
+  if (body.spent !== undefined)
+    updates.spent = Number(body.spent);
+
+  if (body.startDate !== undefined)
+    updates.startDate = new Date(body.startDate);
+
+  if (body.endDate !== undefined)
+    updates.endDate = new Date(body.endDate);
+
+  if (body.assignedCreators !== undefined)
+    updates.assignedCreators = Array.isArray(body.assignedCreators)
+      ? body.assignedCreators
+      : [];
+
+  if (body.utmCampaign !== undefined)
+    updates.utmCampaign = String(body.utmCampaign).trim().toLowerCase();
+
+  const updated = await Campaign.findByIdAndUpdate(id, updates, {
+    new: true,
+    runValidators: true,
+  }).lean();
+
+  if (!updated)
+    return sendJson(res, 404, { message: "Campaign not found" });
+
+  return sendJson(res, 200, {
+    message: "Campaign updated successfully",
+    campaign: updated,
+  });
+}
+
+      // DELETE /api/campaigns/:id (archive)
+      if (req.method === "DELETE" && segments.length === 3) {
+        const updated = await Campaign.findByIdAndUpdate(
+          id,
+          { status: "archived" },
+          { new: true }
+        ).lean();
+
+        if (!updated) return sendJson(res, 404, { message: "Campaign not found" });
+
+        return sendJson(res, 200, {
+          message: "Campaign archived successfully",
+          campaign: updated,
+        });
+      }
+
+      return sendJson(res, 404, { message: "Route not found" });
+    }
+
+    // =========================================================
+    // ROI ROUTES (Sub-issue #158) - NO EXPRESS
+    // Base: /api/roi/...
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "roi") {
+      const campaignId = segments[2]; // /api/roi/:campaignId
+      if (!campaignId) return sendJson(res, 404, { message: "Route not found" });
+      if (!isValidObjectId(campaignId))
+        return sendJson(res, 400, { message: "Invalid campaignId" });
+
+      // GET /api/roi/:campaignId?days=7 (totals)
+      if (req.method === "GET" && segments.length === 3) {
+        const days = safeNumber(query.days, 7);
+        const { from, to } = dateRangeDays(days);
+
+        const rows = await CampaignMetric.aggregate([
+          {
+            $match: {
+              campaignId: new mongoose.Types.ObjectId(campaignId),
+              day: { $gte: from, $lte: to },
+            },
+          },
+          {
+            $group: {
+              _id: "$campaignId",
+              spend: { $sum: "$spend" },
+              revenue: { $sum: "$revenue" },
+              clicks: { $sum: "$clicks" },
+              conversions: { $sum: "$conversions" },
+            },
+          },
+        ]);
+
+        const totals = rows[0] || { spend: 0, revenue: 0, clicks: 0, conversions: 0 };
+        const profit = totals.revenue - totals.spend;
+        //formula
+        const roiPct = totals.spend === 0 ? 0 : (profit / totals.spend) * 100;
+
+        return sendJson(res, 200, {
+          campaignId,
+          from,
+          to,
+          spend: totals.spend,
+          revenue: totals.revenue,
+          profit,
+          roi: `${roiPct.toFixed(2)}%`,
+          clicks: totals.clicks,
+          conversions: totals.conversions,
+          lastUpdatedAt: new Date().toISOString(),
+        });
+      }
+
+      // GET /api/roi/:campaignId/timeseries?days=7
+      if (req.method === "GET" && segments.length === 4 && segments[3] === "timeseries") {
+        const days = safeNumber(query.days, 7);
+        const { from, to } = dateRangeDays(days);
+
+        const rows = await CampaignMetric.aggregate([
+          {
+            $match: {
+              campaignId: new mongoose.Types.ObjectId(campaignId),
+              day: { $gte: from, $lte: to },
+            },
+          },
+          {
+            $group: {
+              _id: "$day",
+              spend: { $sum: "$spend" },
+              revenue: { $sum: "$revenue" },
+              clicks: { $sum: "$clicks" },
+              conversions: { $sum: "$conversions" },
+            },
+          },
+          { $sort: { _id: 1 } },
+          {
+            $project: {
+              _id: 0,
+              day: "$_id",
+              spend: 1,
+              revenue: 1,
+              clicks: 1,
+              conversions: 1,
+            },
+          },
+        ]);
+
+        return sendJson(res, 200, { campaignId, from, to, series: rows });
+      }
+
+      // POST /api/roi/:campaignId/ingest
+      if (req.method === "POST" && segments.length === 4 && segments[3] === "ingest") {
+        const body = await readJsonBody(req);
+
+        const day = String(body.day || yyyyMmDd()).slice(0, 10);
+        const platform = String(body.platform || "unknown");
+
+        const spend = safeNumber(body.spend, 0);
+        const revenue = safeNumber(body.revenue, 0);
+        const clicks = safeNumber(body.clicks, 0);
+        const conversions = safeNumber(body.conversions, 0);
+
+        const doc = await CampaignMetric.findOneAndUpdate(
+          { campaignId, day, platform },
+          { $inc: { spend, revenue, clicks, conversions } },
+          { new: true, upsert: true }
+        ).lean();
+
+        return sendJson(res, 201, { message: "Ingested", metric: doc });
+      }
+
+      return sendJson(res, 404, { message: "Route not found" });
+    }
+
+    // =========================================================
+    // REFERRALS CRUD (your ReferralList uses /api/referrals)
     // =========================================================
     if (segments[0] === "api" && segments[1] === "referrals") {
       // GET /api/referrals
       if (req.method === "GET" && segments.length === 2) {
-        const referrals = await Referral.find().sort({ createdAt: -1 }).lean();
+        const referrals = await Referral.find()
+          .populate({
+            path: "referralCodeId",
+            populate: {
+              path: "userId",
+              model: "UserProfile",
+              
+            },
+          })
+          .populate("refereeUUID") // Populate RefereeUu details
+          .populate("referrerUUID") // Populate ReferralUu details
+          .lean()
+          .sort({ createdAt: -1 });
         return sendJson(res, 200, referrals);
       }
 
@@ -335,7 +743,18 @@ const createDefaultAdmin = async () => {
 
       // GET /api/referrals/:id
       if (req.method === "GET" && segments.length === 3) {
-        const doc = await Referral.findById(id).lean();
+        const doc = await Referral.findById(id)
+          .populate({
+            path: "referralCodeId",
+            populate: {
+              path: "userId",
+              model: "UserProfile",
+              
+            },
+          })
+          .populate('refereeUUID') // Populate RefereeUu details
+          .populate('referrerUUID') // Populate ReferralUu details
+          .lean();
         if (!doc) return sendJson(res, 404, { message: "Referral not found" });
         return sendJson(res, 200, doc);
       }
@@ -371,7 +790,70 @@ const createDefaultAdmin = async () => {
     }
 
     // =========================================================
-    // ✅ UU ROUTES (NO EXPRESS)
+    // REFERRAL CODE CRUD (your ReferralCodeList uses /api/referral-codes)
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "referral-codes") {
+      // GET /api/referral-codes
+      if (req.method === "GET" && segments.length === 2) {
+        const referralCodes = await ReferralCode.find().sort({ createdAt: -1 }).lean();
+        return sendJson(res, 200, referralCodes);
+      }
+
+      // POST /api/referral-codes
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
+        const created = await ReferralCode.create(body);
+        return sendJson(res, 201, {
+          message: "Referral Code added successfully",
+          referralCode: created,
+        });
+      }
+
+      // /api/referral-codes/:id
+      const id = segments[2];
+      if (!id) return sendJson(res, 404, { message: "Route not found" });
+      if (!isValidObjectId(id))
+        return sendJson(res, 400, { message: "Invalid id" });
+
+      // GET /api/referral-codes/:id
+      if (req.method === "GET" && segments.length === 3) {
+        const doc = await ReferralCode.findById(id).lean();
+        if (!doc) return sendJson(res, 404, { message: "Referral Code not found" });
+        return sendJson(res, 200, doc);
+      }
+
+      // PUT /api/referral-codes/:id
+      if (req.method === "PUT" && segments.length === 3) {
+        const body = await readJsonBody(req);
+        const updated = await ReferralCode.findByIdAndUpdate(id, body, {
+          new: true,
+          runValidators: true,
+        }).lean();
+
+        if (!updated)
+          return sendJson(res, 404, { message: "Referral Code not found" });
+
+        return sendJson(res, 200, {
+          message: "Referral Code updated successfully",
+          referralCode: updated,
+        });
+      }
+
+      // DELETE /api/referral-codes/:id
+      if (req.method === "DELETE" && segments.length === 3) {
+        const deleted = await ReferralCode.findByIdAndDelete(id).lean();
+        if (!deleted)
+          return sendJson(res, 404, { message: "Referral Code not found" });
+
+        return sendJson(res, 200, {
+          message: "Referral Code deleted successfully",
+          referralCode: deleted,
+        });
+      }
+    }
+
+    // =========================================================
+    // UU ROUTES (NO EXPRESS)
     // Base: /api/uu/...
     // =========================================================
     if (segments[0] === "api" && segments[1] === "uu") {
@@ -382,7 +864,6 @@ const createDefaultAdmin = async () => {
 
       // ---------- REFEREE ----------
       if (group === "referee") {
-        // GET /api/uu/referee/overview
         if (req.method === "GET" && action === "overview") {
           const data = await RefereeUu.aggregate([
             { $match: { date: { $gte: from, $lte: to } } },
@@ -393,7 +874,6 @@ const createDefaultAdmin = async () => {
           return sendJson(res, 200, { series: data, from, to });
         }
 
-        // GET /api/uu/referee/members
         if (req.method === "GET" && action === "members") {
           const members = await RefereeUu.aggregate([
             { $match: { date: { $gte: from, $lte: to } } },
@@ -408,10 +888,14 @@ const createDefaultAdmin = async () => {
               },
             },
           ]);
-          return sendJson(res, 200, { count: members.length, members, from, to });
+          return sendJson(res, 200, {
+            count: members.length,
+            members,
+            from,
+            to,
+          });
         }
 
-        // GET /api/uu/referee/:refereeId
         if (req.method === "GET" && segments.length === 4 && action) {
           const refereeId = action;
 
@@ -425,13 +909,17 @@ const createDefaultAdmin = async () => {
           const series = docs.map((d) => ({ date: d.date, uu: d.uu }));
           const summary = buildSummary(series);
 
-          return sendJson(res, 200, { id: refereeId, summary, series, from, to });
+          return sendJson(res, 200, {
+            id: refereeId,
+            summary,
+            series,
+            from,
+            to,
+          });
         }
       }
 
-      // ---------- REFERRAL ----------
       if (group === "referral") {
-        // GET /api/uu/referral/overview
         if (req.method === "GET" && action === "overview") {
           const data = await ReferralUu.aggregate([
             { $match: { date: { $gte: from, $lte: to } } },
@@ -442,7 +930,6 @@ const createDefaultAdmin = async () => {
           return sendJson(res, 200, { series: data, from, to });
         }
 
-        // GET /api/uu/referral/members  (safe lookup without $toObjectId errors)
         if (req.method === "GET" && action === "members") {
           const base = await ReferralUu.aggregate([
             { $match: { date: { $gte: from, $lte: to } } },
@@ -460,7 +947,10 @@ const createDefaultAdmin = async () => {
             : [];
 
           const profileMap = new Map(
-            profiles.map((p) => [String(p._id), `${p.firstName} ${p.surName}`]),
+            profiles.map((p) => [
+              String(p._id),
+              `${p.firstName} ${p.surName}`,
+            ])
           );
 
           const members = base.map((x) => ({
@@ -469,10 +959,14 @@ const createDefaultAdmin = async () => {
             name: profileMap.get(String(x._id)) || x._id,
           }));
 
-          return sendJson(res, 200, { count: members.length, members, from, to });
+          return sendJson(res, 200, {
+            count: members.length,
+            members,
+            from,
+            to,
+          });
         }
 
-        // GET /api/uu/referral/:referralId  (returns series + summary + profile)
         if (req.method === "GET" && segments.length === 4 && action) {
           const referralId = action;
 
@@ -502,22 +996,114 @@ const createDefaultAdmin = async () => {
         }
       }
 
-      // if /api/uu/... not matched
+      return sendJson(res, 404, { message: "Route not found" });
+    }    
+
+    // =========================================================
+    // COMMUNITY FEED / POSTS
+    // Base: /api/posts
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "posts") {
+      
+      // GET /api/posts (Fetch feed with Pagination)
+      if (req.method === "GET" && segments.length === 2) {
+        const sort = query.sort || "newest";
+        const page = parseInt(query.page) || 1;
+        const limit = 5; // Load 5 posts at a time
+        const skip = (page - 1) * limit;
+
+        let sortQuery = { createdAt: -1 };
+        if (sort === "popular") sortQuery = { likes: -1, createdAt: -1 };
+
+        const posts = await Post.find().sort(sortQuery).skip(skip).limit(limit);
+        const totalPosts = await Post.countDocuments();
+        const hasMore = totalPosts > skip + posts.length; // Check if there are more posts left
+
+        return sendJson(res, 200, { success: true, posts, hasMore });
+      }
+
+      // POST /api/posts (Create a post)
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
+        
+        // Using a dummy user ID for now
+        const newPost = await Post.create({
+          user: "650000000000000000000000", 
+          caption: body.caption,
+          mediaType: body.mediaType || "none",
+          mediaUrl: body.mediaUrl || null, // Ensure we save the mock URL!
+          hashtags: body.hashtags || [],
+        });
+        return sendJson(res, 201, { success: true, post: newPost });
+      }
+
+      const postId = segments[2];
+      if (!postId) return sendJson(res, 404, { message: "Route not found" });
+      if (!isValidObjectId(postId)) return sendJson(res, 400, { message: "Invalid post id" });
+
+      // ✅ NEW: DELETE /api/posts/:id (Delete a post)
+      if (req.method === "DELETE" && segments.length === 3) {
+        const deletedPost = await Post.findByIdAndDelete(postId);
+        if (!deletedPost) return sendJson(res, 404, { message: "Post not found" });
+        
+        // Cleanup: Delete all comments associated with this post
+        await Comment.deleteMany({ post: postId });
+        
+        return sendJson(res, 200, { success: true, message: "Post deleted successfully" });
+      }
+
+      // POST /api/posts/:id/like
+      if (req.method === "POST" && segments.length === 4 && segments[3] === "like") {
+        const post = await Post.findById(postId);
+        if (!post) return sendJson(res, 404, { message: "Post not found" });
+
+        const userId = "650000000000000000000000"; // Dummy user ID
+        const hasLiked = post.likes.includes(userId);
+
+        if (hasLiked) {
+          post.likes = post.likes.filter((id) => id.toString() !== userId);
+        } else {
+          post.likes.push(userId);
+        }
+        await post.save();
+        return sendJson(res, 200, { success: true, likes: post.likes.length, hasLiked: !hasLiked });
+      }
+
+      // POST /api/posts/:id/comment
+      if (req.method === "POST" && segments.length === 4 && segments[3] === "comment") {
+        const body = await readJsonBody(req);
+        const newComment = await Comment.create({
+          post: postId,
+          user: "650000000000000000000000", // Dummy user ID
+          text: body.text
+        });
+        return sendJson(res, 201, { success: true, comment: newComment });
+      }
+
+      // GET /api/posts/:id/comment
+      if (req.method === "GET" && segments.length === 4 && segments[3] === "comment") {
+        const comments = await Comment.find({ post: postId }).sort({ createdAt: -1 });
+        return sendJson(res, 200, { success: true, comments });
+      }
+
+      // POST /api/posts/:id/report
+      if (req.method === "POST" && segments.length === 4 && segments[3] === "report") {
+        await Post.findByIdAndUpdate(postId, { $inc: { reportCount: 1 } });
+        return sendJson(res, 200, { success: true, message: "Post reported" });
+      }
+
       return sendJson(res, 404, { message: "Route not found" });
     }
 
-    // Not found
+    // FINAL CATCH-ALL 404 (This MUST be at the end, not above the posts block!)
     return sendJson(res, 404, { message: "Route not found" });
+
   } catch (err) {
-    console.error("Failed to create/reset default admin:", err);
+    console.error(err);
+    return sendJson(res, 500, { message: "Server error" });
   }
 });
 
-// ---------------- connect & listen ----------------
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(async () => {
-    console.log("MongoDB connected");
-    server.listen(PORT, () => console.log(`Node server running on port ${PORT}`));
-  })
-  .catch((err) => console.error("MongoDB connection error:", err));
+server.listen(PORT, () =>
+  console.log(`Node server running on port ${PORT}`)
+);
