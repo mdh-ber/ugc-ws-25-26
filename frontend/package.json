@@ -4,7 +4,12 @@
   "private": true,
   "proxy": "http://localhost:5000",
   "dependencies": {
+    "@mantine/core": "^8.3.15",
+    "@mantine/hooks": "^8.3.15",
+    "@tabler/icons-react": "^3.37.1",
     "axios": "^1.13.5",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "lucide-react": "^0.563.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -12,6 +17,7 @@
     "react-router-dom": "^6.22.3",
     "react-scripts": "^5.0.1",
     "recharts": "^3.7.0",
+    "tailwind-merge": "^3.5.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
