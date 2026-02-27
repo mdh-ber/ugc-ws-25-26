@@ -5,9 +5,15 @@ const url = require("url");
 const mongoose = require("mongoose");
 const crypto = require("crypto");
 require("dotenv").config();
+// ✅ Helper: supports both CommonJS + default-export modules
+const unwrapDefault = (mod) =>
+  mod && typeof mod === "object" && "default" in mod ? mod.default : mod;
 
 const Feedback = require("./models/feedback.model");
 const Guideline = require("./models/guideline.model");
+const Notification = require("./models/Notification");
+const MilestoneType = unwrapDefault(require("./models/MilestoneType"));
+const UserMilestone = unwrapDefault(require("./models/UserMilestone"));
 
 // ✅ IMPORTANT: these match your filenames in models folder
 const Training = require("./models/Training");
@@ -902,7 +908,71 @@ if (req.method === "PUT" && segments.length === 3) {
       }
 
       return sendJson(res, 404, { message: "Route not found" });
-    }    
+    }   
+    // =========================================================
+// NOTIFICATIONS API
+// Base: /api/notifications
+// =========================================================
+if (segments[0] === "api" && segments[1] === "notifications") {
+  const id = segments[2] || null;
+
+  if (req.method === "GET" && segments.length === 2) {
+    const userId = query.userId || null;
+
+    const notifications = await Notification.find({
+      $or: [{ userId: null }, { userId }],
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return sendJson(res, 200, notifications);
+  }
+
+  if (req.method === "POST" && segments.length === 2) {
+    const body = await readJsonBody(req);
+
+    if (!body.title || !body.message) {
+      return sendJson(res, 400, { message: "title and message are required" });
+    }
+
+    const created = await Notification.create({
+      userId: body.userId || null,
+      title: String(body.title).trim(),
+      message: String(body.message).trim(),
+      type: body.type || "info",
+      isRead: false,
+    });
+
+    return sendJson(res, 201, created);
+  }
+
+  if (req.method === "PATCH" && segments.length === 3 && id) {
+    if (!isValidObjectId(id)) {
+      return sendJson(res, 400, { message: "Invalid id" });
+    }
+
+    const updated = await Notification.findByIdAndUpdate(
+      id,
+      { isRead: true },
+      { new: true }
+    ).lean();
+
+    if (!updated) return sendJson(res, 404, { message: "Notification not found" });
+    return sendJson(res, 200, updated);
+  }
+
+  if (req.method === "DELETE" && segments.length === 3 && id) {
+    if (!isValidObjectId(id)) {
+      return sendJson(res, 400, { message: "Invalid id" });
+    }
+
+    const deleted = await Notification.findByIdAndDelete(id).lean();
+    if (!deleted) return sendJson(res, 404, { message: "Notification not found" });
+    return sendJson(res, 200, { message: "Deleted successfully" });
+  }
+
+  return sendJson(res, 404, { message: "Route not found" });
+} 
 
     // =========================================================
     // COMMUNITY FEED / POSTS
@@ -999,7 +1069,118 @@ if (req.method === "PUT" && segments.length === 3) {
 
       return sendJson(res, 404, { message: "Route not found" });
     }
+    // ===========================
+// HEALTH 
+// ===========================
+if (req.method === "GET" && path === "/health") {
+  return sendJson(res, 200, { status: "OK" });
+}
+// =========================================================
+// MILESTONE TYPES API
+// Base: /api/milestone-types
+// =========================================================
+if (segments[0] === "api" && segments[1] === "milestone-types") {
 
+  // =========================
+  // GET /api/milestone-types
+  // Returns all milestone types
+  // =========================
+  if (req.method === "GET" && segments.length === 2) {
+    const items = await MilestoneType.find()
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return sendJson(res, 200, items);
+  }
+
+  // =========================
+  //  POST /api/milestone-types
+  // Creates a new milestone type
+  // =========================
+  if (req.method === "POST" && segments.length === 2) {
+    const body = await readJsonBody(req);
+
+    // Validation
+    if (!body.title || !body.metric || !body.computeMethod) {
+      return sendJson(res, 400, {
+        message: "title, metric, computeMethod are required",
+      });
+    }
+
+    const created = await MilestoneType.create({
+      title: String(body.title).trim(),
+      description: String(body.description || "").trim(),
+      category: String(body.category || "general").trim(),
+      metric: String(body.metric).trim(),
+      computeMethod: String(body.computeMethod).trim(),
+      goal: Number(body.goal || 0),
+      rewardPoints: Number(body.rewardPoints || 0),
+      isActive: body.isActive !== undefined ? !!body.isActive : true,
+      period: String(body.period || "lifetime").trim(),
+      scope: String(body.scope || "global").trim(),
+      scopeValue: body.scopeValue ?? null,
+      slots: Number(body.slots || 1),
+      version: Number(body.version || 1),
+      updatedBy: body.updatedBy ?? null,
+    });
+
+    return sendJson(res, 201, created);
+  }
+
+  return sendJson(res, 404, { message: "Route not found" });
+}
+
+
+// =========================================================
+// USER MILESTONES API
+// Base: /api/user-milestones
+// =========================================================
+if (segments[0] === "api" && segments[1] === "user-milestones") {
+  const creatorId = segments[2];
+
+  // =========================
+  // GET /api/user-milestones/:creatorId
+  // Returns milestones for a specific user
+  // =========================
+  if (req.method === "GET" && segments.length === 3 && creatorId) {
+    const items = await UserMilestone.find({ creatorId })
+      .populate("milestoneTypeId")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return sendJson(res, 200, items);
+  }
+
+  // No POST here yet
+  // (User milestones are not being created via API yet)
+
+  return sendJson(res, 404, { message: "Route not found" });
+}
+// =========================================================
+// LEADERBOARDS API (DEMO DATA)
+// Base: /api/leaderboards
+// =========================================================
+if (segments[0] === "api" && segments[1] === "leaderboards") {
+
+  // GET /api/leaderboards/best-creators-month
+  if (req.method === "GET" && segments[2] === "best-creators-month") {
+    return sendJson(res, 200, [
+      { creatorId: "u1", name: "Creator A", points: 1000, clicks: 120, leads: 12 },
+      { creatorId: "u2", name: "Creator B", points: 850, clicks: 95, leads: 8 },
+      { creatorId: "u3", name: "Creator C", points: 700, clicks: 70, leads: 5 },
+    ]);
+  }
+
+  // GET /api/leaderboards/best-creator-by-city?cities=Berlin,Düsseldorf
+  if (req.method === "GET" && segments[2] === "best-creator-by-city") {
+    return sendJson(res, 200, {
+      Berlin: { creatorId: "u10", name: "Berlin Winner", points: 800, clicks: 50, leads: 6 },
+      Düsseldorf: { creatorId: "u20", name: "Düsseldorf Winner", points: 750, clicks: 45, leads: 5 },
+    });
+  }
+
+  return sendJson(res, 404, { message: "Route not found" });
+}
     // FINAL CATCH-ALL 404 (This MUST be at the end, not above the posts block!)
     return sendJson(res, 404, { message: "Route not found" });
 
