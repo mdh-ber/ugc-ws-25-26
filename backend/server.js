@@ -16,11 +16,7 @@ const RefereeUu = require("./models/RefereeUu");
 const ReferralUu = require("./models/ReferralUu");
 const { Referral } = require("./models/Referral");
 
-// ✅ NEW (Sub-issue #155)
-const Campaign = require("./models/Campaign");
-
-// ✅ NEW (Sub-issue #158)
-const CampaignMetric = require("./models/CampaignMetric");
+const { Campaign, CampaignMetric } = require("./models/Campaign");
 
 const PORT = process.env.PORT || 5000;
 const Visit = require("./models/visit");
@@ -459,6 +455,7 @@ if (req.method === "PUT" && segments.length === 3) {
 
         const totals = rows[0] || { spend: 0, revenue: 0, clicks: 0, conversions: 0 };
         const profit = totals.revenue - totals.spend;
+        //formula
         const roiPct = totals.spend === 0 ? 0 : (profit / totals.spend) * 100;
 
         return sendJson(res, 200, {

@@ -2,6 +2,15 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCampaigns, deleteCampaign } from "../services/campaignService";
 
+// ✅ EURO formatter
+function formatMoney(n) {
+  const num = Number(n || 0);
+  return new Intl.NumberFormat("en-IE", {
+    style: "currency",
+    currency: "EUR",
+  }).format(num);
+}
+
 export default function CampaignsList() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +26,11 @@ export default function CampaignsList() {
       const data = await getCampaigns();
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Failed to load campaigns");
+      setErr(
+        e?.response?.data?.message ||
+          e.message ||
+          "Failed to load campaigns"
+      );
     } finally {
       setLoading(false);
     }
@@ -33,7 +46,9 @@ export default function CampaignsList() {
       await deleteCampaign(id);
       await load();
     } catch (e) {
-      alert(e?.response?.data?.message || e.message || "Delete failed");
+      alert(
+        e?.response?.data?.message || e.message || "Delete failed"
+      );
     }
   };
 
@@ -43,9 +58,10 @@ export default function CampaignsList() {
 
     const q = search.toLowerCase();
 
-    return items.filter((c) =>
-      c.name?.toLowerCase().includes(q) ||
-      c.platform?.toLowerCase().includes(q)
+    return items.filter(
+      (c) =>
+        c.name?.toLowerCase().includes(q) ||
+        c.platform?.toLowerCase().includes(q)
     );
   }, [items, search]);
 
@@ -97,13 +113,24 @@ export default function CampaignsList() {
               <tr key={c._id} className="border-t text-sm">
                 <td className="p-3 font-medium">{c.name}</td>
                 <td className="p-3 text-center">{c.platform || "-"}</td>
-                <td className="p-3 text-center">₹{c.budget ?? 0}</td>
-                <td className="p-3 text-center">₹{c.spent ?? 0}</td>
+
+                {/* ✅ EURO FORMAT APPLIED */}
                 <td className="p-3 text-center">
-                  {c.startDate ? new Date(c.startDate).toLocaleDateString() : "-"}
+                  {formatMoney(c.budget)}
                 </td>
                 <td className="p-3 text-center">
-                  {c.endDate ? new Date(c.endDate).toLocaleDateString() : "-"}
+                  {formatMoney(c.spent)}
+                </td>
+
+                <td className="p-3 text-center">
+                  {c.startDate
+                    ? new Date(c.startDate).toLocaleDateString()
+                    : "-"}
+                </td>
+                <td className="p-3 text-center">
+                  {c.endDate
+                    ? new Date(c.endDate).toLocaleDateString()
+                    : "-"}
                 </td>
 
                 <td className="p-3 text-center">
