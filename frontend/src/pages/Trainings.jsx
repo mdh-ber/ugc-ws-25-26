@@ -52,10 +52,10 @@ function Trainings() {
     url: "",
   });
 
-  // FETCH DATA 
+
   useEffect(() => {
-    const storedUser = localStorage.getItem("userInfo");
-    if (storedUser) setUser(JSON.parse(storedUser));
+    // const storedUser = localStorage.getItem("userInfo");
+    // if (storedUser) setUser(JSON.parse(storedUser));
 
     const fetchData = async () => {
       try {
@@ -223,7 +223,7 @@ function Trainings() {
             <h2 className="text-xl font-bold text-gray-800">
               Training Materials
             </h2>
-            {user && user.role === "Marketing Manager" && (
+            {isMarketingManager && (
               <Button
                 text="+ Add New Training"
                 onClick={openCreateTrainingModal}
@@ -239,7 +239,7 @@ function Trainings() {
                 className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition relative"
               >
                 {/* Edit/Delete Actions (Only Marketing Manager) */}
-                {user && user.role === "Marketing Manager" && (
+                {isMarketingManager && (
                   <div className="absolute top-2 right-2 flex space-x-2">
                     <button
                       onClick={() => openEditTrainingModal(training)}
@@ -286,7 +286,7 @@ function Trainings() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-gray-800">Upcoming Events</h2>
-            {user && user.role === "Marketing Manager" && (
+            {isMarketingManager && (
               <Button
                 text="+ Add New Event"
                 onClick={openCreateModal}
