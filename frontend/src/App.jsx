@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-
 import LeadTracking from "./pages/LeadTracking";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
-
+import CommunityFeed from "./pages/CommunityFeed";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -19,6 +19,7 @@ import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
 import ReferralList from "./pages/ReferralList";
+import CreatorPerformanceDashboard from "./pages/CreatorPerformanceDashboard";
 
 
 import WebsiteAnalytics from "./pages/WebsiteAnalytics";
@@ -82,6 +83,18 @@ function App() {
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="/milestones" element={<Milestones />} />
+            <Route path="/feed" element={<CommunityFeed />} />
+
+            <Route
+  path="/creator-performance"
+  element={
+    isMarketingManager ? (
+      <CreatorPerformanceDashboard />
+    ) : (
+      <Navigate to="/dashboard" replace />
+    )
+  }
+/>
 
             {/* Campaigns */}
             <Route path="/campaigns" element={<CampaignsList />} />
