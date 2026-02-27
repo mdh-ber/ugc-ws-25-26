@@ -53,7 +53,6 @@ function App() {
     if (!mode) {
       navigate(`${location.pathname}?mode=manager`, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, location.pathname]);
 
   return (
