@@ -26,7 +26,11 @@ const ReferralUu = require("./models/ReferralUu");
 const { Referral,ReferralCode } = require("./models/Referral");
 const Userprofile = require("./models/userprofile.model"); // Reference UserProfile for RefereeUu 
 
-const { Campaign, CampaignMetric } = require("./models/Campaign");
+// ✅ NEW (Sub-issue #155)
+const Campaign = require("./models/Campaign");
+const Certificate = require("./models/Certificate");
+// ✅ NEW (Sub-issue #158)
+const CampaignMetric = require("./models/CampaignMetric");
 
 const PORT = process.env.PORT || 5000;
 const Visit = require("./models/visit");
@@ -339,7 +343,96 @@ if (req.method === "GET" && path === "/api/visits/timeline") {
     }
 
 
-    // ===========================
+// CERTIFICATES 
+// Base: /api/certificates
+// ===========================
+if (segments[0] === "api" && segments[1] === "certificates") {
+  // GET /api/certificates
+  if (req.method === "GET" && segments.length === 2) {
+    const items = await Certificate.find().sort({ createdAt: -1 }).lean();
+    return sendJson(res, 200, items);
+  }
+
+  // POST /api/certificates
+  if (req.method === "POST" && segments.length === 2) {
+    const body = await readJsonBody(req);
+
+    const title = String(body.title || "").trim();
+    const issueDate = String(body.issueDate || "").trim();
+    const issuer = String(body.issuer || "").trim();
+    const issuedTo = String(body.issuedTo || "").trim();
+    const type = String(body.type || "").trim();
+
+    if (!title || !issueDate || !issuer || !issuedTo || !type) {
+      return sendJson(res, 400, { message: "All fields are required." });
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(issueDate)) {
+      return sendJson(res, 400, { message: "Issue date must be YYYY-MM-DD" });
+    }
+
+    const created = await Certificate.create({
+      title,
+      issueDate,
+      issuer,
+      issuedTo,
+      type,
+    });
+
+    return sendJson(res, 201, created);
+  }
+
+  // PUT /api/certificates/:id  (EDIT)
+  if (req.method === "PUT" && segments.length === 3) {
+    const id = segments[2];
+    if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid id" });
+
+    const body = await readJsonBody(req);
+
+    const updates = {};
+
+    if (body.title !== undefined) updates.title = String(body.title).trim();
+    if (body.issueDate !== undefined) updates.issueDate = String(body.issueDate).trim();
+    if (body.issuer !== undefined) updates.issuer = String(body.issuer).trim();
+    if (body.issuedTo !== undefined) updates.issuedTo = String(body.issuedTo).trim();
+    if (body.type !== undefined) updates.type = String(body.type).trim();
+
+    // validation
+    if (updates.title !== undefined && !updates.title) return sendJson(res, 400, { message: "Title is required." });
+    if (updates.issuer !== undefined && !updates.issuer) return sendJson(res, 400, { message: "Issuer is required." });
+    if (updates.issuedTo !== undefined && !updates.issuedTo) return sendJson(res, 400, { message: "IssuedTo is required." });
+    if (updates.type !== undefined && !updates.type) return sendJson(res, 400, { message: "Type is required." });
+
+    if (updates.issueDate !== undefined) {
+      if (!updates.issueDate) return sendJson(res, 400, { message: "Issue date is required." });
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(updates.issueDate)) {
+        return sendJson(res, 400, { message: "Issue date must be YYYY-MM-DD" });
+      }
+    }
+
+    const updated = await Certificate.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    }).lean();
+
+    if (!updated) return sendJson(res, 404, { message: "Certificate not found" });
+
+    return sendJson(res, 200, { message: "Certificate updated", certificate: updated });
+  }
+
+  // DELETE /api/certificates/:id
+  if (req.method === "DELETE" && segments.length === 3) {
+    const id = segments[2];
+    if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid id" });
+
+    const deleted = await Certificate.findByIdAndDelete(id).lean();
+    if (!deleted) return sendJson(res, 404, { message: "Certificate not found" });
+
+    return sendJson(res, 200, { message: "Certificate deleted", certificate: deleted });
+  }
+
+  return sendJson(res, 404, { message: "Route not found" });
+}  // ===========================
     // EVENTS ✅ NEW
     // ===========================
     if (req.method === "GET" && path === "/api/events") {
