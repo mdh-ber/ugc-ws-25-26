@@ -1,85 +1,31 @@
-const Lead = require("../models/leadModel");
-const { DateTime } = require("luxon");
+const Lead = require('../models/Lead');
 
-// =============================
-// Create new lead
-// =============================
-exports.createLead = async (req, res) => {
+// Get Leads grouped by platform
+exports.getLeadStats = async (req, res) => {
   try {
-    const germanyEndOfDay = DateTime
-      .now()
-      .setZone("Europe/Berlin")
-      .set({ hour: 23, minute: 59, second: 59 });
-
-    const newLead = new Lead({
-      ...req.body,
-      deadline: germanyEndOfDay.toUTC().toJSDate()
-    });
-
-    await newLead.save();
-
-    res.status(201).json({
-      success: true,
-      message: "Lead created successfully",
-      data: newLead
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-// =============================
-// Count leads
-// =============================
-exports.countLeads = async (req, res) => {
-  try {
-    const { source } = req.query;
-
-    let filter = {};
-    if (source) filter.source = source;
-
-    const totalLeads = await Lead.countDocuments(filter);
-
-    res.status(200).json({
-      success: true,
-      totalLeads
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-// =============================
-// Chart data
-// =============================
-exports.getChartData = async (req, res) => {
-  try {
-    const data = await Lead.aggregate([
+    const stats = await Lead.aggregate([
       {
         $group: {
-          _id: "$source",
-          total: { $sum: 1 }
+          _id: "$platform",
+          count: { $sum: 1 } // Count how many leads per platform
         }
-      }
+      },
+      { $sort: { count: -1 } } // Sort highest to lowest
     ]);
-
-    res.status(200).json({
-      success: true,
-      data
-    });
-
+    res.status(200).json(stats);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ message: "Server error fetching lead stats" });
+  }
+};
+
+// Create a Lead (Simulating a form submission)
+exports.createLead = async (req, res) => {
+  try {
+    const { name, email, platform, creatorId } = req.body; // ✅ Extract creatorId
+    const newLead = new Lead({ name, email, platform, creatorId });
+    await newLead.save();
+    res.status(201).json({ message: "Lead saved successfully", lead: newLead });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
   }
 };

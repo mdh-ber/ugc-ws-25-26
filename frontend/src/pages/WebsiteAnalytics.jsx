@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, Navigate } from "react-router-dom";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 
 export default function WebsiteAnalytics() {
   const location = useLocation();
@@ -23,6 +32,7 @@ export default function WebsiteAnalytics() {
   const API = useMemo(
     () => ({
       websiteTotals: "/api/visits/stats",
+      websiteTimeline: "/api/visits/timeline",
       ugcVisits: "/api/analytics/ugc-visits",
       trackVisit: "/api/analytics/track-visit",
     }),
@@ -49,6 +59,8 @@ export default function WebsiteAnalytics() {
 
   const [totalVisits, setTotalVisits] = useState(0);
   const [uniqueVisitors, setUniqueVisitors] = useState(0);
+  const [series, setSeries] = useState([]);
+  const [loadingSeries, setLoadingSeries] = useState(false);
 
   const campaignOptions = useMemo(
     () => [
@@ -144,29 +156,106 @@ export default function WebsiteAnalytics() {
     } catch {}
   };
 
-  const fetchWebsiteTotals = async () => {
+  const normalizeSeries = (data) => {
+    const raw =
+      (Array.isArray(data) && data) ||
+      (Array.isArray(data?.series) && data.series) ||
+      (Array.isArray(data?.timeline) && data.timeline) ||
+      (Array.isArray(data?.data) && data.data) ||
+      (Array.isArray(data?.items) && data.items) ||
+      [];
+
+    return raw
+      .map((it) => {
+        const date =
+          it.date ||
+          it.day ||
+          it.ts ||
+          it.timestamp ||
+          it.createdAt ||
+          it.created_at ||
+          it.period ||
+          null;
+
+        const iso =
+          typeof date === "string"
+            ? date.slice(0, 10)
+            : typeof date === "number"
+            ? toISODate(new Date(date))
+            : date instanceof Date
+            ? toISODate(date)
+            : "";
+
+        if (!iso) return null;
+
+        const total =
+          it.totalVisits ?? it.total ?? it.total_visits ?? it.visits ?? it.count ?? 0;
+
+        const unique =
+          it.uniqueVisits ??
+          it.uniqueVisitors ??
+          it.unique ??
+          it.unique_visitors ??
+          it.uniques ??
+          0;
+
+        return {
+          dateLabel: iso,
+          totalVisits: Number(total || 0),
+          uniqueVisits: Number(unique || 0),
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => (a.dateLabel < b.dateLabel ? -1 : 1));
+  };
+
+  const fetchWebsiteTotalsAndSeries = async () => {
+    setLoadingSeries(true);
     try {
-      const res = await fetch(API.websiteTotals, {
+      const totalsRes = await fetch(API.websiteTotals, {
         method: "GET",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (!res.ok) return;
+      if (totalsRes.ok) {
+        const data = await totalsRes.json();
 
-      const data = await res.json();
+        const total =
+          data.totalVisits ?? data.total ?? data.total_visits ?? data.visits ?? 0;
 
-      const total =
-        data.totalVisits ?? data.total ?? data.total_visits ?? data.visits ?? 0;
+        const unique =
+          data.uniqueVisits ??
+          data.uniqueVisitors ??
+          data.unique ??
+          data.unique_visitors ??
+          0;
 
-      const unique =
-        data.uniqueVisits ??
-        data.uniqueVisitors ??
-        data.unique ??
-        data.unique_visitors ??
-        0;
+        setTotalVisits(Number(total || 0));
+        setUniqueVisitors(Number(unique || 0));
 
-      setTotalVisits(Number(total || 0));
-      setUniqueVisitors(Number(unique || 0));
-    } catch {}
+        const inlineSeries = normalizeSeries(data);
+        if (inlineSeries.length > 0) {
+          setSeries(inlineSeries);
+          return;
+        }
+      }
+
+      const timelineRes = await fetch(API.websiteTimeline, {
+        method: "GET",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!timelineRes.ok) {
+        setSeries([]);
+        return;
+      }
+
+      const timelineData = await timelineRes.json();
+      setSeries(normalizeSeries(timelineData));
+    } catch {
+      setSeries([]);
+    } finally {
+      setLoadingSeries(false);
+    }
   };
 
   const fetchRows = async (opts) => {
@@ -218,7 +307,7 @@ export default function WebsiteAnalytics() {
   useEffect(() => {
     if (!isMarketingManager) return;
     trackVisit();
-    fetchWebsiteTotals();
+    fetchWebsiteTotalsAndSeries();
     fetchRows({ from: last30ISO, to: todayISO, campaign: "", creator: "" });
   }, [isMarketingManager]); // eslint-disable-line
 
@@ -252,6 +341,29 @@ export default function WebsiteAnalytics() {
     fetchRows({ from: last30ISO, to: todayISO, campaign: "", creator: "" });
   };
 
+  const ChartCard = ({ title, dataKey }) => (
+    <div className="bg-white rounded-xl shadow p-6 border">
+      <div className="text-sm font-semibold mb-4">{title}</div>
+      <div className="h-64">
+        {loadingSeries ? (
+          <div className="text-sm text-gray-500">Loading...</div>
+        ) : series.length === 0 ? (
+          <div className="text-sm text-gray-500">No data yet.</div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={series}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="dateLabel" minTickGap={24} />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey={dataKey} dot={false} strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="p-6">
       <div className="flex items-baseline justify-between">
@@ -261,6 +373,11 @@ export default function WebsiteAnalytics() {
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card title="Total number of website visits" value={totalVisits} />
         <Card title="Unique number of website visits" value={uniqueVisitors} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ChartCard title="Total website visits over time" dataKey="totalVisits" />
+        <ChartCard title="Unique website visits over time" dataKey="uniqueVisits" />
       </div>
 
       <div className="mt-4 bg-white rounded-xl shadow p-6 border">
