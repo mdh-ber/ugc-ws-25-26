@@ -150,4 +150,4 @@ const TrainingProgressSchema = new mongoose.Schema({
 */
 
 module.exports =
-  mongoose.models.Training || mongoose.model("Training", TrainingSchema);
+  mongoose.models.Training || mongoose.model("Training", trainingSchema);
