@@ -5,7 +5,7 @@ import axios from "axios";
 // REACT_APP_MILESTONES_API=http://localhost:5004
 // If not set, defaults to 5004 (your milestones service)
 const MILESTONES_API =
-  process.env.REACT_APP_MILESTONES_API || "http://localhost:5004";
+  process.env.REACT_APP_MILESTONES_API || "http://localhost:5000/api";
 
 const milestoneApi = axios.create({
   baseURL: MILESTONES_API,
