@@ -180,38 +180,40 @@ if (req.method === "POST" && path === "/api/visits/track"){
   await Visit.create({ ipHash, userAgent });
   return sendJson(res, 200, { message: "Visit tracked" });
  }
-   // ✅ Visit Timeline
-  if (req.method === "GET" && path === "/api/visits/timeline") {
-    const monthlyData = await Visit.aggregate([
+   // ✅ Visit Timeline (Daily)
+if (req.method === "GET" && path === "/api/visits/timeline") {
+  try {
+    const dailyData = await Visit.aggregate([
+      {
+        $addFields: {
+          ts: { $ifNull: ["$timestamp", "$createdAt"] },
+        },
+      },
+      { $match: { ts: { $type: "date" } } },
       {
         $group: {
-          // group by month (e.g. "2024-06")
-          _id: { $dateToString: { format: "%Y-%m", date: "$timestamp" } },
-          // count total visits in the month
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$ts" } },
           totalVisits: { $sum: 1 },
-          // collect unique ipHashes in a Set to count later
-          uniqueIps: { $addToSet: "$ipHash" }
-        }
+          uniqueIps: { $addToSet: "$ipHash" },
+        },
       },
       {
         $project: {
           _id: 0,
-          month: "$_id",
+          date: "$_id",
           totalVisits: 1,
-          // count Array uniqueIps
-          uniqueVisits: { $size: "$uniqueIps" }
-        }
+          uniqueVisits: { $size: "$uniqueIps" },
+        },
       },
-      { $sort: { "month": 1 } } // sort by month
+      { $sort: { date: 1 } },
     ]);
 
-    return sendJson(res, 200, monthlyData);
+    return sendJson(res, 200, dailyData);
+  } catch (err) {
+    console.error("Timeline error:", err);
+    return sendJson(res, 500, { message: "Failed to fetch timeline" });
   }
-  if (req.method === "GET" && path === "/api/visits/stats"){
-    const totalVisits = await Visit.countDocuments();
-    const uniqueIps = await Visit.distinct("ipHash");
-    return sendJson(res, 200, { totalVisits, uniqueVisits: uniqueIps.length });
-  }
+}
     // ===========================
     // TRAININGS ✅ NEW
     // ===========================
@@ -621,6 +623,7 @@ if (req.method === "PUT" && segments.length === 3) {
 
         const totals = rows[0] || { spend: 0, revenue: 0, clicks: 0, conversions: 0 };
         const profit = totals.revenue - totals.spend;
+        //formula
         const roiPct = totals.spend === 0 ? 0 : (profit / totals.spend) * 100;
 
         return sendJson(res, 200, {
