@@ -33,6 +33,7 @@ const Userprofile = require("./models/userprofile.model"); // Reference UserProf
 const Campaign = require("./models/Campaign");
 const Certificate = require("./models/Certificate");
 // ✅ NEW (Sub-issue #158)
+// const CampaignMetric = require("./models/CampaignMetric");
 //const CampaignMetric = require("./models/CampaignMetric");
 
 const PORT = process.env.PORT || 5000;
@@ -40,7 +41,119 @@ const Visit = require("./models/visit");
 const jwt = require("jsonwebtoken");
 const UserProfile = require("./models/userProfile.model");
 
+// LEADERBOARD (Enterprise Weighted Scoring)
+// ===========================
+const leaderboardEntrySchema = new mongoose.Schema(
+  {
+    creatorName: { type: String, required: true, trim: true },
+    month: { type: String, required: true, trim: true }, // YYYY-MM
+    platform: { type: String, required: true, trim: true, default: "Unknown" },
+    location: { type: String, required: true, trim: true, default: "Unknown" },
+
+    views: { type: Number, default: 0 },
+    likes: { type: Number, default: 0 },
+    comments: { type: Number, default: 0 },
+    shares: { type: Number, default: 0 },
+
+    leads: { type: Number, default: 0 },
+    conversions: { type: Number, default: 0 },
+
+    revenue: { type: Number, default: 0 },
+
+    certificates: { type: Number, default: 0 },
+    milestones: { type: Number, default: 0 },
+    rewards: { type: Number, default: 0 },
+
+    engagementIndex: { type: Number, default: 0 },
+    conversionIndex: { type: Number, default: 0 },
+    revenueIndex: { type: Number, default: 0 },
+    growthIndex: { type: Number, default: 0 },
+    score: { type: Number, default: 0 },
+  },
+  { timestamps: true }
+);
+
+const LeaderboardEntry =
+  mongoose.models.LeaderboardEntry ||
+  mongoose.model("LeaderboardEntry", leaderboardEntrySchema);
+
 // ---------------- helpers ----------------
+
+
+
+// ===========================
+// Leaderboard score helpers
+// ===========================
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function maxOf(list, key) {
+  let m = 1;
+  for (const x of list) {
+    const v = Number(x?.[key] || 0);
+    if (Number.isFinite(v) && v > m) m = v;
+  }
+  return m;
+}
+
+function norm100(value, max) {
+  const v = Number(value || 0);
+  if (!Number.isFinite(v) || max <= 0) return 0;
+  return clamp(Math.round((v / max) * 100), 0, 100);
+}
+
+function computeEnterpriseScore(entry, maxes) {
+  const engagementIndex = clamp(
+    Math.round(
+      0.40 * norm100(entry.views, maxes.views) +
+        0.25 * norm100(entry.likes, maxes.likes) +
+        0.20 * norm100(entry.comments, maxes.comments) +
+        0.15 * norm100(entry.shares, maxes.shares)
+    ),
+    0,
+    100
+  );
+
+  const conversionIndex = clamp(
+    Math.round(
+      0.35 * norm100(entry.leads, maxes.leads) +
+        0.65 * norm100(entry.conversions, maxes.conversions)
+    ),
+    0,
+    100
+  );
+
+  const revenueIndex = clamp(norm100(entry.revenue, maxes.revenue), 0, 100);
+
+  const growthIndex = clamp(
+    Math.round(
+      0.20 * norm100(entry.certificates, maxes.certificates) +
+        0.45 * norm100(entry.milestones, maxes.milestones) +
+        0.35 * norm100(entry.rewards, maxes.rewards)
+    ),
+    0,
+    100
+  );
+
+  const score = Math.round(
+    10 *
+      (0.30 * engagementIndex +
+        0.35 * conversionIndex +
+        0.25 * revenueIndex +
+        0.10 * growthIndex)
+  );
+
+  return { engagementIndex, conversionIndex, revenueIndex, growthIndex, score };
+}
+
+function yyyymmFromIssueDate(issueDateStr) {
+  if (!issueDateStr || typeof issueDateStr !== "string") return "unknown";
+  return issueDateStr.slice(0, 7);
+}
+
+
+
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
   res.setHeader(
@@ -447,7 +560,21 @@ if (segments[0] === "api" && segments[1] === "certificates") {
       type,
     });
 
-    return sendJson(res, 201, created);
+    // ✅ Update leaderboard (certificate affects growth)
+try {
+  const month = yyyymmFromIssueDate(issueDate);
+  const creatorName = issuedTo;
+
+  await LeaderboardEntry.findOneAndUpdate(
+    { creatorName, month, platform: "Unknown", location: "Unknown" },
+    { $inc: { certificates: 1 }, $setOnInsert: { creatorName, month, platform: "Unknown", location: "Unknown" } },
+    { upsert: true, new: true }
+  );
+} catch (e) {
+  console.error("[Leaderboard] certificate increment failed:", e);
+}
+
+return sendJson(res, 201, created);
   }
 
   // PUT /api/certificates/:id  (EDIT)
@@ -750,6 +877,102 @@ if (req.method === "PUT" && segments.length === 3) {
 
       return sendJson(res, 404, { message: "Route not found" });
     }
+
+// =========================================================
+// LEADERBOARD ROUTES (NO EXPRESS)
+// Base: /api/leaderboard
+// =========================================================
+if (segments[0] === "api" && segments[1] === "leaderboard") {
+  // GET /api/leaderboard?month=2026-02&platform=All&location=All
+  if (req.method === "GET" && segments.length === 2) {
+    const monthQ = String(query.month || "All").trim();
+    const platformQ = String(query.platform || "All").trim();
+    const locationQ = String(query.location || "All").trim();
+
+    const filter = {};
+    if (monthQ !== "All") filter.month = monthQ;
+    if (platformQ !== "All") filter.platform = platformQ;
+    if (locationQ !== "All") filter.location = locationQ;
+
+    const rows = await LeaderboardEntry.find(filter).lean();
+
+    const maxes = {
+      views: maxOf(rows, "views"),
+      likes: maxOf(rows, "likes"),
+      comments: maxOf(rows, "comments"),
+      shares: maxOf(rows, "shares"),
+      leads: maxOf(rows, "leads"),
+      conversions: maxOf(rows, "conversions"),
+      revenue: maxOf(rows, "revenue"),
+      certificates: maxOf(rows, "certificates"),
+      milestones: maxOf(rows, "milestones"),
+      rewards: maxOf(rows, "rewards"),
+    };
+
+    const scored = rows.map((r) => ({ ...r, ...computeEnterpriseScore(r, maxes) }));
+    scored.sort((a, b) => b.score - a.score);
+
+    const ranked = scored.map((x, idx) => ({ ...x, rank: idx + 1 }));
+
+    const top3 = ranked.slice(0, 3);
+
+    const leaderBerlin =
+      ranked.filter((x) => x.location === "Berlin").sort((a, b) => b.score - a.score)[0] || null;
+
+    const leaderDusseldorf =
+      ranked.filter((x) => x.location === "Düsseldorf").sort((a, b) => b.score - a.score)[0] || null;
+
+    return sendJson(res, 200, {
+      filters: { month: monthQ, platform: platformQ, location: locationQ },
+      top3,
+      locationLeaders: { Berlin: leaderBerlin, Düsseldorf: leaderDusseldorf },
+      ranked,
+    });
+  }
+
+  // POST /api/leaderboard/ingest (for testing)
+  if (req.method === "POST" && segments.length === 3 && segments[2] === "ingest") {
+    const body = await readJsonBody(req);
+
+    const creatorName = String(body.creatorName || "").trim();
+    const month = String(body.month || "").trim();
+    const platform = String(body.platform || "Unknown").trim();
+    const location = String(body.location || "Unknown").trim();
+    const inc = body.inc && typeof body.inc === "object" ? body.inc : {};
+
+    if (!creatorName || !month) {
+      return sendJson(res, 400, { message: "creatorName and month are required." });
+    }
+
+    const allowed = [
+      "views",
+      "likes",
+      "comments",
+      "shares",
+      "leads",
+      "conversions",
+      "revenue",
+      "certificates",
+      "milestones",
+      "rewards",
+    ];
+
+    const $inc = {};
+    for (const k of allowed) {
+      if (inc[k] !== undefined) $inc[k] = safeNumber(inc[k], 0);
+    }
+
+    const doc = await LeaderboardEntry.findOneAndUpdate(
+      { creatorName, month, platform, location },
+      { $inc, $setOnInsert: { creatorName, month, platform, location } },
+      { upsert: true, new: true }
+    ).lean();
+
+    return sendJson(res, 201, { message: "Ingested", entry: doc });
+  }
+
+  return sendJson(res, 404, { message: "Route not found" });
+}
 
     // =========================================================
     // ROI ROUTES (Sub-issue #158) - NO EXPRESS
