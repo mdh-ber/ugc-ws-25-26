@@ -1,15 +1,33 @@
 const UserProfile = require("../models/userProfile.model");
 
 // GET /api/user-profile/me
+// exports.getMyProfile = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+
+//     const profile = await UserProfile.findOne({ userId });
+//     if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+//     res.json(profile);
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 exports.getMyProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
+    console.log("Token user id:", req.user.id);
 
-    const profile = await UserProfile.findOne({ userId });
-    if (!profile) return res.status(404).json({ message: "Profile not found" });
+    const profile = await UserProfile.findOne({ userId: req.user.id });
+
+    console.log("Profile found:", profile);
+
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
 
     res.json(profile);
   } catch (err) {
+    console.error("Get profile error:", err);
     res.status(500).json({ message: err.message });
   }
 };

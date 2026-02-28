@@ -92,6 +92,10 @@ function Register() {
       setError("Failed to read image file");
     }
   };
+  // primary email validation
+ const isValidMdhEmail = (email) => {
+  return /^[a-zA-Z0-9._%+-]+@stud\.mediadesign\.de$/.test(email);
+};
  
   const handleRegister = async () => {
     setError("");
@@ -100,6 +104,10 @@ function Register() {
       setError("Primary email is required");
       return;
     }
+    if (!isValidMdhEmail(profile.primaryEmail)) {
+    setError("Enter a valid email address");
+    return;
+  }
  
     if (!isPasswordValid) {
       setError("Password does not meet the required criteria");
@@ -122,12 +130,13 @@ function Register() {
       };
  
       const res = await axios.post(`${API_BASE}/auth/register`, payload);
- 
+      console.log(res);
+      alert(res.data.message || "Registration successful!");
       // auto-login (session-based)
       sessionStorage.setItem("token", res.data.token);
       sessionStorage.setItem("role", res.data.user.role);
- 
-      nav("/profile");
+      // sessionStorage.setItem("profile", JSON.stringify(res.data.user.profile));
+      nav("/Profile");
     } catch (err) {
       console.error(err);
       setError(err?.response?.data?.message || "Registration failed");
