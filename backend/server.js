@@ -27,7 +27,7 @@ const postRoutes = require("./routes/postRoutes");
 const RefereeUu = require("./models/RefereeUu");
 const ReferralUu = require("./models/ReferralUu");
 const { Referral,ReferralCode } = require("./models/Referral");
-const Userprofile = require("./models/userprofile.model"); // Reference UserProfile for RefereeUu 
+const Userprofile = require("./models/userProfile.model"); // Reference UserProfile for RefereeUu 
 
 // ✅ NEW (Sub-issue #155)
 const Campaign = require("./models/Campaign");
@@ -315,6 +315,67 @@ if (req.method === "POST" && path === "/api/auth/login") {
     if (req.method === "POST" && path === "/api/auth/register") {
   return authController.register(req, res, readJsonBody, sendJson);
 }
+// USER PROFILE (MANUAL ROUTE)
+    // ===========================
+
+    if (req.method === "GET" && path === "/api/user-profile/me") {
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader)
+        return sendJson(res, 401, { message: "No token provided" });
+
+      try {
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const profile = await UserProfile.findOne({ userId: decoded.id });
+
+        if (!profile)
+          return sendJson(res, 404, { message: "Profile not found" });
+
+        return sendJson(res, 200, profile);
+      } catch (err) {
+        return sendJson(res, 401, { message: "Invalid token" });
+      }
+    }
+
+    if (req.method === "PUT" && path === "/api/user-profile/me") {
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader)
+        return sendJson(res, 401, { message: "No token provided" });
+
+      try {
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const body = await readJsonBody(req);
+
+        const update = { ...body };
+
+        if (typeof update.socialAccounts === "string") {
+          update.socialAccounts = update.socialAccounts
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        }
+
+        if (update.dob === "") update.dob = null;
+
+        const updated = await UserProfile.findOneAndUpdate(
+          { userId: decoded.id },
+          update,
+          { new: true }
+        );
+
+        if (!updated)
+          return sendJson(res, 404, { message: "Profile not found" });
+
+        return sendJson(res, 200, updated);
+      } catch (err) {
+        return sendJson(res, 401, { message: "Invalid token" });
+      }
+    }
     if (req.method === "POST" && path === "/api/visits/track"){
       const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
       const userAgent = req.headers['user-agent'] || "unknown";
@@ -1580,67 +1641,67 @@ if (segments[0] === "api" && segments[1] === "milestone-types") {
       });
     }
     // ===========================
-    // USER PROFILE (MANUAL ROUTE)
-    // ===========================
+    // // USER PROFILE (MANUAL ROUTE)
+    // // ===========================
 
-    if (req.method === "GET" && path === "/api/user-profile/me") {
-      const authHeader = req.headers.authorization;
+    // if (req.method === "GET" && path === "/api/user-profile/me") {
+    //   const authHeader = req.headers.authorization;
 
-      if (!authHeader)
-        return sendJson(res, 401, { message: "No token provided" });
+    //   if (!authHeader)
+    //     return sendJson(res, 401, { message: "No token provided" });
 
-      try {
-        const token = authHeader.split(" ")[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    //   try {
+    //     const token = authHeader.split(" ")[1];
+    //     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        const profile = await UserProfile.findOne({ userId: decoded.id });
+    //     const profile = await UserProfile.findOne({ userId: decoded.id });
 
-        if (!profile)
-          return sendJson(res, 404, { message: "Profile not found" });
+    //     if (!profile)
+    //       return sendJson(res, 404, { message: "Profile not found" });
 
-        return sendJson(res, 200, profile);
-      } catch (err) {
-        return sendJson(res, 401, { message: "Invalid token" });
-      }
-    }
+    //     return sendJson(res, 200, profile);
+    //   } catch (err) {
+    //     return sendJson(res, 401, { message: "Invalid token" });
+    //   }
+    // }
 
-    if (req.method === "PUT" && path === "/api/user-profile/me") {
-      const authHeader = req.headers.authorization;
+    // if (req.method === "PUT" && path === "/api/user-profile/me") {
+    //   const authHeader = req.headers.authorization;
 
-      if (!authHeader)
-        return sendJson(res, 401, { message: "No token provided" });
+    //   if (!authHeader)
+    //     return sendJson(res, 401, { message: "No token provided" });
 
-      try {
-        const token = authHeader.split(" ")[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    //   try {
+    //     const token = authHeader.split(" ")[1];
+    //     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        const body = await readJsonBody(req);
+    //     const body = await readJsonBody(req);
 
-        const update = { ...body };
+    //     const update = { ...body };
 
-        if (typeof update.socialAccounts === "string") {
-          update.socialAccounts = update.socialAccounts
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
-        }
+    //     if (typeof update.socialAccounts === "string") {
+    //       update.socialAccounts = update.socialAccounts
+    //         .split(",")
+    //         .map((s) => s.trim())
+    //         .filter(Boolean);
+    //     }
 
-        if (update.dob === "") update.dob = null;
+    //     if (update.dob === "") update.dob = null;
 
-        const updated = await UserProfile.findOneAndUpdate(
-          { userId: decoded.id },
-          update,
-          { new: true }
-        );
+    //     const updated = await UserProfile.findOneAndUpdate(
+    //       { userId: decoded.id },
+    //       update,
+    //       { new: true }
+    //     );
 
-        if (!updated)
-          return sendJson(res, 404, { message: "Profile not found" });
+    //     if (!updated)
+    //       return sendJson(res, 404, { message: "Profile not found" });
 
-        return sendJson(res, 200, updated);
-      } catch (err) {
-        return sendJson(res, 401, { message: "Invalid token" });
-      }
-    }
+    //     return sendJson(res, 200, updated);
+    //   } catch (err) {
+    //     return sendJson(res, 401, { message: "Invalid token" });
+    //   }
+    // }
 
     const created = await MilestoneType.create({
       title: String(body.title).trim(),
