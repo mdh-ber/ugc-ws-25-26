@@ -16,6 +16,7 @@ const authController = require("./controllers/authController");
 const Notification = require("./models/Notification");
 const MilestoneType = unwrapDefault(require("./models/MilestoneType"));
 const UserMilestone = unwrapDefault(require("./models/UserMilestone"));
+const Lead = require("./models/Lead");
 
 // ✅ IMPORTANT: these match your filenames in models folder
 const Training = require("./models/Training");
@@ -32,7 +33,7 @@ const Userprofile = require("./models/userprofile.model"); // Reference UserProf
 const Campaign = require("./models/Campaign");
 const Certificate = require("./models/Certificate");
 // ✅ NEW (Sub-issue #158)
-const CampaignMetric = require("./models/CampaignMetric");
+//const CampaignMetric = require("./models/CampaignMetric");
 
 const PORT = process.env.PORT || 5000;
 const Visit = require("./models/visit");
@@ -228,7 +229,112 @@ if (req.method === "POST" && path === "/api/auth/login") {
       }
       return sendJson(res, 401, { message: "Invalid email or password" });
     }
+// =========================================================
+    // =========================================================
+    // LEADS (CLICK TRACKING) API
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "leads") {
+      
+      // POST /api/leads (click tracking)
+      if (req.method === "POST" && segments.length === 2) {
+        try {
+          const body = await readJsonBody(req);
+          
+          if (!body.platform) {
+            return sendJson(res, 400, { message: "Platform is required" });
+          }
 
+          const platformValue = String(body.platform).toLowerCase();
+
+          // Save to database
+          const created = await Lead.create({ 
+            platform: platformValue 
+          });
+
+          return sendJson(res, 201, created);
+        } catch (err) {
+          // check error type and message for better debugging
+          console.error("DEBUG - Lead Create Error:", err); 
+          return sendJson(res, 500, { message: "Server error", detail: err.message });
+        }
+      }
+
+      // GET /api/leads/monthly
+      if (req.method === "GET" && segments[2] === "monthly") {
+        try {
+          const stats = await Lead.aggregate([
+            {
+              $group: {
+                _id: {
+                  year: { $year: "$clickedAt" },
+                  month: { $month: "$clickedAt" }
+                },
+                count: { $sum: 1 }
+              }
+            },
+            { $sort: { "_id.year": -1, "_id.month": -1 } }
+          ]);
+          return sendJson(res, 200, stats);
+        } catch (err) {
+          console.error("DEBUG - Monthly Stats Error:", err);
+          return sendJson(res, 500, { message: "Internal Server Error" });
+        }
+      }
+    }
+    // GET /api/leads/monthly
+if (req.method === "GET" && segments[2] === "monthly") {
+  try {
+    const monthlyStats = await Lead.aggregate([
+      {
+        $group: {
+          _id: {
+            year: { $year: "$clickedAt" },
+            month: { $month: "$clickedAt" }
+          },
+          totalClicks: { $sum: 1 },
+          // sperate monthly
+          platforms: {
+            $push: "$platform" 
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          year: "$_id.year",
+          month: "$_id.month",
+          totalClicks: 1,
+      
+          details: {
+            $arrayToObject: {
+              $map: {
+                input: { $setUnion: "$platforms" },
+                as: "p",
+                in: {
+                  k: "$$p",
+                  v: {
+                    $size: {
+                      $filter: {
+                        input: "$platforms",
+                        cond: { $eq: ["$$this", "$$p"] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      { $sort: { year: -1, month: -1 } }
+    ]);
+
+    return sendJson(res, 200, monthlyStats);
+  } catch (err) {
+    console.error("Monthly Stats Error:", err);
+    return sendJson(res, 500, { message: "Error generating report" });
+  }
+}
     //API VISIT TRACKING
 if (req.method === "POST" && path === "/api/visits/track"){
   const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
