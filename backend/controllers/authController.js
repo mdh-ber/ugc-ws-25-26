@@ -1,148 +1,188 @@
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+const crypto = require("crypto");
+const User = require("../models/user.model");
+const userProfile=require("../models/userProfile.model");
+const jwt = require("jsonwebtoken");
 
-import User from "../models/user.model.js";
-import UserProfile from "../models/userProfile.model.js";
-import PointsProfile from "../models/pointsProfile.model.js";
-
-// helper to sign JWT
-const signToken = (user) =>
-  jwt.sign(
-    {
-      id: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-// ======================
-// POST /api/auth/login
-// ======================
-const login = async (req, res) => {
+// ============================
+// REGISTER CONTROLLER
+// ============================
+async function register(req, res, readJsonBody, sendJson) {
+  console.log("hello--1");
   try {
-    const email = (req.body.email || "").trim().toLowerCase();
-    const password = (req.body.password || "").trim();
+    const body = await readJsonBody(req);
+    console.log("hello");
+    const email = (body.primaryEmail || "").trim().toLowerCase();
+    const password = body.password || "";
 
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password required" });
+    // validation
+    if (!email|| !password) {
+      return sendJson(res, 400, {
+        message: "Email and password required",
+      });
     }
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    // check existing user
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      return sendJson(res, 400, {
+        message: "User already exists",
+      });
     }
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    const token = signToken(user);
-
-    return res.json({
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-      },
-    });
-  } catch (err) {
-    console.error("Login error:", err);
-    return res.status(500).json({ message: "Login failed" });
-  }
-};
-
-// ==============================
-// POST /api/auth/register
-// ==============================
-const register = async (req, res) => {
-  try {
-    const email = (req.body.primaryEmail || req.body.email || "")
-      .trim()
-      .toLowerCase();
-
-    const password = (req.body.password || "").trim();
-
-    if (!email) {
-      return res.status(400).json({ message: "Email required" });
-    }
-
-    if (!password || password.length < 8) {
-      return res
-        .status(400)
-        .json({ message: "Password must be at least 8 characters" });
-    }
-
-    const existing = await User.findOne({ email });
-    if (existing) {
-      return res.status(409).json({ message: "Email already exists" });
-    }
+    // hash password
+    const hashedPassword = crypto
+      .createHash("sha256")
+      .update(password)
+      .digest("hex");
 
     // create user
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({
+    const newUser = await User.create({
       email,
-      passwordHash,
-      role: "user",
+      password: hashedPassword,
     });
+    console.log("New user id:",newUser._id);
+    // create user profile
+    const profile = await userProfile.create({
+      userId: newUser._id,
+      firstName: body.firstName || "",
+      lastName: body.lastName || "",
+      primaryEmail: email,
+      secondaryEmail: body.secondaryEmail || "",
+      gender: body.gender || "",
+      dob: body.dob || null,
+      city: body.city || "",
+      mobile: body.mobile || "",
+      joinedDate: body.joinedDate || "",
+      course: body.course || "",
+      intake: body.intake || "",
+      primaryLanguage: body.primaryLanguage || "",
+      socialAccounts: body.socialAccounts || [],
+      profilePic: body.profilePic || "",
+    });
+    console.log("new user profile: ", profile.userId);
+    // return sendJson(res, 201, {
+    //   message: "User registered successfully",
+    //   user: {
+    //     id: newUser._id,
+    //     email: newUser.email,
+    //     profile:profile,
+    //   },
+    // });
+    // 🔥 ADD THIS PART
+const token = jwt.sign(
+  {
+    id: newUser._id,
+    email: newUser.email,
+    role: newUser.role || "user",
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "1d" }
+);
 
-    // normalize socials
-    let socialAccounts = req.body.socialAccounts || [];
-    if (typeof socialAccounts === "string") {
-      socialAccounts = socialAccounts
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+return sendJson(res, 201, {
+  message: "User registered successfully",
+  token,
+  user: {
+    id: newUser._id,
+    email: newUser.email,
+    role: newUser.role || "user",
+  },
+});
+  } catch (err) {
+    console.error("Register Error:", err);
+    return sendJson(res, 500, { message: "Server error" });
+  }
+}
+
+// ============================
+// LOGIN CONTROLLER
+// ============================
+async function login(req, res, readJsonBody, sendJson) {
+  try {
+    const body = await readJsonBody(req);
+
+    const email = (body.email || "").trim().toLowerCase();
+    const password = body.password || "";
+
+    if (!email || !password) {
+      return sendJson(res, 400, {
+        message: "Email and password required",
+      });
     }
 
-    // create user profile
-    const profile = await UserProfile.create({
-      userId: user._id,
+    // ======================
+    // ADMIN LOGIN
+    // ======================
+    if (email === "admin@mdh.com" && password === "admin123") {
+      const token = jwt.sign(
+        {
+          id: "admin-id",
+          email: email,
+          role: "admin",
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
 
-      firstName: req.body.firstName || "",
-      lastName: req.body.lastName || "",
+      return sendJson(res, 200, {
+        token,
+        user: {
+          id: "admin-id",
+          email,
+          role: "admin",
+        },
+      });
+    }
 
-      primaryEmail: email,
-      secondaryEmail: req.body.secondaryEmail || "",
+    // ======================
+    // NORMAL USER LOGIN
+    // ======================
+    const user = await User.findOne({ email });
 
-      gender: req.body.gender || "",
-      dob: req.body.dob ? new Date(req.body.dob) : null,
-      city: req.body.city || "",
-      mobile: req.body.mobile || "",
+    if (!user) {
+      return sendJson(res, 401, {
+        message: "Invalid email or password",
+      });
+    }
 
-      joinedDate: req.body.joinedDate || "",
-      course: req.body.course || "",
-      intake: req.body.intake || "",
-      primaryLanguage: req.body.primaryLanguage || "",
+    const hashedPassword = crypto
+      .createHash("sha256")
+      .update(password)
+      .digest("hex");
 
-      socialAccounts,
-      profilePic: req.body.profilePic || "", // base64 string
-    });
+    if (user.password !== hashedPassword) {
+      return sendJson(res, 401, {
+        message: "Invalid email or password",
+      });
+    }
 
-    // create points profile
-    await PointsProfile.create({
-      userId: user._id,
-      points: 0,
-    });
+    // ✅ REAL JWT TOKEN
+    const token = jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        role: user.role || "user",
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
-    const token = signToken(user);
-
-    return res.status(201).json({
+    return sendJson(res, 200, {
       token,
       user: {
         id: user._id,
         email: user.email,
-        role: user.role,
+        role: user.role || "user",
       },
-      profile,
     });
   } catch (err) {
-    console.error("Register error:", err);
-    return res.status(500).json({ message: "Server error" });
+    console.error("Login Error:", err);
+    return sendJson(res, 500, { message: "Server error" });
   }
-};
+}
 
-export { login, register };
+module.exports = {
+  register,
+  login,
+};

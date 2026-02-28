@@ -6,6 +6,8 @@ require("dotenv").config();
 
 const Feedback = require("./models/feedback.model");
 const Guideline = require("./models/guideline.model");
+const User = require("./models/user.model");
+const authController = require("./controllers/authController");
 
 // ✅ IMPORTANT: these match your filenames in models folder
 const Training = require("./models/Training");
@@ -24,6 +26,8 @@ const CampaignMetric = require("./models/CampaignMetric");
 
 const PORT = process.env.PORT || 5000;
 const Visit = require("./models/visit");
+const jwt = require("jsonwebtoken");
+const UserProfile = require("./models/userProfile.model");
 // ---------------- helpers ----------------
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
@@ -151,19 +155,41 @@ const server = http.createServer(async (req, res) => {
     const uniqueIps = await Visit.distinct("ipHash");
     return sendJson(res, 200, { totalVisits, uniqueVisits: uniqueIps.length });
   }
-    if (req.method === "POST" && path === "/api/auth/login") {
-      const body = await readJsonBody(req);
-      const email = (body.email || "").trim().toLowerCase();
-      const password = body.password || "";
+    // ===========================
+// AUTH LOGIN (ADMIN + USER)
+// ===========================
+if (req.method === "POST" && path === "/api/auth/login") {
 
-      if (email === "admin@mdh.com" && password === "admin123") {
-        return sendJson(res, 200, {
-          token: "demo-token-123",
-          user: { email, role: "admin" },
-        });
-      }
-      return sendJson(res, 401, { message: "Invalid email or password" });
-    }
+  // const body = await readJsonBody(req);
+
+  // const email = (body.email || "")
+  //   .trim()
+  //   .toLowerCase();
+
+  // const password = body.password || "";
+
+  // ✅ HARDCODED ADMIN LOGIN
+  // if (
+  //   email === "admin@mdh.com" &&
+  //   password === "admin123"
+  // ) {
+  //   return sendJson(res, 200, {
+  //     token: "demo-token-123",
+  //     user: {
+  //       email,
+  //       role: "admin",
+  //     },
+  //   });
+  // }
+
+  // ✅ OTHERWISE → NORMAL USER LOGIN (MongoDB)
+  return authController.login(req, res, readJsonBody, sendJson);
+}  // ===========================
+    // AUTH REGISTER
+    // ===========================
+    if (req.method === "POST" && path === "/api/auth/register") {
+  return authController.register(req, res, readJsonBody, sendJson);
+}
 
     // ===========================
     // TRAININGS ✅ NEW
@@ -714,6 +740,68 @@ const server = http.createServer(async (req, res) => {
       }
 
       return sendJson(res, 404, { message: "Route not found" });
+    }
+    // ===========================
+    // USER PROFILE (MANUAL ROUTE)
+    // ===========================
+
+    if (req.method === "GET" && path === "/api/user-profile/me") {
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader)
+        return sendJson(res, 401, { message: "No token provided" });
+
+      try {
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const profile = await UserProfile.findOne({ userId: decoded.id });
+
+        if (!profile)
+          return sendJson(res, 404, { message: "Profile not found" });
+
+        return sendJson(res, 200, profile);
+      } catch (err) {
+        return sendJson(res, 401, { message: "Invalid token" });
+      }
+    }
+
+    if (req.method === "PUT" && path === "/api/user-profile/me") {
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader)
+        return sendJson(res, 401, { message: "No token provided" });
+
+      try {
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const body = await readJsonBody(req);
+
+        const update = { ...body };
+
+        if (typeof update.socialAccounts === "string") {
+          update.socialAccounts = update.socialAccounts
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        }
+
+        if (update.dob === "") update.dob = null;
+
+        const updated = await UserProfile.findOneAndUpdate(
+          { userId: decoded.id },
+          update,
+          { new: true }
+        );
+
+        if (!updated)
+          return sendJson(res, 404, { message: "Profile not found" });
+
+        return sendJson(res, 200, updated);
+      } catch (err) {
+        return sendJson(res, 401, { message: "Invalid token" });
+      }
     }
 
     return sendJson(res, 404, { message: "Route not found" });
