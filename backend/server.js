@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const connectDB = require("./config/db");
 
 const app = express();
@@ -11,13 +12,14 @@ connectDB();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(helmet());
 
 // Routes
 app.use("/api/review-requests", require("./routes/reviewRequestRoutes"));
 app.use("/api/trainings", require("./routes/trainingRoutes"));
 app.use("/api/profiles", require("./routes/profileRoutes"));
 app.use("/api/uu", require("./routes/uuRoutes"));
-
+app.use("/api/reports", require("./routes/reportRoutes"));
 // PORT (must be BEFORE listen)
 const PORT = process.env.PORT || 5000;
 

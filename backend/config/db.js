@@ -1,17 +1,16 @@
 const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI)
-    // await mongoose.connect("mongodb+srv://mdhadmin:gTVfymZ8nAMft630@clustermdh.1zcryka.mongodb.net/?appName=ClusterMDH");
-    // await mongoose.connect("mongodb+srv://vamanreddy87658:CU70x3n38Nyf7VC4@backenddb.x8tvvh1.mongodb.net/profileDB?retryWrites=true&w=majority")
-    // await mongoose.connect(process.env.MONGO_URI);
-    console.log("MongoDB connected");
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("✅ MongoDB connected successfully");
   } catch (error) {
-    console.error("❌ MongoDB connection failed. Continuing without DB.");
+    console.error("❌ MongoDB connection error:", error.message);
+    process.exit(1);
   }
 };
 
 module.exports = connectDB;
-
-
