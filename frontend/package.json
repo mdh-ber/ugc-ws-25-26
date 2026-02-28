@@ -2,7 +2,10 @@
   "name": "mdh-ugc-frontend",
   "version": "0.1.0",
   "private": true,
+<<<<<<< HEAD
   "proxy": "http://localhost:5000",
+=======
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
   "dependencies": {
     "axios": "^1.13.5",
     "lucide-react": "^0.563.0",
@@ -15,11 +18,16 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.17",
+<<<<<<< HEAD
     "eslint-plugin-react-hooks": "^7.0.1",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "workbox-build": "^6.6.0",
     "workbox-webpack-plugin": "^6.6.0"
+=======
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1"
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
   },
   "scripts": {
     "start": "react-scripts start",

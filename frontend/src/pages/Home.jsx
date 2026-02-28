@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useEffect } from "react";
 import { createDummyLead } from "../services/leadService";
 
@@ -27,6 +28,17 @@ function Home() {
     <div className="p-10 text-center">
       <h1 className="text-3xl font-bold text-blue-900">MDH University Portal</h1>
       <p className="text-gray-600 mt-2">Connecting future leaders to world-class education.</p>
+=======
+import Card from "../components/Card";
+
+function Home() {
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-6">Home</h1>
+      <div className="bg-white p-6 rounded-xl shadow">
+        Home content will appear here.
+      </div>
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
     </div>
   );
 }

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 
@@ -25,3 +26,8 @@ export default function AppRoutes() {
 <Route path="/milestones" element={<Milestones />} />
 
 >>>>>>> main
+=======
+import Rewards from "./pages/Rewards";
+
+<Route path="/rewards" element={<Rewards />} />
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1

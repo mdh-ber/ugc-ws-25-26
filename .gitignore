@@ -38,6 +38,9 @@ logs/
 # Misc
 .eslintignore
 .prettierignore
+<<<<<<< HEAD
 node_modules
 .env
 .DS_Store
+=======
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1

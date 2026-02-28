@@ -1,4 +1,8 @@
 import { useEffect, useState } from "react";
+<<<<<<< HEAD
+=======
+import api from "../services/api"; // uses http://localhost:5000/api
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
 import {
   LineChart,
   Line,
@@ -8,7 +12,10 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
+<<<<<<< HEAD
 import { getRefereeOverview } from "../services/uuService";
+=======
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
 
 export default function RefereeOverview() {
   const [data, setData] = useState([]);
@@ -17,6 +24,7 @@ export default function RefereeOverview() {
   const fetchOverview = async () => {
     try {
       setLoading(true);
+<<<<<<< HEAD
 
       // example: last 7 days
       const res = await getRefereeOverview({ days: 7 });
@@ -28,6 +36,18 @@ export default function RefereeOverview() {
           uu: item.uu,
         })),
       );
+=======
+      const res = await api.get("/uu/referee/overview"); // ✅ backend endpoint
+      const series = res.data?.series || [];
+
+      // Convert backend format → recharts format
+      const chartData = series.map((item) => ({
+        date: item.date,
+        uu: item.uu,
+      }));
+
+      setData(chartData);
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
     } catch (err) {
       console.error("Error loading referee overview:", err);
       setData([]);

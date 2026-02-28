@@ -261,6 +261,7 @@ function Trainings() {
                   {training.description}
                 </p>
                 <div className="mt-4">
+<<<<<<< HEAD
                   {(() => {
                     const rawType = training.type || training.linkType;
                     const type = String(rawType || "").toLowerCase();
@@ -284,6 +285,21 @@ function Trainings() {
                       />
                     );
                   })()}
+=======
+                  <Button
+                    text={
+                      training.type === "Video"
+                        ? "🎥 Watch Video"
+                        : "📄 Read File"
+                    }
+                    onClick={() => window.open(training.url, "_blank")}
+                    className={
+                      training.type === "Video"
+                        ? "bg-green-500 hover:bg-green-600 w-full text-white"
+                        : "bg-purple-400 hover:bg-purple-500 w-full text-white"
+                    }
+                  />
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
                 </div>
               </div>
             ))}

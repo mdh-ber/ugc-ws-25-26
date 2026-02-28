@@ -3,9 +3,13 @@
     "lucide-react": "^0.564.0",
     "mongodb": "^7.1.0",
     "recharts": "^3.7.0"
+<<<<<<< HEAD
   },
   "devDependencies": {
     "@types/node": "^22.0.0"
   },
   "proxy": "http://localhost:5000"
+=======
+  }
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
 }

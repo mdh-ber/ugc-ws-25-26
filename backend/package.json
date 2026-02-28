@@ -2,17 +2,23 @@
   "name": "ugc-backend",
   "version": "1.0.0",
   "description": "",
+<<<<<<< HEAD
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed": "node seed.js",
+=======
+  "main": "index.js",
+  "scripts": {
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+<<<<<<< HEAD
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "crypto": "^1.0.1",
@@ -21,9 +27,26 @@
     "jsonwebtoken": "^9.0.3",
     "luxon": "^3.7.2",
     "mongoose": "^8.23.0",
+=======
+
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "mongoose": "^9.2.1"
+
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.0.0",
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
     "multer": "^2.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
   }
 }

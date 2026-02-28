@@ -1,5 +1,6 @@
 const RefereeUu = require("../models/RefereeUu");
 const ReferralUu = require("../models/ReferralUu");
+<<<<<<< HEAD
 const { Referral } = require("../models/Referral");
 
 // ---------------- Helpers ----------------
@@ -22,6 +23,13 @@ function parseRange(req) {
   start.setDate(end.getDate() - (days - 1));
 
   return { from: toYYYYMMDD(start), to: toYYYYMMDD(end) };
+=======
+
+function parseRange(req) {
+  const from = req.query.from || "2026-01-01";
+  const to = req.query.to || "2026-12-31";
+  return { from, to };
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
 }
 
 function buildSummary(series) {
@@ -45,6 +53,7 @@ function buildSummary(series) {
   return { totalUu: total, avgDailyUu: avg, peakUu, peakDate };
 }
 
+<<<<<<< HEAD
 // ---------------- Members (Dynamic) ----------------
 
 // Referee members list (dynamic from RefereeUu)
@@ -118,10 +127,17 @@ exports.getReferralMembers = async (req, res) => {
 // ---------------- Overview (Graph Data) ----------------
 
 // Referee overview
+=======
+// ---------- Referee ----------
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
 exports.getRefereeOverview = async (req, res) => {
   try {
     const { from, to } = parseRange(req);
 
+<<<<<<< HEAD
+=======
+    // Sum uu by date for all referees
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
     const data = await RefereeUu.aggregate([
       { $match: { date: { $gte: from, $lte: to } } },
       { $group: { _id: "$date", uu: { $sum: "$uu" } } },
@@ -129,12 +145,17 @@ exports.getRefereeOverview = async (req, res) => {
       { $project: { _id: 0, date: "$_id", uu: 1 } },
     ]);
 
+<<<<<<< HEAD
     res.json({ series: data, from, to });
+=======
+    res.json({ series: data });
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
   } catch (e) {
     res.status(500).json({ message: "Server error", error: e.message });
   }
 };
 
+<<<<<<< HEAD
 // Referral overview
 exports.getReferralOverview = async (req, res) => {
   try {
@@ -156,6 +177,8 @@ exports.getReferralOverview = async (req, res) => {
 // ---------------- Details (Per Member) ----------------
 
 // Referee details
+=======
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
 exports.getRefereeDetails = async (req, res) => {
   try {
     const { from, to } = parseRange(req);
@@ -171,13 +194,38 @@ exports.getRefereeDetails = async (req, res) => {
     const series = docs.map((d) => ({ date: d.date, uu: d.uu }));
     const summary = buildSummary(series);
 
+<<<<<<< HEAD
     res.json({ id: refereeId, summary, series, from, to });
+=======
+    res.json({ id: refereeId, summary, series });
   } catch (e) {
     res.status(500).json({ message: "Server error", error: e.message });
   }
 };
 
+// ---------- Referral ----------
+exports.getReferralOverview = async (req, res) => {
+  try {
+    const { from, to } = parseRange(req);
+
+    const data = await ReferralUu.aggregate([
+      { $match: { date: { $gte: from, $lte: to } } },
+      { $group: { _id: "$date", uu: { $sum: "$uu" } } },
+      { $sort: { _id: 1 } },
+      { $project: { _id: 0, date: "$_id", uu: 1 } },
+    ]);
+
+    res.json({ series: data });
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
+  } catch (e) {
+    res.status(500).json({ message: "Server error", error: e.message });
+  }
+};
+
+<<<<<<< HEAD
 // Referral details (UU + profile details)
+=======
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
 exports.getReferralDetails = async (req, res) => {
   try {
     const { from, to } = parseRange(req);
@@ -193,6 +241,7 @@ exports.getReferralDetails = async (req, res) => {
     const series = docs.map((d) => ({ date: d.date, uu: d.uu }));
     const summary = buildSummary(series);
 
+<<<<<<< HEAD
     // try to fetch referral profile (works if referralId == Referral._id)
     let profile = null;
     try {
@@ -200,6 +249,9 @@ exports.getReferralDetails = async (req, res) => {
     } catch (_) {}
 
     res.json({ id: referralId, profile, summary, series, from, to });
+=======
+    res.json({ id: referralId, summary, series });
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
   } catch (e) {
     res.status(500).json({ message: "Server error", error: e.message });
   }

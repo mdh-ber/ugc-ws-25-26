@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 const router = require("express").Router();
 const Feedback = require("../models/feedback.model.js"); 
 
@@ -32,3 +33,13 @@ router.get("/", async (req, res) => {
 });
 
 module.exports = router;
+=======
+const express = require("express");
+const router = express.Router();
+const feedbackController = require("../controllers/feedbackController");
+
+// POST /api/feedback
+router.post("/", feedbackController.submitFeedback);
+
+module.exports = router;
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1

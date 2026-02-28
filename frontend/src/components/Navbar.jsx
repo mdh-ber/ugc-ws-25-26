@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Link, useNavigate } from "react-router-dom";
 import { useMemo } from "react";
 
@@ -17,6 +18,11 @@ function Navbar() {
     nav("/login");
   };
 
+=======
+import { Link } from "react-router-dom";
+
+function Navbar() {
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
   return (
     <nav className="bg-white shadow-md px-6 py-4 flex justify-between items-center">
       <h1 className="text-xl font-bold text-primary">MDH UGC</h1>
@@ -28,6 +34,7 @@ function Navbar() {
         <Link to="/profile" className="hover:text-primary">Profile</Link>
         <Link to="/reviews" className="hover:text-primary">Reviews</Link>
         <Link to="/guidelines" className="hover:text-primary">Guidelines</Link>
+<<<<<<< HEAD
 
         {!token ? (
           <Link to="/login" className="bg-primary text-white px-4 py-2 rounded-lg">
@@ -41,9 +48,18 @@ function Navbar() {
             Logout
           </button>
         )}
+=======
+        <Link to="/login" className="bg-primary text-white px-4 py-2 rounded-lg">
+          Login
+        </Link>
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
       </div>
     </nav>
   );
 }
 
+<<<<<<< HEAD
 export default Navbar;
+=======
+export default Navbar;
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1

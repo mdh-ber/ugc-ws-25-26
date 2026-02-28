@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
 import api from "../services/api";
@@ -74,20 +75,32 @@ function Login() {
           </div>
         )}
 
+=======
+function Login() {
+  return (
+    <div className="flex justify-center items-center min-h-screen">
+      <div className="bg-white p-8 rounded-xl shadow w-96">
+        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
         <input
           type="email"
           placeholder="Email"
           className="w-full mb-4 p-2 border rounded-lg"
+<<<<<<< HEAD
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={onKeyDown}
           autoComplete="email"
+=======
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
         />
 
         <input
           type="password"
           placeholder="Password"
           className="w-full mb-6 p-2 border rounded-lg"
+<<<<<<< HEAD
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           onKeyDown={onKeyDown}
@@ -107,10 +120,24 @@ function Login() {
           <Link to="/register" className="text-blue-600 font-medium hover:underline">
             Register
           </Link>
+=======
+        />
+
+        <button className="w-full bg-primary text-white py-2 rounded-lg">
+          Login
+        </button>
+
+        <p className="text-sm text-gray-500 mt-4 text-center">
+          Authentication handled by backend
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
         </p>
       </div>
     </div>
   );
 }
 
+<<<<<<< HEAD
 export default Login;
+=======
+export default Login;
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1

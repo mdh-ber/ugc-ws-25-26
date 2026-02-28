@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 const Profile = require("../models/pointsProfile.model");
+=======
+const Profile = require("../models/Profile");
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
 
 // ===== GET PROFILE =====
 exports.getProfile = async (req, res) => {
@@ -56,4 +60,8 @@ exports.updateProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1

@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { VscFeedback } from "react-icons/vsc";
+<<<<<<< HEAD
 import axios from "axios";
 
 const API_BASE = "http://localhost:5000/api";
+=======
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
 
 export default function FeedbackModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState(false);
+<<<<<<< HEAD
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -33,6 +37,22 @@ export default function FeedbackModal() {
     } finally {
       setSubmitting(false);
     }
+=======
+
+  const handleSubmit = () => {
+    if (!feedback.trim()) {
+      setError(true);
+
+      // Remove animation class after animation ends
+      setTimeout(() => setError(false), 500);
+
+      return;
+    }
+
+    console.log("User Feedback:", feedback);
+    setFeedback("");
+    setIsOpen(false);
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
   };
 
   return (
@@ -40,7 +60,11 @@ export default function FeedbackModal() {
       {/* Open Modal Button */}
       <button
         onClick={() => setIsOpen(true)}
+<<<<<<< HEAD
         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+=======
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 m-8"
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
       >
         <div className="flex items-center gap-2">
           <VscFeedback className="stroke-[1] w-8" size={25} title="feedback" />
@@ -68,24 +92,36 @@ export default function FeedbackModal() {
                     : "border-gray-300 focus:ring-blue-500"
                 }
               `}
+<<<<<<< HEAD
               disabled={submitting}
+=======
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
             />
 
             <div className="flex justify-end gap-3 mt-5">
               <button
                 onClick={() => setIsOpen(false)}
                 className="px-4 py-2 rounded-lg border hover:bg-gray-100"
+<<<<<<< HEAD
                 disabled={submitting}
+=======
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
               >
                 Cancel
               </button>
 
               <button
                 onClick={handleSubmit}
+<<<<<<< HEAD
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60"
                 disabled={submitting}
               >
                 {submitting ? "Submitting..." : "Submit"}
+=======
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Submit
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
               </button>
             </div>
           </div>

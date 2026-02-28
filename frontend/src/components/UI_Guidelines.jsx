@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+<<<<<<< HEAD
 const API_BASE = "http://localhost:500/api";
+=======
+const API_BASE = "http://localhost:5000/api";
+>>>>>>> 5c3591f6d6d1bedf79fbc2183dff9203be7d51d1
 
 export default function UI_Guidelines() {
   const [dos, setDos] = useState([]);
