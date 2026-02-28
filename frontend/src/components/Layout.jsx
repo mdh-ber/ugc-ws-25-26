@@ -16,7 +16,8 @@ import {
   LogOut,
   UserSearch,
   BarChart3,
-  Megaphone, // ✅ NEW
+  Megaphone,
+  Sparkles, // ✅ NEW (icon for Suggested Content)
 } from "lucide-react";
 
 function Layout() {
@@ -44,19 +45,6 @@ function Layout() {
     nav("/login");
   };
 
-  // If not logged in, just render pages (login/register)
-  if (!token) return <Outlet />;
-
-  // const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-
-  // ----------------------
-  // Logout Function
-  // ----------------------
-  // const handleLogout = () => {
-  //   sessionStorage.removeItem("token");
-  //   sessionStorage.removeItem("user");
-  //   sessionStorage.removeItem("role");
-
   // ✅ Keep query string
   const withQuery = (path) => `${path}${location.search || ""}`;
 
@@ -82,9 +70,14 @@ function Layout() {
     ...(isMarketingManager
       ? [
           {
-            name: "Campaigns", // ✅ NEW
+            name: "Campaigns",
             path: "/campaigns",
             icon: Megaphone,
+          },
+          {
+            name: "Suggested Content", // ✅ NEW MENU ITEM
+            path: "/suggested-content",
+            icon: Sparkles,
           },
           {
             name: "Website Analytics",
@@ -179,9 +172,7 @@ function Layout() {
         <div className="bg-white shadow p-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <h1 className="font-semibold text-xl">UGC Platform</h1>
-            <span className="text-sm text-gray-500">
-              MDH University
-            </span>
+            <span className="text-sm text-gray-500">MDH University</span>
           </div>
 
           <div className="flex items-center gap-2">

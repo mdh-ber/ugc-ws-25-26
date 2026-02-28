@@ -28,7 +28,7 @@ import CampaignsList from "./pages/CampaignsList";
 import CampaignForm from "./pages/CampaignForm";
 
 import CampaignROI from "./pages/CampaignROI";
-
+import SuggestedContent from "./pages/SuggestedContent";
 function App() {
   // keep your existing auth gate (still requires login to access protected pages)
   const token = sessionStorage.getItem("token") || localStorage.getItem("token");
@@ -88,6 +88,7 @@ function App() {
             <Route path="/campaigns/:id/edit" element={<CampaignForm />} />
 
             <Route path="/campaigns/:id/roi" element={<CampaignROI />} />
+              <Route path="/suggested-content" element={<SuggestedContent />} />
 
             {/* Website Analytics: ONLY when URL has ?mode=manager */}
             <Route
