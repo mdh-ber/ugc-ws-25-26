@@ -10,6 +10,14 @@ import Modal from "../components/Modal";
 import FormInput from "../components/FormInput"; 
 import Button from "../components/Button"; 
 
+// Helper function to convert image file to Base64 String
+const toBase64 = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = error => reject(error);
+});
+
 function LeadTracking() {
   const [stats, setStats] = useState([]);
   const [customPlatforms, setCustomPlatforms] = useState([]);
@@ -56,7 +64,7 @@ function LeadTracking() {
       _id: p._id,
       name: p.name,
       id: p.name.toLowerCase().replace(/\s+/g, '-'),
-      icon: `http://localhost:5000${p.icon}`, 
+      icon: p.icon, 
       color: "text-gray-800",
       bg: "bg-gray-100",
       isCustom: true
@@ -83,16 +91,26 @@ function LeadTracking() {
     }
   };
 
-  // ✅ FIXED: Re-added the missing getCount function
   const getCount = (platformId) => {
-    const found = stats.find((s) => s._id === platformId.toLowerCase());
+    if (!stats || stats.length === 0) return 0;
+    
+    // Clean the React platform ID
+    const cleanPlatformId = String(platformId).toLowerCase().trim();
+
+    // Look for a matching clean string from the backend
+    const found = stats.find((s) => {
+      if (!s._id) return false;
+      const dbPlatform = String(s._id).toLowerCase().trim();
+      return dbPlatform === cleanPlatformId;
+    });
+
     return found ? found.count : 0;
   };
 
-  // ✅ HANDLES THE CLEAN /track/ FORMAT
+  // ✅ UPDATED: Now copies the backend localhost:5000 API link
   const handleCopyLink = (platformName, id) => {
     const cleanName = platformName.toLowerCase().replace(/\s+/g, '');
-    const trackingUrl = `http://localhost:3000/track/${cleanName}`;
+    const trackingUrl = `http://localhost:5000/api/leads/track/${cleanName}`;
     navigator.clipboard.writeText(trackingUrl);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -108,19 +126,28 @@ function LeadTracking() {
 
   const handleSavePlatform = async (e) => {
     e.preventDefault();
-    const formData = new FormData();
-    formData.append("name", newName);
-    if (newImageFile) formData.append("icon", newImageFile);
 
     try {
-      if (isEditingPlatform) {
-        await api.put(`/platforms/${currentPlatformId}`, formData);
-      } else {
-        await api.post("/platforms", formData);
+      let iconBase64 = null;
+      if (newImageFile) {
+        iconBase64 = await toBase64(newImageFile);
       }
+
+      // Build JSON payload instead of FormData
+      const payload = { name: newName };
+      if (iconBase64) payload.icon = iconBase64;
+
+      if (isEditingPlatform) {
+        await api.put(`/platforms/${currentPlatformId}`, payload);
+      } else {
+        if (!iconBase64) return alert("Icon image is required for new platforms!");
+        await api.post("/platforms", payload);
+      }
+      
       fetchData(); 
       setShowAddModal(false);
     } catch (err) {
+      console.error(err);
       alert("Failed to save.");
     }
   };
@@ -153,7 +180,7 @@ function LeadTracking() {
               <button 
                 onClick={() => handleCopyLink(platform.name, platform.id)} 
                 className={`p-1 ${copiedId === platform.id ? 'text-green-500' : 'hover:text-blue-600'}`}
-                title="Copy /track link"
+                title="Copy tracking link"
               >
                 {copiedId === platform.id ? <Check size={14}/> : <Copy size={14}/>}
               </button>
@@ -162,7 +189,7 @@ function LeadTracking() {
                   setIsEditingPlatform(true);
                   setCurrentPlatformId(platform._id);
                   setNewName(platform.name);
-                  setImagePreviewUrl(platform.icon);
+                  setImagePreviewUrl(platform.icon); // Load base64 preview
                   setShowAddModal(true);
                 }} className="p-1 hover:text-blue-600"><Edit size={14}/></button>
               )}
@@ -181,7 +208,7 @@ function LeadTracking() {
           </div>
         ))}
 
-        <button onClick={() => { setIsEditingPlatform(false); setNewName(""); setImagePreviewUrl(null); setShowAddModal(true); }} className="border-2 border-dashed border-gray-300 bg-gray-50 rounded-xl p-5 flex flex-col items-center justify-center text-gray-400 hover:text-blue-600 hover:border-blue-500 hover:bg-blue-50 transition min-h-[130px]">
+        <button onClick={() => { setIsEditingPlatform(false); setNewName(""); setImagePreviewUrl(null); setNewImageFile(null); setShowAddModal(true); }} className="border-2 border-dashed border-gray-300 bg-gray-50 rounded-xl p-5 flex flex-col items-center justify-center text-gray-400 hover:text-blue-600 hover:border-blue-500 hover:bg-blue-50 transition min-h-[130px]">
           <Plus size={32} className="mb-2" />
           <span className="font-medium text-sm">Add Platform</span>
         </button>

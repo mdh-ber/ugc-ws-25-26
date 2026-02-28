@@ -5,9 +5,10 @@ const url = require("url");
 const mongoose = require("mongoose");
 const crypto = require("crypto");
 require("dotenv").config();
-
 const Feedback = require("./models/feedback.model");
 const Guideline = require("./models/guideline.model");
+const Lead = require("./models/Lead"); 
+const Platform = require("./models/Platform");
 
 // ✅ IMPORTANT: these match your filenames in models folder
 const Training = require("./models/Training");
@@ -35,7 +36,7 @@ function setCors(res) {
     "Access-Control-Allow-Methods",
     "GET,POST,PUT,PATCH,DELETE,OPTIONS"
   );
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, user-role");
   res.setHeader("Access-Control-Allow-Credentials", "true");
 }
 
@@ -179,12 +180,66 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, items);
     }
 
-    // ===========================
-    // EVENTS ✅ NEW
-    // ===========================
-    if (req.method === "GET" && path === "/api/events") {
-      const items = await Event.find().sort({ createdAt: -1 }).lean();
-      return sendJson(res, 200, items);
+   // =========================================================
+    // EVENTS API
+    // Base: /api/events
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "events") {
+
+      // GET /api/events
+      if (req.method === "GET" && segments.length === 2) {
+        const items = await Event.find().sort({ createdAt: -1 }).lean();
+        return sendJson(res, 200, items);
+      }
+
+      // POST /api/events (Create Event & Save Base64 Image)
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
+        
+        if (!body.title || !body.date || !body.time || !body.place || !body.description) {
+          return sendJson(res, 400, { message: "Missing required fields" });
+        }
+
+        const created = await Event.create({
+          title: String(body.title).trim(),
+          image: body.image || "", // Base64 image
+          date: String(body.date).trim(),
+          time: String(body.time).trim(),
+          place: String(body.place).trim(),
+          type: body.type || "On-site",
+          description: String(body.description).trim(),
+          speakers: String(body.speakers || "").trim(),
+        });
+
+        return sendJson(res, 201, created);
+      }
+
+      // PUT /api/events/:id (Update Event)
+      if (req.method === "PUT" && segments.length === 3) {
+        const id = segments[2];
+        if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid event id" });
+
+        const body = await readJsonBody(req);
+        const updates = { ...body }; // Updates all text fields and the new image
+
+        const updated = await Event.findByIdAndUpdate(id, updates, { new: true }).lean();
+        if (!updated) return sendJson(res, 404, { message: "Event not found" });
+
+        return sendJson(res, 200, updated);
+      }
+
+      // DELETE /api/events/:id (Delete Event)
+      if (req.method === "DELETE" && segments.length === 3) {
+        const id = segments[2];
+        if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid event id" });
+
+        const deleted = await Event.findByIdAndDelete(id).lean();
+        if (!deleted) return sendJson(res, 404, { message: "Event not found" });
+
+        return sendJson(res, 200, { message: "Event deleted successfully" });
+      }
+
+      return sendJson(res, 404, { message: "Events route not found" });
     }
 
     // ===========================
@@ -816,6 +871,89 @@ const server = http.createServer(async (req, res) => {
       }
 
       return sendJson(res, 404, { message: "Route not found" });
+    }
+    // =========================================================
+    // LEADS TRACKING API
+    // Base: /api/leads
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "leads") {
+      const action = segments[2]; // e.g., "stats" or "track"
+
+      // GET /api/leads/stats (For the Marketing Dashboard)
+      if (req.method === "GET" && action === "stats") {
+        try {
+          const stats = await Lead.aggregate([
+            { $group: { _id: "$platform", count: { $sum: 1 } } },
+            { $sort: { count: -1 } }
+          ]);
+          return sendJson(res, 200, stats);
+        } catch (error) {
+          console.error("Stats error:", error);
+          return sendJson(res, 500, { message: "Failed to fetch stats" });
+        }
+      }
+
+      // GET /api/leads/track/:platform (For Creator Links)
+      if (req.method === "GET" && action === "track" && segments.length === 4) {
+        try {
+          const platform = segments[3].toLowerCase();
+          await Lead.create({ platform });
+          return sendJson(res, 200, { success: true, message: "Lead tracked successfully" });
+        } catch (error) {
+          console.error("Tracking error:", error);
+          return sendJson(res, 500, { message: "Failed to track lead" });
+        }
+      }
+
+      return sendJson(res, 404, { message: "Lead route not found" });
+    }
+    // =========================================================
+    // CUSTOM PLATFORMS API
+    // Base: /api/platforms
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "platforms") {
+      
+      // GET /api/platforms
+      if (req.method === "GET" && segments.length === 2) {
+        const platforms = await Platform.find().sort({ createdAt: -1 }).lean();
+        return sendJson(res, 200, platforms);
+      }
+
+      // POST /api/platforms
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
+        if (!body.name || !body.icon) {
+          return sendJson(res, 400, { message: "Name and icon are required" });
+        }
+        const created = await Platform.create({ name: body.name, icon: body.icon });
+        return sendJson(res, 201, created);
+      }
+
+      // PUT /api/platforms/:id
+      if (req.method === "PUT" && segments.length === 3) {
+        const id = segments[2];
+        if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid id" });
+        
+        const body = await readJsonBody(req);
+        const updateData = { name: body.name };
+        if (body.icon) updateData.icon = body.icon; // Only update icon if a new one was uploaded
+
+        const updated = await Platform.findByIdAndUpdate(id, updateData, { new: true }).lean();
+        if (!updated) return sendJson(res, 404, { message: "Platform not found" });
+        return sendJson(res, 200, updated);
+      }
+
+      // DELETE /api/platforms/:id
+      if (req.method === "DELETE" && segments.length === 3) {
+        const id = segments[2];
+        if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid id" });
+
+        const deleted = await Platform.findByIdAndDelete(id);
+        if (!deleted) return sendJson(res, 404, { message: "Platform not found" });
+        return sendJson(res, 200, { message: "Platform deleted" });
+      }
+
+      return sendJson(res, 404, { message: "Platform route not found" });
     }
 
     // FINAL CATCH-ALL 404 (This MUST be at the end, not above the posts block!)

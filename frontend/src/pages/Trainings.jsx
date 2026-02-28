@@ -1,3 +1,4 @@
+import ImageCropper from "../components/ImageCropper";
 import { useEffect, useState } from "react";
 import {
   getTrainings,
@@ -14,24 +15,49 @@ import {
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import FormInput from "../components/FormInput";
-import { Calendar, MapPin, Users, Trash2, Edit } from "lucide-react";
+import { Calendar, MapPin, Users, Trash2, Edit, Upload } from "lucide-react";
+
+// Helper: Convert uploaded file to Base64 String
+const toBase64 = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = error => reject(error);
+});
+
+// Generate all 15-min interval time slots for the day
+const allTimeSlots = [];
+for (let h = 0; h < 24; h++) {
+  for (let m = 0; m < 60; m += 15) {
+    const hour = h.toString().padStart(2, '0');
+    const min = m.toString().padStart(2, '0');
+    allTimeSlots.push(`${hour}:${min}`);
+  }
+}
 
 function Trainings() {
-  // --- STATE ---
   const [trainings, setTrainings] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
 
-  // --- TABS & MODAL STATE ---
   const [activeTab, setActiveTab] = useState("training");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false); // New: Track if we are editing
-  const [currentEventId, setCurrentEventId] = useState(null); // New: ID of event being edited
+  
+  // IMAGE CROPPER STATES
+  const [imageToCrop, setImageToCrop] = useState(null);
+  const [showCropper, setShowCropper] = useState(false);
 
+  // EVENT MODAL STATES
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false); 
+  const [currentEventId, setCurrentEventId] = useState(null);
+  const [eventImageFile, setEventImageFile] = useState(null);
+  const [eventImagePreview, setEventImagePreview] = useState(null);
+
+  // TRAINING MODAL STATES
   const [isTrainingModalOpen, setIsTrainingModalOpen] = useState(false);
-  const [isTrainingEditing, setIsTrainingEditing] = useState(false); // New: Track if we are editing a training
-  const [currentTrainingId, setCurrentTrainingId] = useState(null); // New: ID of training being edited
+  const [isTrainingEditing, setIsTrainingEditing] = useState(false);
+  const [currentTrainingId, setCurrentTrainingId] = useState(null);
 
   const [newEvent, setNewEvent] = useState({
     title: "",
@@ -52,11 +78,30 @@ function Trainings() {
     url: "",
   });
 
-  // --- FETCH DATA ---
-  useEffect(() => {
-    const storedUser = localStorage.getItem("userInfo");
-    if (storedUser) setUser(JSON.parse(storedUser));
+  const params = new URLSearchParams(location.search);
+  const isMarketingManager = params.get("mode") == "manager";
 
+  // --- STRICT DATE LOGIC ---
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const todayString = `${year}-${month}-${day}`;
+
+  const availableTimeSlots = allTimeSlots.filter(slot => {
+    if (newEvent.date === todayString) {
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const [slotH, slotM] = slot.split(':').map(Number);
+      
+      if (slotH > currentHour) return true;
+      if (slotH === currentHour && slotM > currentMinute) return true;
+      return false; 
+    }
+    return true; 
+  });
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -76,14 +121,66 @@ function Trainings() {
     fetchData();
   }, []);
 
-  // --- EVENT HANDLERS ---
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewEvent((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleDateChange = (e) => {
+    const selectedDate = e.target.value;
+    setNewEvent((prev) => {
+      let updatedTime = prev.time;
+      if (selectedDate === todayString && updatedTime) {
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const [h, m] = updatedTime.split(':').map(Number);
+        
+        if (h < currentHour || (h === currentHour && m <= currentMinute)) {
+          updatedTime = ""; 
+        }
+      }
+      return { ...prev, date: selectedDate, time: updatedTime };
+    });
+  };
+
+  // ✅ UPDATED: Triggers Cropper
+  const handleEventImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageToCrop(reader.result);
+        setShowCropper(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // ✅ NEW: Handles the output from the cropper
+  const handleCropDone = (croppedBase64) => {
+    setEventImagePreview(croppedBase64);
+    setNewEvent((prev) => ({ ...prev, image: croppedBase64 }));
+    setShowCropper(false);
+  };
+
+  const isDateTimeValid = () => {
+    if (!newEvent.date || !newEvent.time) {
+      alert("Please select both a date and a time.");
+      return false;
+    }
+    const selectedDateTime = new Date(`${newEvent.date}T${newEvent.time}`);
+    const currentDateTime = new Date();
+    if (selectedDateTime <= currentDateTime) {
+      alert("Error: You cannot schedule an event in the past. Please pick a future time.");
+      return false;
+    }
+    return true;
+  };
+
   const openCreateModal = () => {
     setIsEditing(false);
+    setEventImageFile(null);
+    setEventImagePreview(null);
     setNewEvent({
       title: "",
       image: "",
@@ -100,23 +197,30 @@ function Trainings() {
   const openEditModal = (event) => {
     setIsEditing(true);
     setCurrentEventId(event._id);
-    setNewEvent({ ...event }); // Pre-fill form
+    setEventImageFile(null);
+    setEventImagePreview(event.image); 
+    setNewEvent({ ...event }); 
     setIsModalOpen(true);
   };
 
   const handleSaveEvent = async (e) => {
     e.preventDefault();
+    if (!isDateTimeValid()) return;
+
     try {
+      let payload = { ...newEvent };
+      
+      if (!isEditing && !payload.image) {
+        alert("Please upload and crop an event image.");
+        return;
+      }
+
       if (isEditing) {
-        // UPDATE Existing
-        const updated = await updateEvent(currentEventId, newEvent);
-        setEvents(
-          events.map((ev) => (ev._id === currentEventId ? updated : ev)),
-        );
+        const updated = await updateEvent(currentEventId, payload);
+        setEvents(events.map((ev) => (ev._id === currentEventId ? updated : ev)));
         alert("Event updated!");
       } else {
-        // CREATE New
-        const saved = await createEvent(newEvent);
+        const saved = await createEvent(payload);
         setEvents([saved, ...events]);
         alert("Event created!");
       }
@@ -136,7 +240,6 @@ function Trainings() {
     }
   };
 
-  // --- TRAINING HANDLERS ---
   const handleTrainingInputChange = (e) => {
     const { name, value } = e.target;
     setNewTraining((prev) => ({ ...prev, [name]: value }));
@@ -144,20 +247,14 @@ function Trainings() {
 
   const openCreateTrainingModal = () => {
     setIsTrainingEditing(false);
-    setNewTraining({
-      title: "",
-      description: "",
-      type: "",
-      category: "",
-      url: "",
-    });
+    setNewTraining({ title: "", description: "", type: "", category: "", url: "" });
     setIsTrainingModalOpen(true);
   };
 
   const openEditTrainingModal = (training) => {
     setIsTrainingEditing(true);
     setCurrentTrainingId(training._id);
-    setNewTraining({ ...training }); // Pre-fill form
+    setNewTraining({ ...training }); 
     setIsTrainingModalOpen(true);
   };
 
@@ -165,14 +262,10 @@ function Trainings() {
     e.preventDefault();
     try {
       if (isTrainingEditing) {
-        // UPDATE Existing
         const updated = await updateTraining(currentTrainingId, newTraining);
-        setTrainings(
-          trainings.map((tr) => (tr._id === currentTrainingId ? updated : tr)),
-        );
+        setTrainings(trainings.map((tr) => (tr._id === currentTrainingId ? updated : tr)));
         alert("Training updated!");
       } else {
-        // CREATE New
         const saved = await createTraining(newTraining);
         setTrainings([saved, ...trainings]);
         alert("Training created!");
@@ -184,8 +277,7 @@ function Trainings() {
   };
 
   const handleDeleteTraining = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this training?"))
-      return;
+    if (!window.confirm("Are you sure you want to delete this training?")) return;
     try {
       await deleteTraining(id);
       setTrainings(trainings.filter((tr) => tr._id !== id));
@@ -197,8 +289,6 @@ function Trainings() {
 
   return (
     <div>
-      {/* TABS */}
-      {/* <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit mb-8"> */}
       <div className="flex border-b border-gray-200 mb-4">
         <button
           onClick={() => setActiveTab("training")}
@@ -216,64 +306,27 @@ function Trainings() {
 
       {loading && <p>Loading...</p>}
 
-      {/* --- TAB 1: TRAININGS --- */}
       {!loading && activeTab === "training" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-800">
-              Training Materials
-            </h2>
-            {user && user.role === "Marketing Manager" && (
-              <Button
-                text="+ Add New Training"
-                onClick={openCreateTrainingModal}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              />
+            <h2 className="text-xl font-bold text-gray-800">Training Materials</h2>
+            {isMarketingManager && (
+              <Button text="+ Add New Training" onClick={openCreateTrainingModal} className="bg-blue-600 hover:bg-blue-700 text-white" />
             )}
           </div>
-
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trainings.map((training) => (
-              <div
-                key={training._id}
-                className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition relative"
-              >
-                {/* Edit/Delete Actions (Only Marketing Manager) */}
-                {user && user.role === "Marketing Manager" && (
+              <div key={training._id} className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition relative">
+                {isMarketingManager && (
                   <div className="absolute top-2 right-2 flex space-x-2">
-                    <button
-                      onClick={() => openEditTrainingModal(training)}
-                      className="p-2 bg-white rounded-full shadow-md hover:text-blue-600"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTraining(training._id)}
-                      className="p-2 bg-white rounded-full shadow-md hover:text-red-600"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <button onClick={() => openEditTrainingModal(training)} className="p-2 bg-white rounded-full shadow-md hover:text-blue-600"><Edit size={16} /></button>
+                    <button onClick={() => handleDeleteTraining(training._id)} className="p-2 bg-white rounded-full shadow-md hover:text-red-600"><Trash2 size={16} /></button>
                   </div>
                 )}
-
                 <h3 className="font-bold text-lg mb-2">{training.title}</h3>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {training.description}
-                </p>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{training.description}</p>
                 <div className="mt-4">
-                  <Button
-                    text={
-                      training.type === "Video"
-                        ? "🎥 Watch Video"
-                        : "📄 Read File"
-                    }
-                    onClick={() => window.open(training.url, "_blank")}
-                    className={
-                      training.type === "Video"
-                        ? "bg-green-500 hover:bg-green-600 w-full text-white"
-                        : "bg-purple-400 hover:bg-purple-500 w-full text-white"
-                    }
-                  />
+                  <Button text={training.type === "Video" ? "🎥 Watch Video" : "📄 Read File"} onClick={() => window.open(training.url, "_blank")} className={training.type === "Video" ? "bg-green-500 hover:bg-green-600 w-full text-white" : "bg-purple-400 hover:bg-purple-500 w-full text-white"} />
                 </div>
               </div>
             ))}
@@ -281,79 +334,38 @@ function Trainings() {
         </div>
       )}
 
-      {/* --- TAB 2: EVENTS --- */}
       {!loading && activeTab === "events" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-gray-800">Upcoming Events</h2>
-            {user && user.role === "Marketing Manager" && (
-              <Button
-                text="+ Add New Event"
-                onClick={openCreateModal}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              />
+            {isMarketingManager && (
+              <Button text="+ Add New Event" onClick={openCreateModal} className="bg-blue-600 hover:bg-blue-700 text-white" />
             )}
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map((event) => (
-              <div
-                key={event._id}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow relative"
-              >
-                {/* Image */}
+              <div key={event._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow relative">
                 <div className="h-48 overflow-hidden relative">
-                  <img
-                    src={event.image || "https://via.placeholder.com/400x200"}
-                    alt={event.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <span
-                    className={`absolute top-3 right-3 px-3 py-1 text-xs font-bold rounded-full ${event.type === "Online" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"}`}
-                  >
+                  <img src={event.image || "https://via.placeholder.com/400x200"} alt={event.title} className="w-full h-full object-cover" />
+                  <span className={`absolute top-3 right-3 px-3 py-1 text-xs font-bold rounded-full ${event.type === "Online" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"}`}>
                     {event.type}
                   </span>
                 </div>
-
-                {/* Edit/Delete Actions (Only Marketing Manager) */}
-                {user && user.role === "Marketing Manager" && (
+                {isMarketingManager && (
                   <div className="absolute top-2 left-2 flex space-x-2">
-                    <button
-                      onClick={() => openEditModal(event)}
-                      className="p-2 bg-white rounded-full shadow-md hover:text-blue-600"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteEvent(event._id)}
-                      className="p-2 bg-white rounded-full shadow-md hover:text-red-600"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <button onClick={() => openEditModal(event)} className="p-2 bg-white rounded-full shadow-md hover:text-blue-600"><Edit size={16} /></button>
+                    <button onClick={() => handleDeleteEvent(event._id)} className="p-2 bg-white rounded-full shadow-md hover:text-red-600"><Trash2 size={16} /></button>
                   </div>
                 )}
-
                 <div className="p-5">
                   <div className="flex items-center text-xs text-gray-500 mb-2 space-x-2">
-                    <span className="flex items-center">
-                      <Calendar size={14} className="mr-1" /> {event.date}
-                    </span>
+                    <span className="flex items-center"><Calendar size={14} className="mr-1" /> {event.date}</span>
                     <span>•</span>
-                    <span className="flex items-center">
-                      <Users size={14} className="mr-1" /> {event.time}
-                    </span>
+                    <span className="flex items-center"><Users size={14} className="mr-1" /> {event.time}</span>
                   </div>
-                  <h3 className="font-bold text-lg text-gray-900 mb-1">
-                    {event.title}
-                  </h3>
-                  <div className="flex items-center text-sm text-gray-500 mb-4">
-                    <MapPin size={16} className="mr-2 text-gray-400" />
-                    {event.place}
-                  </div>
-                  <Button
-                    text="Register Now"
-                    className="w-full bg-gray-900 hover:bg-gray-800 text-white"
-                  />
+                  <h3 className="font-bold text-lg text-gray-900 mb-1">{event.title}</h3>
+                  <div className="flex items-center text-sm text-gray-500 mb-4"><MapPin size={16} className="mr-2 text-gray-400" />{event.place}</div>
+                  <Button text="Register Now" className="w-full bg-gray-900 hover:bg-gray-800 text-white" />
                 </div>
               </div>
             ))}
@@ -361,66 +373,27 @@ function Trainings() {
         </div>
       )}
 
-      {/* --- MODAL (CREATE OR EDIT) --- */}
-      {/* --- TRAINING MODAL --- */}
-      <Modal
-        isOpen={isTrainingModalOpen}
-        onClose={() => setIsTrainingModalOpen(false)}
-      >
+      <Modal isOpen={isTrainingModalOpen} onClose={() => setIsTrainingModalOpen(false)}>
         <div className="p-1">
-          <h2 className="text-xl font-bold mb-4">
-            {isTrainingEditing ? "Edit Training" : "Add New Training"}
-          </h2>
+          <h2 className="text-xl font-bold mb-4">{isTrainingEditing ? "Edit Training" : "Add New Training"}</h2>
           <form onSubmit={handleSaveTraining} className="space-y-4">
-            <FormInput
-              label="Training Title"
-              name="title"
-              value={newTraining.title}
-              onChange={handleTrainingInputChange}
-              placeholder="Enter training title"
-              required
-            />
+            <FormInput label="Training Title" name="title" value={newTraining.title} onChange={handleTrainingInputChange} required />
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={newTraining.description}
-                onChange={handleTrainingInputChange}
-                className="w-full px-3 py-2 border rounded-lg h-24"
-                placeholder="Enter training material description"
-                required
-              />
+              <label className="block text-gray-700 text-sm font-bold mb-2">Description</label>
+              <textarea name="description" value={newTraining.description} onChange={handleTrainingInputChange} className="w-full px-3 py-2 border rounded-lg h-24" required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-gray-700 text-sm font-bold mb-2">
-                  Type
-                </label>
-                <select
-                  name="type"
-                  value={newTraining.type}
-                  onChange={handleTrainingInputChange}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                >
+                <label className="block text-gray-700 text-sm font-bold mb-2">Type</label>
+                <select name="type" value={newTraining.type} onChange={handleTrainingInputChange} className="w-full px-3 py-2 border rounded-lg" required>
                   <option value="">Select type...</option>
                   <option value="Video">🎥 Video</option>
                   <option value="PDF">📄 PDF Document</option>
                 </select>
               </div>
               <div>
-                <label className="block text-gray-700 text-sm font-bold mb-2">
-                  Category
-                </label>
-                <select
-                  name="category"
-                  value={newTraining.category}
-                  onChange={handleTrainingInputChange}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                >
+                <label className="block text-gray-700 text-sm font-bold mb-2">Category</label>
+                <select name="category" value={newTraining.category} onChange={handleTrainingInputChange} className="w-full px-3 py-2 border rounded-lg" required>
                   <option value="">Select category...</option>
                   <option value="Content Strategy">Content Strategy</option>
                   <option value="Onboarding">Onboarding</option>
@@ -428,115 +401,95 @@ function Trainings() {
                 </select>
               </div>
             </div>
-            <FormInput
-              label="URL"
-              name="url"
-              type="url"
-              value={newTraining.url}
-              onChange={handleTrainingInputChange}
-              placeholder="Enter link URL"
-              required
-            />
-            <div className="pt-2">
-              <Button
-                text={isTrainingEditing ? "Update Training" : "Create Training"}
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              />
-            </div>
+            <FormInput label="URL" name="url" type="url" value={newTraining.url} onChange={handleTrainingInputChange} required />
+            <div className="pt-2"><Button text={isTrainingEditing ? "Update Training" : "Create Training"} type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" /></div>
           </form>
         </div>
       </Modal>
 
-      {/* --- EVENT MODAL --- */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <div className="p-1">
-          <h2 className="text-xl font-bold mb-4">
-            {isEditing ? "Edit Event" : "Add New Event"}
-          </h2>
-          <form onSubmit={handleSaveEvent} className="space-y-4">
-            <FormInput
-              label="Event Title"
-              name="title"
-              value={newEvent.title}
-              onChange={handleInputChange}
-              required
-            />
-            <FormInput
-              label="Image URL"
-              name="image"
-              value={newEvent.image}
-              onChange={handleInputChange}
-              placeholder="https://..."
-            />
+        <div className="p-2">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">{isEditing ? "Edit Event" : "Create New Event"}</h2>
+          <form onSubmit={handleSaveEvent} className="space-y-5">
+            <FormInput label="Event Title" name="title" value={newEvent.title} onChange={handleInputChange} placeholder="e.g. Content Creator Summit 2026" required />
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Event Cover Image</label>
+              <div className="flex items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-blue-50 hover:border-blue-400 transition cursor-pointer overflow-hidden relative">
+                <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer absolute inset-0">
+                  {eventImagePreview ? (
+                    <img src={eventImagePreview} className="w-full h-full object-cover rounded-xl" alt="Preview"/>
+                  ) : (
+                    <>
+                      <Upload className="text-gray-400 mb-2" size={28} />
+                      <span className="text-sm text-gray-600 font-medium">Click to upload image</span>
+                    </>
+                  )}
+                  <input type="file" className="hidden" accept="image/*" onChange={handleEventImageChange} />
+                </label>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <FormInput
                 label="Date"
                 name="date"
                 type="date"
                 value={newEvent.date}
-                onChange={handleInputChange}
-                required
-              />
-              <FormInput
-                label="Time"
-                name="time"
-                value={newEvent.time}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormInput
-                label="Place"
-                name="place"
-                value={newEvent.place}
-                onChange={handleInputChange}
+                onChange={handleDateChange} 
+                min={todayString} 
                 required
               />
               <div>
-                <label className="block text-gray-700 text-sm font-bold mb-2">
-                  Type
-                </label>
+                <label className="block text-gray-700 text-sm font-bold mb-2">Time</label>
                 <select
-                  name="type"
-                  value={newEvent.type}
+                  name="time"
+                  value={newEvent.time}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
+                  <option value="" disabled>Select Time</option>
+                  {availableTimeSlots.map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormInput label="Location / Link" name="place" value={newEvent.place} onChange={handleInputChange} required />
+              <div>
+                <label className="block text-gray-700 text-sm font-bold mb-2">Event Type</label>
+                <select name="type" value={newEvent.type} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white">
                   <option value="On-site">On-site</option>
                   <option value="Online">Online</option>
                 </select>
               </div>
             </div>
+            
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={newEvent.description}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border rounded-lg h-24"
-                required
-              />
+              <label className="block text-gray-700 text-sm font-bold mb-2">Description</label>
+              <textarea name="description" value={newEvent.description} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg h-24 resize-none" required />
             </div>
-            <FormInput
-              label="Speakers"
-              name="speakers"
-              value={newEvent.speakers}
-              onChange={handleInputChange}
-            />
-            <div className="pt-2">
-              <Button
-                text={isEditing ? "Update Event" : "Create Event"}
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              />
+
+            <FormInput label="Speakers (Optional)" name="speakers" value={newEvent.speakers} onChange={handleInputChange} />
+
+            <div className="pt-4 border-t border-gray-100">
+              <Button text={isEditing ? "Save Changes" : "Publish Event"} type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg" />
             </div>
           </form>
         </div>
       </Modal>
+
+      {/* RENDER CROPPER */}
+      {showCropper && (
+        <ImageCropper 
+          image={imageToCrop} 
+          onCropComplete={handleCropDone} 
+          onCancel={() => setShowCropper(false)} 
+        />
+      )}
     </div>
   );
 }
