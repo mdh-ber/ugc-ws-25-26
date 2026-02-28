@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "lucide-react": "^0.564.0",
+    "mongodb": "^7.1.0",
+    "mongoose": "^9.2.2",
+    "recharts": "^3.7.0"
+  },
+  "proxy": "http://localhost:5000"
+}

@@ -13,10 +13,37 @@
 1. May is the product owner
 2. Deepsika is the Scrum Master
 
+<<<<<<< HEAD
+=======
+3. Napat is one of the development team
+4. Pantida developed the backend training data
+
+
+>>>>>>> 8c7646ba (feat(#150): add report download page for marketing managers)
 # Development Stack
 1. Reactjs for front-end development
 2. Nodejs (expressjs) for back-end development
 3. Mongodb for the database
 
+<<<<<<< HEAD
 # Miro
 All key discussions and decisions take place here: https://miro.com/app/board/uXjVGUDpq3s=/?share_link_id=117960929176 
+=======
+<<<<<<< Kiran-Doddapaneni#35
+# Miro
+All key discussions and decisions take place here: https://miro.com/app/board/uXjVGUDpq3s=/?share_link_id=117960929176 
+3. Pantida developed the backend training data.
+=======
+# How to Connect to the Database
+1. Install MongoDB Compass
+2. Use the following connection string to connect to the database: `mongodb+srv://Training:ugc1212@cluster0.ttgmlli.mongodb.net/?appName=Cluster0`
+3. Create a `.env` file in the backend folder and paste the connection string
+4. Run `npm install dotenv mongoose`
+5. Run `node seed.js`.
+
+# Miro
+All key discussions and decisions take place here: https://miro.com/app/board/uXjVGUDpq3s=/?share_link_id=117960929176 
+
+
+>>>>>>> main
+>>>>>>> 8c7646ba (feat(#150): add report download page for marketing managers)
