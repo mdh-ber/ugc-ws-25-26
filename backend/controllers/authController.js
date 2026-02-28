@@ -2,10 +2,13 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import User from "../models/user.model.js";
 import UserProfile from "../models/userProfile.model.js";
 =======
 <<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 // ============================
 // REGISTER CONTROLLER
 // ============================
@@ -13,6 +16,9 @@ async function register(req, res, readJsonBody, sendJson) {
   console.log("hello--1");
 =======
 import User from "../models/user.model.js";
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 import PointsProfile from "../models/pointsProfile.model.js";
 
@@ -33,6 +39,9 @@ const signToken = (user) =>
 // ======================
 const login = async (req, res) => {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 >>>>>>> Stashed changes

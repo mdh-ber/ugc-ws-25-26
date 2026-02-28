@@ -27,7 +27,12 @@ const trainingSchema = new mongoose.Schema(
 
 module.exports =
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   mongoose.models.Training || mongoose.model("Training", trainingSchema);
+=======
+  mongoose.models.Training ||
+  mongoose.model("Training", trainingSchema);
+>>>>>>> Stashed changes
 =======
   mongoose.models.Training ||
   mongoose.model("Training", trainingSchema);
