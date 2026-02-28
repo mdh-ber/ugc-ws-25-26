@@ -22,9 +22,9 @@ const Reward = require("./models/reward");
 const postRoutes = require("./routes/postRoutes");
 
 const RefereeUu = require("./models/RefereeUu");
-const ReferralUu = require("./models/ReferralUu");
-const { Referral,ReferralCode } = require("./models/Referral");
-const Userprofile = require("./models/userprofile.model"); // Reference UserProfile for RefereeUu 
+const ReferralUu = require("./models/referralUu");
+const { Referral, ReferralCode } = require("./models/Referral");
+const Userprofile = require("./models/userProfile.model");
 
 // ✅ NEW (Sub-issue #155)
 const Campaign = require("./models/Campaign");
@@ -140,7 +140,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Modern URL Parsing to remove deprecation warning
-  const baseURL = `http://${req.headers.host || 'localhost'}`;
+  const baseURL = `http://${req.headers.host || "localhost"}`;
   const parsed = new URL(req.url, baseURL);
   const path = parsed.pathname;
   const query = Object.fromEntries(parsed.searchParams.entries());
@@ -150,20 +150,27 @@ const server = http.createServer(async (req, res) => {
     // ===========================
     // AUTH
     // ===========================
-    if (req.method === "POST" && path === "/api/visits/track"){
-      const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
-      const userAgent = req.headers['user-agent'] || "unknown";
-      const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
+    if (req.method === "POST" && path === "/api/visits/track") {
+      const clientIp =
+        req.ip || req.headers["x-forwarded-for"] || "unknown";
+      const userAgent = req.headers["user-agent"] || "unknown";
+      const ipHash = crypto
+        .createHash("sha256")
+        .update(clientIp)
+        .digest("hex");
       await Visit.create({ ipHash, userAgent });
       return sendJson(res, 200, { message: "Visit tracked" });
     }
-    
-    if (req.method === "GET" && path === "/api/visits/stats"){
+
+    if (req.method === "GET" && path === "/api/visits/stats") {
       const totalVisits = await Visit.countDocuments();
       const uniqueIps = await Visit.distinct("ipHash");
-      return sendJson(res, 200, { totalVisits, uniqueVisits: uniqueIps.length });
+      return sendJson(res, 200, {
+        totalVisits,
+        uniqueVisits: uniqueIps.length,
+      });
     }
-    
+
     if (req.method === "POST" && path === "/api/auth/login") {
       const body = await readJsonBody(req);
       const email = (body.email || "").trim().toLowerCase();
@@ -178,57 +185,55 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 401, { message: "Invalid email or password" });
     }
 
-    //API VISIT TRACKING
-if (req.method === "POST" && path === "/api/visits/track"){
-  const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
-  const userAgent = req.headers['user-agent'] || "unknown";
-  const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
-  await Visit.create({ ipHash, userAgent });
-  return sendJson(res, 200, { message: "Visit tracked" });
- }
-   // ✅ Visit Timeline (Daily)
-if (req.method === "GET" && path === "/api/visits/timeline") {
-  try {
-    const dailyData = await Visit.aggregate([
-      {
-        $addFields: {
-          ts: { $ifNull: ["$timestamp", "$createdAt"] },
-        },
-      },
-      { $match: { ts: { $type: "date" } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$ts" } },
-          totalVisits: { $sum: 1 },
-          uniqueIps: { $addToSet: "$ipHash" },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          date: "$_id",
-          totalVisits: 1,
-          uniqueVisits: { $size: "$uniqueIps" },
-        },
-      },
-      { $sort: { date: 1 } },
-    ]);
+    // ✅ Visit Timeline (Daily)
+    if (req.method === "GET" && path === "/api/visits/timeline") {
+      try {
+        const dailyData = await Visit.aggregate([
+          {
+            $addFields: {
+              ts: { $ifNull: ["$timestamp", "$createdAt"] },
+            },
+          },
+          { $match: { ts: { $type: "date" } } },
+          {
+            $group: {
+              _id: {
+                $dateToString: { format: "%Y-%m-%d", date: "$ts" },
+              },
+              totalVisits: { $sum: 1 },
+              uniqueIps: { $addToSet: "$ipHash" },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              date: "$_id",
+              totalVisits: 1,
+              uniqueVisits: { $size: "$uniqueIps" },
+            },
+          },
+          { $sort: { date: 1 } },
+        ]);
 
-    return sendJson(res, 200, dailyData);
-  } catch (err) {
-    console.error("Timeline error:", err);
-    return sendJson(res, 500, { message: "Failed to fetch timeline" });
-  }
-}
+        return sendJson(res, 200, dailyData);
+      } catch (err) {
+        console.error("Timeline error:", err);
+        return sendJson(res, 500, { message: "Failed to fetch timeline" });
+      }
+    }
+
     // ===========================
-    // TRAININGS ✅ NEW
+    // TRAININGS
     // ===========================
     const trainingController = require("./controllers/trainingController");
     if (path.startsWith("/api/trainings")) {
       const id = segments[2];
       if (req.method === "GET") {
         if (id) {
-          return trainingController.getTrainingById({ params: { id } }, res);
+          return trainingController.getTrainingById(
+            { params: { id } },
+            res
+          );
         } else {
           return trainingController.getTrainings(req, res);
         }
@@ -253,98 +258,126 @@ if (req.method === "GET" && path === "/api/visits/timeline") {
       }
     }
 
-
-// CERTIFICATES 
-// Base: /api/certificates
-// ===========================
-if (segments[0] === "api" && segments[1] === "certificates") {
-  // GET /api/certificates
-  if (req.method === "GET" && segments.length === 2) {
-    const items = await Certificate.find().sort({ createdAt: -1 }).lean();
-    return sendJson(res, 200, items);
-  }
-
-  // POST /api/certificates
-  if (req.method === "POST" && segments.length === 2) {
-    const body = await readJsonBody(req);
-
-    const title = String(body.title || "").trim();
-    const issueDate = String(body.issueDate || "").trim();
-    const issuer = String(body.issuer || "").trim();
-    const issuedTo = String(body.issuedTo || "").trim();
-    const type = String(body.type || "").trim();
-
-    if (!title || !issueDate || !issuer || !issuedTo || !type) {
-      return sendJson(res, 400, { message: "All fields are required." });
-    }
-
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(issueDate)) {
-      return sendJson(res, 400, { message: "Issue date must be YYYY-MM-DD" });
-    }
-
-    const created = await Certificate.create({
-      title,
-      issueDate,
-      issuer,
-      issuedTo,
-      type,
-    });
-
-    return sendJson(res, 201, created);
-  }
-
-  // PUT /api/certificates/:id  (EDIT)
-  if (req.method === "PUT" && segments.length === 3) {
-    const id = segments[2];
-    if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid id" });
-
-    const body = await readJsonBody(req);
-
-    const updates = {};
-
-    if (body.title !== undefined) updates.title = String(body.title).trim();
-    if (body.issueDate !== undefined) updates.issueDate = String(body.issueDate).trim();
-    if (body.issuer !== undefined) updates.issuer = String(body.issuer).trim();
-    if (body.issuedTo !== undefined) updates.issuedTo = String(body.issuedTo).trim();
-    if (body.type !== undefined) updates.type = String(body.type).trim();
-
-    // validation
-    if (updates.title !== undefined && !updates.title) return sendJson(res, 400, { message: "Title is required." });
-    if (updates.issuer !== undefined && !updates.issuer) return sendJson(res, 400, { message: "Issuer is required." });
-    if (updates.issuedTo !== undefined && !updates.issuedTo) return sendJson(res, 400, { message: "IssuedTo is required." });
-    if (updates.type !== undefined && !updates.type) return sendJson(res, 400, { message: "Type is required." });
-
-    if (updates.issueDate !== undefined) {
-      if (!updates.issueDate) return sendJson(res, 400, { message: "Issue date is required." });
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(updates.issueDate)) {
-        return sendJson(res, 400, { message: "Issue date must be YYYY-MM-DD" });
+    // ===========================
+    // CERTIFICATES
+    // Base: /api/certificates
+    // ===========================
+    if (segments[0] === "api" && segments[1] === "certificates") {
+      // GET /api/certificates
+      if (req.method === "GET" && segments.length === 2) {
+        const items = await Certificate.find()
+          .sort({ createdAt: -1 })
+          .lean();
+        return sendJson(res, 200, items);
       }
+
+      // POST /api/certificates
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
+
+        const title = String(body.title || "").trim();
+        const issueDate = String(body.issueDate || "").trim();
+        const issuer = String(body.issuer || "").trim();
+        const issuedTo = String(body.issuedTo || "").trim();
+        const type = String(body.type || "").trim();
+
+        if (!title || !issueDate || !issuer || !issuedTo || !type) {
+          return sendJson(res, 400, { message: "All fields are required." });
+        }
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(issueDate)) {
+          return sendJson(res, 400, {
+            message: "Issue date must be YYYY-MM-DD",
+          });
+        }
+
+        const created = await Certificate.create({
+          title,
+          issueDate,
+          issuer,
+          issuedTo,
+          type,
+        });
+
+        return sendJson(res, 201, created);
+      }
+
+      // PUT /api/certificates/:id
+      if (req.method === "PUT" && segments.length === 3) {
+        const id = segments[2];
+        if (!isValidObjectId(id))
+          return sendJson(res, 400, { message: "Invalid id" });
+
+        const body = await readJsonBody(req);
+        const updates = {};
+
+        if (body.title !== undefined)
+          updates.title = String(body.title).trim();
+        if (body.issueDate !== undefined)
+          updates.issueDate = String(body.issueDate).trim();
+        if (body.issuer !== undefined)
+          updates.issuer = String(body.issuer).trim();
+        if (body.issuedTo !== undefined)
+          updates.issuedTo = String(body.issuedTo).trim();
+        if (body.type !== undefined)
+          updates.type = String(body.type).trim();
+
+        if (updates.title !== undefined && !updates.title)
+          return sendJson(res, 400, { message: "Title is required." });
+        if (updates.issuer !== undefined && !updates.issuer)
+          return sendJson(res, 400, { message: "Issuer is required." });
+        if (updates.issuedTo !== undefined && !updates.issuedTo)
+          return sendJson(res, 400, { message: "IssuedTo is required." });
+        if (updates.type !== undefined && !updates.type)
+          return sendJson(res, 400, { message: "Type is required." });
+
+        if (updates.issueDate !== undefined) {
+          if (!updates.issueDate)
+            return sendJson(res, 400, {
+              message: "Issue date is required.",
+            });
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(updates.issueDate)) {
+            return sendJson(res, 400, {
+              message: "Issue date must be YYYY-MM-DD",
+            });
+          }
+        }
+
+        const updated = await Certificate.findByIdAndUpdate(id, updates, {
+          new: true,
+          runValidators: true,
+        }).lean();
+
+        if (!updated)
+          return sendJson(res, 404, { message: "Certificate not found" });
+
+        return sendJson(res, 200, {
+          message: "Certificate updated",
+          certificate: updated,
+        });
+      }
+
+      // DELETE /api/certificates/:id
+      if (req.method === "DELETE" && segments.length === 3) {
+        const id = segments[2];
+        if (!isValidObjectId(id))
+          return sendJson(res, 400, { message: "Invalid id" });
+
+        const deleted = await Certificate.findByIdAndDelete(id).lean();
+        if (!deleted)
+          return sendJson(res, 404, { message: "Certificate not found" });
+
+        return sendJson(res, 200, {
+          message: "Certificate deleted",
+          certificate: deleted,
+        });
+      }
+
+      return sendJson(res, 404, { message: "Route not found" });
     }
 
-    const updated = await Certificate.findByIdAndUpdate(id, updates, {
-      new: true,
-      runValidators: true,
-    }).lean();
-
-    if (!updated) return sendJson(res, 404, { message: "Certificate not found" });
-
-    return sendJson(res, 200, { message: "Certificate updated", certificate: updated });
-  }
-
-  // DELETE /api/certificates/:id
-  if (req.method === "DELETE" && segments.length === 3) {
-    const id = segments[2];
-    if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid id" });
-
-    const deleted = await Certificate.findByIdAndDelete(id).lean();
-    if (!deleted) return sendJson(res, 404, { message: "Certificate not found" });
-
-    return sendJson(res, 200, { message: "Certificate deleted", certificate: deleted });
-  }
-
-  return sendJson(res, 404, { message: "Route not found" });
-}  // ===========================
-    // EVENTS ✅ NEW
+    // ===========================
+    // EVENTS
     // ===========================
     if (req.method === "GET" && path === "/api/events") {
       const items = await Event.find().sort({ createdAt: -1 }).lean();
@@ -352,7 +385,7 @@ if (segments[0] === "api" && segments[1] === "certificates") {
     }
 
     // ===========================
-    // REWARDS ✅ NEW
+    // REWARDS
     // ===========================
     if (req.method === "GET" && path === "/api/rewards") {
       const items = await Reward.find().sort({ createdAt: -1 }).lean();
@@ -393,7 +426,7 @@ if (segments[0] === "api" && segments[1] === "certificates") {
       const body = await readJsonBody(req);
 
       const text = (body.text || "").trim();
-      const type = (body.type || "").trim(); // do/dont
+      const type = (body.type || "").trim();
       const category = (body.category || "general").trim();
       const tags = Array.isArray(body.tags) ? body.tags : [];
 
@@ -417,13 +450,12 @@ if (segments[0] === "api" && segments[1] === "certificates") {
     }
 
     if (req.method === "PUT" && path.startsWith("/api/guidelines/")) {
-      const id = segments[2]; // ["api","guidelines",":id"]
+      const id = segments[2];
       if (!id) return sendJson(res, 404, { message: "Route not found" });
       if (!isValidObjectId(id))
         return sendJson(res, 400, { message: "Invalid id" });
 
       const body = await readJsonBody(req);
-
       const updates = {};
       if (body.text !== undefined) updates.text = String(body.text).trim();
       if (body.type !== undefined) updates.type = String(body.type).trim();
@@ -481,99 +513,94 @@ if (segments[0] === "api" && segments[1] === "certificates") {
       }
 
       // POST /api/campaigns
-if (req.method === "POST" && segments.length === 2) {
-  const body = await readJsonBody(req);
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
 
-  if (!body.name) return sendJson(res, 400, { message: "name is required" });
-  if (!body.startDate) return sendJson(res, 400, { message: "startDate is required" });
-  if (!body.endDate) return sendJson(res, 400, { message: "endDate is required" });
-  if (!body.utmCampaign) return sendJson(res, 400, { message: "utmCampaign is required" });
+        if (!body.name)
+          return sendJson(res, 400, { message: "name is required" });
+        if (!body.startDate)
+          return sendJson(res, 400, { message: "startDate is required" });
+        if (!body.endDate)
+          return sendJson(res, 400, { message: "endDate is required" });
+        if (!body.utmCampaign)
+          return sendJson(res, 400, { message: "utmCampaign is required" });
 
-  const created = await Campaign.create({
-    name: String(body.name).trim(),
-    description: String(body.description || "").trim(),
-    platform: String(body.platform || "Instagram").trim(),
-    targetAudience: String(body.targetAudience || "").trim(),
-    goals: String(body.goals || "").trim(),
+        const created = await Campaign.create({
+          name: String(body.name).trim(),
+          description: String(body.description || "").trim(),
+          platform: String(body.platform || "Instagram").trim(),
+          targetAudience: String(body.targetAudience || "").trim(),
+          goals: String(body.goals || "").trim(),
+          budget: Number(body.budget || 0),
+          spent: Number(body.spent || 0),
+          startDate: new Date(body.startDate),
+          endDate: new Date(body.endDate),
+          assignedCreators: Array.isArray(body.assignedCreators)
+            ? body.assignedCreators
+            : [],
+          utmCampaign: String(body.utmCampaign).trim().toLowerCase(),
+          status: "active",
+        });
 
-    // ✅ SAVE budget/spent
-    budget: Number(body.budget || 0),
-    spent: Number(body.spent || 0),
-
-    startDate: new Date(body.startDate),
-    endDate: new Date(body.endDate),
-
-    assignedCreators: Array.isArray(body.assignedCreators) ? body.assignedCreators : [],
-
-    utmCampaign: String(body.utmCampaign).trim().toLowerCase(),
-    status: "active",
-  });
-
-  return sendJson(res, 201, created);
-}
+        return sendJson(res, 201, created);
+      }
 
       // /api/campaigns/:id
       const id = segments[2];
       if (!id) return sendJson(res, 404, { message: "Route not found" });
-      if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid id" });
+      if (!isValidObjectId(id))
+        return sendJson(res, 400, { message: "Invalid id" });
 
       // GET /api/campaigns/:id
       if (req.method === "GET" && segments.length === 3) {
         const doc = await Campaign.findById(id).lean();
-        if (!doc) return sendJson(res, 404, { message: "Campaign not found" });
+        if (!doc)
+          return sendJson(res, 404, { message: "Campaign not found" });
         return sendJson(res, 200, doc);
       }
 
       // PUT /api/campaigns/:id
-if (req.method === "PUT" && segments.length === 3) {
-  const body = await readJsonBody(req);
+      if (req.method === "PUT" && segments.length === 3) {
+        const body = await readJsonBody(req);
+        const updates = {};
 
-  const updates = {};
+        if (body.name !== undefined) updates.name = String(body.name).trim();
+        if (body.description !== undefined)
+          updates.description = String(body.description).trim();
+        if (body.platform !== undefined)
+          updates.platform = String(body.platform).trim();
+        if (body.targetAudience !== undefined)
+          updates.targetAudience = String(body.targetAudience).trim();
+        if (body.goals !== undefined)
+          updates.goals = String(body.goals).trim();
+        if (body.budget !== undefined) updates.budget = Number(body.budget);
+        if (body.spent !== undefined) updates.spent = Number(body.spent);
+        if (body.startDate !== undefined)
+          updates.startDate = new Date(body.startDate);
+        if (body.endDate !== undefined)
+          updates.endDate = new Date(body.endDate);
+        if (body.assignedCreators !== undefined)
+          updates.assignedCreators = Array.isArray(body.assignedCreators)
+            ? body.assignedCreators
+            : [];
+        if (body.utmCampaign !== undefined)
+          updates.utmCampaign = String(body.utmCampaign)
+            .trim()
+            .toLowerCase();
 
-  if (body.name !== undefined) updates.name = String(body.name).trim();
-  if (body.description !== undefined) updates.description = String(body.description).trim();
+        const updated = await Campaign.findByIdAndUpdate(id, updates, {
+          new: true,
+          runValidators: true,
+        }).lean();
 
-  if (body.platform !== undefined) updates.platform = String(body.platform).trim();
+        if (!updated)
+          return sendJson(res, 404, { message: "Campaign not found" });
 
-  if (body.targetAudience !== undefined)
-    updates.targetAudience = String(body.targetAudience).trim();
-
-  if (body.goals !== undefined) updates.goals = String(body.goals).trim();
-
-  // ✅ FIXED: budget & spent
-  if (body.budget !== undefined)
-    updates.budget = Number(body.budget);
-
-  if (body.spent !== undefined)
-    updates.spent = Number(body.spent);
-
-  if (body.startDate !== undefined)
-    updates.startDate = new Date(body.startDate);
-
-  if (body.endDate !== undefined)
-    updates.endDate = new Date(body.endDate);
-
-  if (body.assignedCreators !== undefined)
-    updates.assignedCreators = Array.isArray(body.assignedCreators)
-      ? body.assignedCreators
-      : [];
-
-  if (body.utmCampaign !== undefined)
-    updates.utmCampaign = String(body.utmCampaign).trim().toLowerCase();
-
-  const updated = await Campaign.findByIdAndUpdate(id, updates, {
-    new: true,
-    runValidators: true,
-  }).lean();
-
-  if (!updated)
-    return sendJson(res, 404, { message: "Campaign not found" });
-
-  return sendJson(res, 200, {
-    message: "Campaign updated successfully",
-    campaign: updated,
-  });
-}
+        return sendJson(res, 200, {
+          message: "Campaign updated successfully",
+          campaign: updated,
+        });
+      }
 
       // DELETE /api/campaigns/:id (archive)
       if (req.method === "DELETE" && segments.length === 3) {
@@ -583,7 +610,8 @@ if (req.method === "PUT" && segments.length === 3) {
           { new: true }
         ).lean();
 
-        if (!updated) return sendJson(res, 404, { message: "Campaign not found" });
+        if (!updated)
+          return sendJson(res, 404, { message: "Campaign not found" });
 
         return sendJson(res, 200, {
           message: "Campaign archived successfully",
@@ -595,12 +623,13 @@ if (req.method === "PUT" && segments.length === 3) {
     }
 
     // =========================================================
-    // ROI ROUTES (Sub-issue #158) - NO EXPRESS
+    // ROI ROUTES (Sub-issue #158)
     // Base: /api/roi/...
     // =========================================================
     if (segments[0] === "api" && segments[1] === "roi") {
-      const campaignId = segments[2]; // /api/roi/:campaignId
-      if (!campaignId) return sendJson(res, 404, { message: "Route not found" });
+      const campaignId = segments[2];
+      if (!campaignId)
+        return sendJson(res, 404, { message: "Route not found" });
       if (!isValidObjectId(campaignId))
         return sendJson(res, 400, { message: "Invalid campaignId" });
 
@@ -627,10 +656,15 @@ if (req.method === "PUT" && segments.length === 3) {
           },
         ]);
 
-        const totals = rows[0] || { spend: 0, revenue: 0, clicks: 0, conversions: 0 };
+        const totals = rows[0] || {
+          spend: 0,
+          revenue: 0,
+          clicks: 0,
+          conversions: 0,
+        };
         const profit = totals.revenue - totals.spend;
-        //formula
-        const roiPct = totals.spend === 0 ? 0 : (profit / totals.spend) * 100;
+        const roiPct =
+          totals.spend === 0 ? 0 : (profit / totals.spend) * 100;
 
         return sendJson(res, 200, {
           campaignId,
@@ -647,7 +681,11 @@ if (req.method === "PUT" && segments.length === 3) {
       }
 
       // GET /api/roi/:campaignId/timeseries?days=7
-      if (req.method === "GET" && segments.length === 4 && segments[3] === "timeseries") {
+      if (
+        req.method === "GET" &&
+        segments.length === 4 &&
+        segments[3] === "timeseries"
+      ) {
         const days = safeNumber(query.days, 7);
         const { from, to } = dateRangeDays(days);
 
@@ -684,7 +722,11 @@ if (req.method === "PUT" && segments.length === 3) {
       }
 
       // POST /api/roi/:campaignId/ingest
-      if (req.method === "POST" && segments.length === 4 && segments[3] === "ingest") {
+      if (
+        req.method === "POST" &&
+        segments.length === 4 &&
+        segments[3] === "ingest"
+      ) {
         const body = await readJsonBody(req);
 
         const day = String(body.day || yyyyMmDd()).slice(0, 10);
@@ -708,7 +750,7 @@ if (req.method === "PUT" && segments.length === 3) {
     }
 
     // =========================================================
-    // REFERRALS CRUD (your ReferralList uses /api/referrals)
+    // REFERRALS CRUD
     // =========================================================
     if (segments[0] === "api" && segments[1] === "referrals") {
       // GET /api/referrals
@@ -716,14 +758,10 @@ if (req.method === "PUT" && segments.length === 3) {
         const referrals = await Referral.find()
           .populate({
             path: "referralCodeId",
-            populate: {
-              path: "userId",
-              model: "UserProfile",
-              
-            },
+            populate: { path: "userId", model: "UserProfile" },
           })
-          .populate("refereeUUID") // Populate RefereeUu details
-          .populate("referrerUUID") // Populate ReferralUu details
+          .populate("refereeUUID")
+          .populate("referrerUUID")
           .lean()
           .sort({ createdAt: -1 });
         return sendJson(res, 200, referrals);
@@ -739,7 +777,6 @@ if (req.method === "PUT" && segments.length === 3) {
         });
       }
 
-      // /api/referrals/:id
       const id = segments[2];
       if (!id) return sendJson(res, 404, { message: "Route not found" });
       if (!isValidObjectId(id))
@@ -750,16 +787,13 @@ if (req.method === "PUT" && segments.length === 3) {
         const doc = await Referral.findById(id)
           .populate({
             path: "referralCodeId",
-            populate: {
-              path: "userId",
-              model: "UserProfile",
-              
-            },
+            populate: { path: "userId", model: "UserProfile" },
           })
-          .populate('refereeUUID') // Populate RefereeUu details
-          .populate('referrerUUID') // Populate ReferralUu details
+          .populate("refereeUUID")
+          .populate("referrerUUID")
           .lean();
-        if (!doc) return sendJson(res, 404, { message: "Referral not found" });
+        if (!doc)
+          return sendJson(res, 404, { message: "Referral not found" });
         return sendJson(res, 200, doc);
       }
 
@@ -794,12 +828,14 @@ if (req.method === "PUT" && segments.length === 3) {
     }
 
     // =========================================================
-    // REFERRAL CODE CRUD (your ReferralCodeList uses /api/referral-codes)
+    // REFERRAL CODES CRUD
     // =========================================================
     if (segments[0] === "api" && segments[1] === "referral-codes") {
       // GET /api/referral-codes
       if (req.method === "GET" && segments.length === 2) {
-        const referralCodes = await ReferralCode.find().sort({ createdAt: -1 }).lean();
+        const referralCodes = await ReferralCode.find()
+          .sort({ createdAt: -1 })
+          .lean();
         return sendJson(res, 200, referralCodes);
       }
 
@@ -813,7 +849,6 @@ if (req.method === "PUT" && segments.length === 3) {
         });
       }
 
-      // /api/referral-codes/:id
       const id = segments[2];
       if (!id) return sendJson(res, 404, { message: "Route not found" });
       if (!isValidObjectId(id))
@@ -822,7 +857,8 @@ if (req.method === "PUT" && segments.length === 3) {
       // GET /api/referral-codes/:id
       if (req.method === "GET" && segments.length === 3) {
         const doc = await ReferralCode.findById(id).lean();
-        if (!doc) return sendJson(res, 404, { message: "Referral Code not found" });
+        if (!doc)
+          return sendJson(res, 404, { message: "Referral Code not found" });
         return sendJson(res, 200, doc);
       }
 
@@ -857,13 +893,12 @@ if (req.method === "PUT" && segments.length === 3) {
     }
 
     // =========================================================
-    // UU ROUTES (NO EXPRESS)
+    // UU ROUTES
     // Base: /api/uu/...
     // =========================================================
     if (segments[0] === "api" && segments[1] === "uu") {
-      const group = segments[2]; // "referee" | "referral"
-      const action = segments[3]; // "overview" | "members" | ":id"
-
+      const group = segments[2];
+      const action = segments[3];
       const { from, to } = parseRange(query);
 
       // ---------- REFEREE ----------
@@ -892,17 +927,11 @@ if (req.method === "PUT" && segments.length === 3) {
               },
             },
           ]);
-          return sendJson(res, 200, {
-            count: members.length,
-            members,
-            from,
-            to,
-          });
+          return sendJson(res, 200, { count: members.length, members, from, to });
         }
 
         if (req.method === "GET" && segments.length === 4 && action) {
           const refereeId = action;
-
           const docs = await RefereeUu.find({
             refereeId,
             date: { $gte: from, $lte: to },
@@ -912,17 +941,11 @@ if (req.method === "PUT" && segments.length === 3) {
 
           const series = docs.map((d) => ({ date: d.date, uu: d.uu }));
           const summary = buildSummary(series);
-
-          return sendJson(res, 200, {
-            id: refereeId,
-            summary,
-            series,
-            from,
-            to,
-          });
+          return sendJson(res, 200, { id: refereeId, summary, series, from, to });
         }
       }
 
+      // ---------- REFERRAL ----------
       if (group === "referral") {
         if (req.method === "GET" && action === "overview") {
           const data = await ReferralUu.aggregate([
@@ -963,17 +986,11 @@ if (req.method === "PUT" && segments.length === 3) {
             name: profileMap.get(String(x._id)) || x._id,
           }));
 
-          return sendJson(res, 200, {
-            count: members.length,
-            members,
-            from,
-            to,
-          });
+          return sendJson(res, 200, { count: members.length, members, from, to });
         }
 
         if (req.method === "GET" && segments.length === 4 && action) {
           const referralId = action;
-
           const docs = await ReferralUu.find({
             referralId,
             date: { $gte: from, $lte: to },
@@ -1001,105 +1018,103 @@ if (req.method === "PUT" && segments.length === 3) {
       }
 
       return sendJson(res, 404, { message: "Route not found" });
-    }   
+    }
+
     // =========================================================
-// NOTIFICATIONS API
-// Base: /api/notifications
-// =========================================================
-if (segments[0] === "api" && segments[1] === "notifications") {
-  const id = segments[2] || null;
+    // NOTIFICATIONS API
+    // Base: /api/notifications
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "notifications") {
+      const id = segments[2] || null;
 
-  if (req.method === "GET" && segments.length === 2) {
-    const userId = query.userId || null;
+      if (req.method === "GET" && segments.length === 2) {
+        const userId = query.userId || null;
+        const notifications = await Notification.find({
+          $or: [{ userId: null }, { userId }],
+        })
+          .sort({ createdAt: -1 })
+          .lean();
+        return sendJson(res, 200, notifications);
+      }
 
-    const notifications = await Notification.find({
-      $or: [{ userId: null }, { userId }],
-    })
-      .sort({ createdAt: -1 })
-      .lean();
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
+        if (!body.title || !body.message) {
+          return sendJson(res, 400, {
+            message: "title and message are required",
+          });
+        }
+        const created = await Notification.create({
+          userId: body.userId || null,
+          title: String(body.title).trim(),
+          message: String(body.message).trim(),
+          type: body.type || "info",
+          isRead: false,
+        });
+        return sendJson(res, 201, created);
+      }
 
-    return sendJson(res, 200, notifications);
-  }
+      if (req.method === "PATCH" && segments.length === 3 && id) {
+        if (!isValidObjectId(id))
+          return sendJson(res, 400, { message: "Invalid id" });
 
-  if (req.method === "POST" && segments.length === 2) {
-    const body = await readJsonBody(req);
+        const updated = await Notification.findByIdAndUpdate(
+          id,
+          { isRead: true },
+          { new: true }
+        ).lean();
 
-    if (!body.title || !body.message) {
-      return sendJson(res, 400, { message: "title and message are required" });
+        if (!updated)
+          return sendJson(res, 404, { message: "Notification not found" });
+        return sendJson(res, 200, updated);
+      }
+
+      if (req.method === "DELETE" && segments.length === 3 && id) {
+        if (!isValidObjectId(id))
+          return sendJson(res, 400, { message: "Invalid id" });
+
+        const deleted = await Notification.findByIdAndDelete(id).lean();
+        if (!deleted)
+          return sendJson(res, 404, { message: "Notification not found" });
+        return sendJson(res, 200, { message: "Deleted successfully" });
+      }
+
+      return sendJson(res, 404, { message: "Route not found" });
     }
-
-    const created = await Notification.create({
-      userId: body.userId || null,
-      title: String(body.title).trim(),
-      message: String(body.message).trim(),
-      type: body.type || "info",
-      isRead: false,
-    });
-
-    return sendJson(res, 201, created);
-  }
-
-  if (req.method === "PATCH" && segments.length === 3 && id) {
-    if (!isValidObjectId(id)) {
-      return sendJson(res, 400, { message: "Invalid id" });
-    }
-
-    const updated = await Notification.findByIdAndUpdate(
-      id,
-      { isRead: true },
-      { new: true }
-    ).lean();
-
-    if (!updated) return sendJson(res, 404, { message: "Notification not found" });
-    return sendJson(res, 200, updated);
-  }
-
-  if (req.method === "DELETE" && segments.length === 3 && id) {
-    if (!isValidObjectId(id)) {
-      return sendJson(res, 400, { message: "Invalid id" });
-    }
-
-    const deleted = await Notification.findByIdAndDelete(id).lean();
-    if (!deleted) return sendJson(res, 404, { message: "Notification not found" });
-    return sendJson(res, 200, { message: "Deleted successfully" });
-  }
-
-  return sendJson(res, 404, { message: "Route not found" });
-} 
 
     // =========================================================
     // COMMUNITY FEED / POSTS
     // Base: /api/posts
     // =========================================================
     if (segments[0] === "api" && segments[1] === "posts") {
-      
-      // GET /api/posts (Fetch feed with Pagination)
+      // GET /api/posts
       if (req.method === "GET" && segments.length === 2) {
         const sort = query.sort || "newest";
         const page = parseInt(query.page) || 1;
-        const limit = 5; // Load 5 posts at a time
+        const limit = 5;
         const skip = (page - 1) * limit;
 
         let sortQuery = { createdAt: -1 };
         if (sort === "popular") sortQuery = { likes: -1, createdAt: -1 };
 
-        const posts = await Post.find().sort(sortQuery).skip(skip).limit(limit);
+        const posts = await Post.find()
+          .sort(sortQuery)
+          .skip(skip)
+          .limit(limit);
         const totalPosts = await Post.countDocuments();
-        const hasMore = totalPosts > skip + posts.length; // Check if there are more posts left
+        const hasMore = totalPosts > skip + posts.length;
 
         return sendJson(res, 200, { success: true, posts, hasMore });
       }
 
-      // POST /api/posts (Create a post)
+      // POST /api/posts
       if (req.method === "POST" && segments.length === 2) {
         const body = await readJsonBody(req);
-        
-        // Using a dummy user ID for now
         const newPost = await Post.create({
-          user: "650000000000000000000000", 
+          user: "650000000000000000000000",
           caption: body.caption,
           mediaType: body.mediaType || "none",
-          mediaUrl: body.mediaUrl || null, // Ensure we save the mock URL!
+          mediaUrl: body.mediaUrl || null,
           hashtags: body.hashtags || [],
         });
         return sendJson(res, 201, { success: true, post: newPost });
@@ -1107,25 +1122,31 @@ if (segments[0] === "api" && segments[1] === "notifications") {
 
       const postId = segments[2];
       if (!postId) return sendJson(res, 404, { message: "Route not found" });
-      if (!isValidObjectId(postId)) return sendJson(res, 400, { message: "Invalid post id" });
+      if (!isValidObjectId(postId))
+        return sendJson(res, 400, { message: "Invalid post id" });
 
-      // ✅ NEW: DELETE /api/posts/:id (Delete a post)
+      // DELETE /api/posts/:id
       if (req.method === "DELETE" && segments.length === 3) {
         const deletedPost = await Post.findByIdAndDelete(postId);
-        if (!deletedPost) return sendJson(res, 404, { message: "Post not found" });
-        
-        // Cleanup: Delete all comments associated with this post
+        if (!deletedPost)
+          return sendJson(res, 404, { message: "Post not found" });
         await Comment.deleteMany({ post: postId });
-        
-        return sendJson(res, 200, { success: true, message: "Post deleted successfully" });
+        return sendJson(res, 200, {
+          success: true,
+          message: "Post deleted successfully",
+        });
       }
 
       // POST /api/posts/:id/like
-      if (req.method === "POST" && segments.length === 4 && segments[3] === "like") {
+      if (
+        req.method === "POST" &&
+        segments.length === 4 &&
+        segments[3] === "like"
+      ) {
         const post = await Post.findById(postId);
         if (!post) return sendJson(res, 404, { message: "Post not found" });
 
-        const userId = "650000000000000000000000"; // Dummy user ID
+        const userId = "650000000000000000000000";
         const hasLiked = post.likes.includes(userId);
 
         if (hasLiked) {
@@ -1134,147 +1155,157 @@ if (segments[0] === "api" && segments[1] === "notifications") {
           post.likes.push(userId);
         }
         await post.save();
-        return sendJson(res, 200, { success: true, likes: post.likes.length, hasLiked: !hasLiked });
+        return sendJson(res, 200, {
+          success: true,
+          likes: post.likes.length,
+          hasLiked: !hasLiked,
+        });
       }
 
       // POST /api/posts/:id/comment
-      if (req.method === "POST" && segments.length === 4 && segments[3] === "comment") {
+      if (
+        req.method === "POST" &&
+        segments.length === 4 &&
+        segments[3] === "comment"
+      ) {
         const body = await readJsonBody(req);
         const newComment = await Comment.create({
           post: postId,
-          user: "650000000000000000000000", // Dummy user ID
-          text: body.text
+          user: "650000000000000000000000",
+          text: body.text,
         });
         return sendJson(res, 201, { success: true, comment: newComment });
       }
 
       // GET /api/posts/:id/comment
-      if (req.method === "GET" && segments.length === 4 && segments[3] === "comment") {
-        const comments = await Comment.find({ post: postId }).sort({ createdAt: -1 });
+      if (
+        req.method === "GET" &&
+        segments.length === 4 &&
+        segments[3] === "comment"
+      ) {
+        const comments = await Comment.find({ post: postId }).sort({
+          createdAt: -1,
+        });
         return sendJson(res, 200, { success: true, comments });
       }
 
       // POST /api/posts/:id/report
-      if (req.method === "POST" && segments.length === 4 && segments[3] === "report") {
+      if (
+        req.method === "POST" &&
+        segments.length === 4 &&
+        segments[3] === "report"
+      ) {
         await Post.findByIdAndUpdate(postId, { $inc: { reportCount: 1 } });
-        return sendJson(res, 200, { success: true, message: "Post reported" });
+        return sendJson(res, 200, {
+          success: true,
+          message: "Post reported",
+        });
       }
 
       return sendJson(res, 404, { message: "Route not found" });
     }
+
     // ===========================
-// HEALTH 
-// ===========================
-if (req.method === "GET" && path === "/health") {
-  return sendJson(res, 200, { status: "OK" });
-}
-// =========================================================
-// MILESTONE TYPES API
-// Base: /api/milestone-types
-// =========================================================
-if (segments[0] === "api" && segments[1] === "milestone-types") {
-
-  // =========================
-  // GET /api/milestone-types
-  // Returns all milestone types
-  // =========================
-  if (req.method === "GET" && segments.length === 2) {
-    const items = await MilestoneType.find()
-      .sort({ createdAt: -1 })
-      .lean();
-
-    return sendJson(res, 200, items);
-  }
-
-  // =========================
-  //  POST /api/milestone-types
-  // Creates a new milestone type
-  // =========================
-  if (req.method === "POST" && segments.length === 2) {
-    const body = await readJsonBody(req);
-
-    // Validation
-    if (!body.title || !body.metric || !body.computeMethod) {
-      return sendJson(res, 400, {
-        message: "title, metric, computeMethod are required",
-      });
+    // HEALTH
+    // ===========================
+    if (req.method === "GET" && path === "/health") {
+      return sendJson(res, 200, { status: "OK" });
     }
 
-    const created = await MilestoneType.create({
-      title: String(body.title).trim(),
-      description: String(body.description || "").trim(),
-      category: String(body.category || "general").trim(),
-      metric: String(body.metric).trim(),
-      computeMethod: String(body.computeMethod).trim(),
-      goal: Number(body.goal || 0),
-      rewardPoints: Number(body.rewardPoints || 0),
-      isActive: body.isActive !== undefined ? !!body.isActive : true,
-      period: String(body.period || "lifetime").trim(),
-      scope: String(body.scope || "global").trim(),
-      scopeValue: body.scopeValue ?? null,
-      slots: Number(body.slots || 1),
-      version: Number(body.version || 1),
-      updatedBy: body.updatedBy ?? null,
-    });
+    // =========================================================
+    // MILESTONE TYPES API
+    // Base: /api/milestone-types
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "milestone-types") {
+      if (req.method === "GET" && segments.length === 2) {
+        const items = await MilestoneType.find()
+          .sort({ createdAt: -1 })
+          .lean();
+        return sendJson(res, 200, items);
+      }
 
-    return sendJson(res, 201, created);
-  }
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
 
-  return sendJson(res, 404, { message: "Route not found" });
-}
+        if (!body.title || !body.metric || !body.computeMethod) {
+          return sendJson(res, 400, {
+            message: "title, metric, computeMethod are required",
+          });
+        }
 
+        const created = await MilestoneType.create({
+          title: String(body.title).trim(),
+          description: String(body.description || "").trim(),
+          category: String(body.category || "general").trim(),
+          metric: String(body.metric).trim(),
+          computeMethod: String(body.computeMethod).trim(),
+          goal: Number(body.goal || 0),
+          rewardPoints: Number(body.rewardPoints || 0),
+          isActive: body.isActive !== undefined ? !!body.isActive : true,
+          period: String(body.period || "lifetime").trim(),
+          scope: String(body.scope || "global").trim(),
+          scopeValue: body.scopeValue ?? null,
+          slots: Number(body.slots || 1),
+          version: Number(body.version || 1),
+          updatedBy: body.updatedBy ?? null,
+        });
 
-// =========================================================
-// USER MILESTONES API
-// Base: /api/user-milestones
-// =========================================================
-if (segments[0] === "api" && segments[1] === "user-milestones") {
-  const creatorId = segments[2];
+        return sendJson(res, 201, created);
+      }
 
-  // =========================
-  // GET /api/user-milestones/:creatorId
-  // Returns milestones for a specific user
-  // =========================
-  if (req.method === "GET" && segments.length === 3 && creatorId) {
-    const items = await UserMilestone.find({ creatorId })
-      .populate("milestoneTypeId")
-      .sort({ createdAt: -1 })
-      .lean();
+      return sendJson(res, 404, { message: "Route not found" });
+    }
 
-    return sendJson(res, 200, items);
-  }
+    // =========================================================
+    // USER MILESTONES API
+    // Base: /api/user-milestones
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "user-milestones") {
+      const creatorId = segments[2];
 
-  // No POST here yet
-  // (User milestones are not being created via API yet)
+      if (req.method === "GET" && segments.length === 3 && creatorId) {
+        const items = await UserMilestone.find({ creatorId })
+          .populate("milestoneTypeId")
+          .sort({ createdAt: -1 })
+          .lean();
+        return sendJson(res, 200, items);
+      }
 
-  return sendJson(res, 404, { message: "Route not found" });
-}
-// =========================================================
-// LEADERBOARDS API (DEMO DATA)
-// Base: /api/leaderboards
-// =========================================================
-if (segments[0] === "api" && segments[1] === "leaderboards") {
+      return sendJson(res, 404, { message: "Route not found" });
+    }
 
-  // GET /api/leaderboards/best-creators-month
-  if (req.method === "GET" && segments[2] === "best-creators-month") {
-    return sendJson(res, 200, [
-      { creatorId: "u1", name: "Creator A", points: 1000, clicks: 120, leads: 12 },
-      { creatorId: "u2", name: "Creator B", points: 850, clicks: 95, leads: 8 },
-      { creatorId: "u3", name: "Creator C", points: 700, clicks: 70, leads: 5 },
-    ]);
-  }
+    // =========================================================
+    // LEADERBOARDS API
+    // Base: /api/leaderboards
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "leaderboards") {
+      // GET /api/leaderboards/best-creators-month
+      if (
+        req.method === "GET" &&
+        segments[2] === "best-creators-month"
+      ) {
+        return sendJson(res, 200, [
+          { creatorId: "u1", name: "Creator A", points: 1000, clicks: 120, leads: 12 },
+          { creatorId: "u2", name: "Creator B", points: 850,  clicks: 95,  leads: 8  },
+          { creatorId: "u3", name: "Creator C", points: 700,  clicks: 70,  leads: 5  },
+        ]);
+      }
 
-  // GET /api/leaderboards/best-creator-by-city?cities=Berlin,Düsseldorf
-  if (req.method === "GET" && segments[2] === "best-creator-by-city") {
-    return sendJson(res, 200, {
-      Berlin: { creatorId: "u10", name: "Berlin Winner", points: 800, clicks: 50, leads: 6 },
-      Düsseldorf: { creatorId: "u20", name: "Düsseldorf Winner", points: 750, clicks: 45, leads: 5 },
-    });
-  }
+      // GET /api/leaderboards/best-creator-by-city
+      if (
+        req.method === "GET" &&
+        segments[2] === "best-creator-by-city"
+      ) {
+        return sendJson(res, 200, {
+          Berlin: { creatorId: "u10", name: "Berlin Winner", points: 800, clicks: 50, leads: 6 },
+          Düsseldorf: { creatorId: "u20", name: "Düsseldorf Winner", points: 750, clicks: 45, leads: 5 },
+        });
+      }
 
-  return sendJson(res, 404, { message: "Route not found" });
-}
-    // FINAL CATCH-ALL 404 (This MUST be at the end, not above the posts block!)
+      return sendJson(res, 404, { message: "Route not found" });
+    }
+
+    // FINAL CATCH-ALL 404
     return sendJson(res, 404, { message: "Route not found" });
 
   } catch (err) {
@@ -1282,6 +1313,13 @@ if (segments[0] === "api" && segments[1] === "leaderboards") {
     return sendJson(res, 500, { message: "Server error" });
   }
 });
+
+// ─── REMOVED: app.use() calls that caused "app is not defined" error ──────────
+// This server uses raw http.createServer, NOT Express.
+// All routes are handled inside the http.createServer block above.
+// app.use('/api/leaderboard', leaderboardRoutes);  ← DELETED
+// app.use('/api/events',      eventsRoutes);        ← DELETED
+// app.use('/api/creators',    creatorsRoutes);      ← DELETED
 
 // ---------------- connect & listen ----------------
 mongoose
@@ -1296,29 +1334,25 @@ mongoose
     // =========================================================
     // DYNAMIC ROI DATA GENERATOR (Sub-issue #158.3)
     // Inserts/upserts metrics every 2 minutes
-    // Later replace with real Meta/Shopify/API ingestion
     // =========================================================
     setInterval(async () => {
       try {
         const day = yyyyMmDd(new Date());
 
-        // Only active campaigns
         const campaigns = await Campaign.find({ status: "active" })
           .select("_id platforms")
           .lean();
 
         for (const c of campaigns) {
-          // pick a platform name (your campaigns use "platforms" array)
           const platform =
             Array.isArray(c.platforms) && c.platforms.length
               ? String(c.platforms[0])
               : "unknown";
 
-          // random demo increments (dynamic)
-          const spend = Math.round(Math.random() * 200); // 0..200
-          const revenue = Math.round(Math.random() * 500); // 0..500
-          const clicks = Math.round(Math.random() * 120); // 0..120
-          const conversions = Math.round(Math.random() * 10); // 0..10
+          const spend = Math.round(Math.random() * 200);
+          const revenue = Math.round(Math.random() * 500);
+          const clicks = Math.round(Math.random() * 120);
+          const conversions = Math.round(Math.random() * 10);
 
           await CampaignMetric.findOneAndUpdate(
             { campaignId: c._id, day, platform },
@@ -1327,10 +1361,12 @@ mongoose
           );
         }
 
-        console.log(`[ROI] metrics updated for ${campaigns.length} campaigns (${day})`);
+        console.log(
+          `[ROI] metrics updated for ${campaigns.length} campaigns (${day})`
+        );
       } catch (e) {
         console.error("[ROI] metric job failed:", e);
       }
-    }, 2 * 60 * 1000); // every 2 minutes
+    }, 2 * 60 * 1000);
   })
   .catch((err) => console.error("MongoDB connection error:", err));
