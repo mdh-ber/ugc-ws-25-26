@@ -188,10 +188,10 @@ function Register() {
  
           {/* Form */}
           <div className="grid md:grid-cols-2 gap-4">
-            <Input label="First Name" name="firstName" value={profile.firstName} onChange={handleChange} />
+            <Input label="First Name *" name="firstName" value={profile.firstName} onChange={handleChange} />
             <Input label="Last Name" name="lastName" value={profile.lastName} onChange={handleChange} />
  
-            <Input label="Primary Email (MDH)" name="primaryEmail" value={profile.primaryEmail} onChange={handleChange} />
+            <Input label="Primary Email (MDH) *" name="primaryEmail" value={profile.primaryEmail} onChange={handleChange} />
             <Input label="Secondary Email" name="secondaryEmail" value={profile.secondaryEmail} onChange={handleChange} />
  
             <Select label="Gender" name="gender" value={profile.gender} onChange={handleChange} />
@@ -200,11 +200,11 @@ function Register() {
             <Input label="City" name="city" value={profile.city} onChange={handleChange} />
             <Input label="Mobile (Optional)" name="mobile" value={profile.mobile} onChange={handleChange} />
  
-            <Input label="Joined Date (UGC Campaign)" name="joinedDate" value={profile.joinedDate} onChange={handleChange} />
+            <Input label="Joined Date (UGC Campaign)*" name="joinedDate" value={profile.joinedDate} onChange={handleChange} />
             <Input label="Enrolled Course" name="course" value={profile.course} onChange={handleChange} />
  
-            <Input label="Which Intake" name="intake" value={profile.intake} onChange={handleChange} />
-            <Input label="Primary Language" name="primaryLanguage" value={profile.primaryLanguage} onChange={handleChange} />
+            <Input label="Which Intake *" name="intake" value={profile.intake} onChange={handleChange} />
+            <Input label="Primary Language " name="primaryLanguage" value={profile.primaryLanguage} onChange={handleChange} />
           </div>
  
           {/* Socials */}
