@@ -1,4 +1,5 @@
 const Post = require("./models/Post");
+const Lead = require("./models/Lead");
 const Comment = require("./models/Comment");
 const http = require("http");
 const url = require("url");
@@ -13,8 +14,7 @@ const Guideline = require("./models/guideline.model");
 const Training = require("./models/Training");
 const Event = require("./models/Event");
 const Reward = require("./models/reward");
-const postRoutes = require("./routes/postRoutes");
-
+const leadRoutes = require("./routes/leadRoutes");
 const RefereeUu = require("./models/RefereeUu");
 const ReferralUu = require("./models/ReferralUu");
 const { Referral,ReferralCode } = require("./models/Referral");
@@ -171,6 +171,23 @@ const server = http.createServer(async (req, res) => {
       }
       return sendJson(res, 401, { message: "Invalid email or password" });
     }
+
+// ===========================
+// LEADS
+// ===========================
+if (req.method === "GET" && path.startsWith("/api/leads/track/")) {
+  const platform = decodeURIComponent(path.split("/").pop() || "").toLowerCase();
+  await Lead.create({ platform });
+  return sendJson(res, 200, { success: true, message: "Lead tracked successfully" });
+}
+
+if (req.method === "GET" && path === "/api/leads/stats") {
+  const stats = await Lead.aggregate([
+    { $group: { _id: "$platform", count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+  ]);
+  return sendJson(res, 200, stats);
+}
 
     //API VISIT TRACKING
 if (req.method === "POST" && path === "/api/visits/track"){
