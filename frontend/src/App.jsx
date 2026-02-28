@@ -20,6 +20,12 @@ import CertificatesPage from "./pages/CertificatesPage";
 import Milestones from "./pages/Milestones";
 import ReferralList from "./pages/ReferralList";
 import CreatorPerformanceDashboard from "./pages/CreatorPerformanceDashboard";
+<<<<<<< Updated upstream
+=======
+import ClicksPerCreator from "./pages/ClicksPerCreator";
+
+<Route path="/analytics" element={<ClicksPerCreator />} />
+>>>>>>> Stashed changes
 
 
 import WebsiteAnalytics from "./pages/WebsiteAnalytics";

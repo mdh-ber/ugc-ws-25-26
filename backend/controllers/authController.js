@@ -1,8 +1,19 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+<<<<<<< Updated upstream
 import User from "../models/user.model.js";
 import UserProfile from "../models/userProfile.model.js";
+=======
+<<<<<<< Updated upstream
+// ============================
+// REGISTER CONTROLLER
+// ============================
+async function register(req, res, readJsonBody, sendJson) {
+  console.log("hello--1");
+=======
+import User from "../models/user.model.js";
+>>>>>>> Stashed changes
 import PointsProfile from "../models/pointsProfile.model.js";
 
 // helper to sign JWT
@@ -21,6 +32,10 @@ const signToken = (user) =>
 // POST /api/auth/login
 // ======================
 const login = async (req, res) => {
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
   try {
     const email = (req.body.email || "").trim().toLowerCase();
     const password = (req.body.password || "").trim();
