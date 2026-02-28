@@ -1,16 +1,16 @@
 import axios from "axios";
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API_URL = "http://localhost:5000/api";
 
 export const getClicksPerCreator = async () => {
-  try {
-    const response = await axios.get(
-      `${API_BASE_URL}/api/analytics/clicks-per-creator`
-    );
+  const response = await axios.get(
+    `${API_URL}/analytics/clicks-per-creator`
+  );
+  return response.data;
+};
 
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching clicks per creator:", error);
-    throw error;
-  }
+export const getCreatorPerformance = async (creatorId) => {
+  const response = await axios.get(
+    `${API_URL}/analytics/creator-performance/${creatorId}`
+  );
+  return response.data;
 };

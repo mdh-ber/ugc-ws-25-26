@@ -4,6 +4,7 @@ const http = require("http");
 const url = require("url");
 const mongoose = require("mongoose");
 const crypto = require("crypto");
+const express = require("express");
 require("dotenv").config();
 
 const Feedback = require("./models/feedback.model");
@@ -12,7 +13,18 @@ const Guideline = require("./models/guideline.model");
 // ✅ IMPORTANT: these match your filenames in models folder
 const Training = require("./models/Training");
 const Event = require("./models/Event");
+<<<<<<< Updated upstream
 
+const Reward = require("./models/reward");
+const postRoutes = require("./routes/postRoutes");
+
+=======
+<<<<<<<<< Temporary merge branch 1
+=========
+const Reward = require("./models/reward");
+const postRoutes = require("./routes/postRoutes");
+>>>>>>>>> Temporary merge branch 2
+>>>>>>> Stashed changes
 
 const RefereeUu = require("./models/RefereeUu");
 const ReferralUu = require("./models/ReferralUu");
@@ -755,7 +767,96 @@ if (req.method === "PUT" && segments.length === 3) {
         });
       }
     }
+<<<<<<< Updated upstream
 
+<<<<<<< Updated upstream
+=======
+=======
+>>>>>>> Stashed changes
+// =========================================================
+// CLICK ANALYTICS (Marketing Manager Task)
+// =========================================================
+if (segments[0] === "api" && segments[1] === "analytics") {
+  if (req.method === "GET" && segments[2] === "clicks-per-creator") {
+    const Click = require("./models/Click");
+
+    const result = await Click.aggregate([
+      {
+        $group: {
+          _id: { creatorId: "$creatorId", platform: "$platform" },
+          clicks: { $sum: 1 },
+          totalReach: { $sum: "$reach" },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.creatorId",
+          platforms: {
+            $push: {
+              name: "$_id.platform",
+              clicks: "$clicks",
+              reach: "$totalReach",
+            },
+          },
+          totalClicks: { $sum: "$clicks" },
+        },
+      },
+      {
+        $project: {
+          creatorId: "$_id",
+          creatorName: "$_id",
+          totalClicks: 1,
+          platforms: 1,
+          _id: 0,
+        },
+      },
+      { $sort: { totalClicks: -1 } },
+    ]);
+
+    return sendJson(res, 200, result);
+  }
+}
+
+// =========================================================
+// AI SUGGESTIONS (Content Creator Task)
+// =========================================================
+if (segments[0] === "api" && segments[1] === "suggestions") {
+  const creatorId = segments[2];
+
+  if (req.method === "GET" && creatorId) {
+    const Click = require("./models/Click");
+    const totalClicks = await Click.countDocuments({ creatorId });
+
+    let suggestions = [];
+
+    if (totalClicks < 50) {
+      suggestions = [
+        "Post trending short-form videos",
+        "Collaborate with micro influencers",
+        "Use niche hashtags",
+      ];
+    } else if (totalClicks < 200) {
+      suggestions = [
+        "Create educational series",
+        "Increase posting frequency",
+        "Engage audience with polls",
+      ];
+    } else {
+      suggestions = [
+        "Launch brand collaboration",
+        "Start weekly live sessions",
+        "Run giveaway campaign",
+      ];
+    }
+
+    return sendJson(res, 200, { creatorId, suggestions });
+  }
+}
+<<<<<<< Updated upstream
+
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
     // =========================================================
     // UU ROUTES (NO EXPRESS)
     // Base: /api/uu/...
@@ -1058,4 +1159,7 @@ mongoose
       }
     }, 2 * 60 * 1000); // every 2 minutes
   })
+
   .catch((err) => console.error("MongoDB connection error:", err));
+
+    
