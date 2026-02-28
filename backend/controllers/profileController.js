@@ -1,5 +1,5 @@
-const Profile = require("../models/pointsProfile.model");
-
+const Profile1 = require("../models/pointsProfile.model");
+const Profile=reuire(":../models/userProfile.model");
 // ===== GET PROFILE =====
 exports.getProfile = async (req, res) => {
   try {

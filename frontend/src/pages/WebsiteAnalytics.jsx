@@ -28,12 +28,20 @@ export default function WebsiteAnalytics() {
     [token]
   );
 
+  // ✅ Base routes from your backend
   const API = useMemo(
     () => ({
+      // Visits router
       websiteTotals: "/api/visits/stats",
-      websiteTimeline: "/api/visits/timeline", // daily [{date,totalVisits,uniqueVisits}]
-      ugcVisits: "/api/analytics/ugc-visits",
+      websiteTimeline: "/api/visits/timeline",
       trackVisit: "/api/visits/track",
+
+      // If your backend serves this under visits/analytics instead, adjust here
+      ugcVisits: "/api/analytics/ugc-visits",
+
+      // Campaign + Creator routers (list endpoints vary; we try a few)
+      campaignsList: ["/api/campaign", "/api/campaign/list", "/api/campaign/all"],
+      creatorsList: ["/api/creator", "/api/creator/list", "/api/creator/all"],
     }),
     []
   );
@@ -60,7 +68,7 @@ export default function WebsiteAnalytics() {
   const [totalVisits, setTotalVisits] = useState(0);
   const [uniqueVisitors, setUniqueVisitors] = useState(0);
 
-  const [allDaily, setAllDaily] = useState([]); // [{dateISO,totalVisits,uniqueVisits}] daily increments
+  const [allDaily, setAllDaily] = useState([]);
   const [loadingSeries, setLoadingSeries] = useState(false);
 
   const [monthTotal, setMonthTotal] = useState(currentMonthISO);
@@ -74,7 +82,7 @@ export default function WebsiteAnalytics() {
     return { y, m };
   };
 
-  const daysInMonth = (y, m) => new Date(y, m, 0).getDate(); // m = 1..12
+  const daysInMonth = (y, m) => new Date(y, m, 0).getDate();
   const isSameMonth = (isoDate, ym) => isoDate?.slice(0, 7) === ym;
 
   const normalizeDailySeries = (data) => {
@@ -114,11 +122,6 @@ export default function WebsiteAnalytics() {
     return { totalYM: lastYM, uniqueYM: lastYM };
   };
 
-  // ✅ Build month series:
-  // - start at first recorded day in that month (e.g., 22)
-  // - include to month end (e.g., 28)
-  // - fill missing days with 0
-  // - accumulate (running totals)
   const buildMonthSeriesAccum = (daily, ym) => {
     const parsed = parseYM(ym);
     if (!parsed) return [];
@@ -150,8 +153,8 @@ export default function WebsiteAnalytics() {
       out.push({
         dateISO: iso,
         dayLabel: String(day),
-        totalVisits: runTotal,   // ✅ cumulative
-        uniqueVisits: runUnique, // ✅ cumulative
+        totalVisits: runTotal,
+        uniqueVisits: runUnique,
       });
     }
     return out;
@@ -172,7 +175,53 @@ export default function WebsiteAnalytics() {
     [allDaily, monthUnique]
   );
 
+  // ---------------------------
+  // ✅ Attribution from referral links (persisted)
+  // ---------------------------
+  const ATTR_KEY = "visit_attribution_v1"; // sessionStorage key
+
+  const readAttribution = () => {
+    try {
+      const raw = sessionStorage.getItem(ATTR_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const writeAttribution = (attr) => {
+    try {
+      if (!attr) sessionStorage.removeItem(ATTR_KEY);
+      else sessionStorage.setItem(ATTR_KEY, JSON.stringify(attr));
+    } catch {}
+  };
+
+  // Captures from URL query params of CURRENT PAGE (not the pasted input)
+  const captureAttributionFromCurrentUrl = () => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      const campaign =
+        (p.get("campaign") || p.get("utm_campaign") || "").trim();
+      const creator =
+        (p.get("creator") || p.get("utm_source") || "").trim();
+
+      if (campaign || creator) {
+        writeAttribution({
+          campaign: campaign || null,
+          creator: creator || null,
+          capturedAt: new Date().toISOString(),
+          landingPath: window.location.pathname,
+        });
+      }
+    } catch {}
+  };
+
+  // ---------------------------
+  // ✅ Visit tracking includes attribution (if exists)
+  // ---------------------------
   const trackVisit = async () => {
+    const attr = readAttribution();
+
     try {
       await fetch(API.trackVisit, {
         method: "POST",
@@ -180,8 +229,10 @@ export default function WebsiteAnalytics() {
         body: JSON.stringify({
           path: window.location.pathname,
           referrer: document.referrer || null,
-          campaign: null,
-          creator: null,
+
+          // ✅ include attribution but do not require it
+          campaign: attr?.campaign ?? null,
+          creator: attr?.creator ?? null,
         }),
       });
     } catch {}
@@ -227,16 +278,85 @@ export default function WebsiteAnalytics() {
     }
   };
 
-  const campaignOptions = useMemo(
-    () => [
-      { id: "campaign_1", name: "Campaign 1" },
-      { id: "campaign_2", name: "Campaign 2" },
-      { id: "campaign_3", name: "Campaign 3" },
-      { id: "campaign_4", name: "Campaign 4" },
-    ],
-    []
-  );
+  // ---------------------------
+  // ✅ Campaigns + Creators from backend
+  // ---------------------------
+  const normalizeOptions = (data, kind) => {
+    const list = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.items)
+      ? data.items
+      : Array.isArray(data?.rows)
+      ? data.rows
+      : Array.isArray(data?.data)
+      ? data.data
+      : [];
 
+    // try common field names
+    return list
+      .map((x) => {
+        const id =
+          x.id ?? x._id ?? x.campaignId ?? x.creatorId ?? x.slug ?? x.code ?? null;
+
+        const name =
+          x.name ??
+          x.title ??
+          x.username ??
+          x.handle ??
+          x.displayName ??
+          x.campaignName ??
+          x.creatorName ??
+          null;
+
+        if (!id && !name) return null;
+        return {
+          id: String(id ?? name),
+          name: String(name ?? id),
+          kind,
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const tryFetchFirstOk = async (urls) => {
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { headers: authHeaders });
+        if (!res.ok) continue;
+        return await res.json();
+      } catch {
+        // try next
+      }
+    }
+    return null;
+  };
+
+  const [campaignOptions, setCampaignOptions] = useState([
+    { id: "campaign_1", name: "Campaign 1" },
+    { id: "campaign_2", name: "Campaign 2" },
+    { id: "campaign_3", name: "Campaign 3" },
+    { id: "campaign_4", name: "Campaign 4" },
+  ]);
+
+  const [creatorOptions, setCreatorOptions] = useState([]); // optional dropdown list
+
+  const fetchCampaignsAndCreators = async () => {
+    const campaignsJson = await tryFetchFirstOk(API.campaignsList);
+    if (campaignsJson) {
+      const opts = normalizeOptions(campaignsJson, "campaign");
+      if (opts.length) setCampaignOptions(opts);
+    }
+
+    const creatorsJson = await tryFetchFirstOk(API.creatorsList);
+    if (creatorsJson) {
+      const opts = normalizeOptions(creatorsJson, "creator");
+      if (opts.length) setCreatorOptions(opts);
+    }
+  };
+
+  // ---------------------------
+  // ✅ UGC table filters
+  // ---------------------------
   const [dateFrom, setDateFrom] = useState(
     clampDate(toISODate(new Date(Date.now() - 30 * 86400000)))
   );
@@ -326,8 +446,15 @@ export default function WebsiteAnalytics() {
 
   useEffect(() => {
     if (!isMarketingManager) return;
+
+    // ✅ capture attribution from CURRENT landing URL (utm/campaign/creator)
+    captureAttributionFromCurrentUrl();
+
+    // ✅ tracking includes attribution automatically (if present)
     trackVisit();
+
     fetchWebsiteTotalsAndDaily();
+    fetchCampaignsAndCreators();
     fetchRows({ from: dateFrom, to: dateTo, campaign: "", creator: "" });
   }, [isMarketingManager]); // eslint-disable-line
 
@@ -383,7 +510,10 @@ export default function WebsiteAnalytics() {
                 allowDecimals={false}
                 tickFormatter={(v) => Number(v).toLocaleString()}
                 domain={[0, (max) => Math.max(5, Math.ceil(max / 5) * 5)]}
-                tickCount={Math.max(2, Math.ceil((data[data.length - 1]?.[dataKey] || 0) / 5) + 1)}
+                tickCount={Math.max(
+                  2,
+                  Math.ceil((data[data.length - 1]?.[dataKey] || 0) / 5) + 1
+                )}
               />
               <Tooltip
                 labelFormatter={(_, payload) => payload?.[0]?.payload?.dateISO || ""}
@@ -527,13 +657,24 @@ export default function WebsiteAnalytics() {
 
             <div className="min-w-[220px]">
               <label className="block text-sm text-gray-500 mb-1">Creator</label>
+
+              {/* If you prefer free-text only, keep your old input.
+                  This keeps free-text, but offers suggestions when backend list exists */}
               <input
+                list="creator-suggestions"
                 type="text"
                 className="w-full border rounded-lg px-3 py-2"
                 placeholder="All creators"
                 value={selectedCreator}
                 onChange={(e) => setSelectedCreator(e.target.value)}
               />
+              <datalist id="creator-suggestions">
+                {creatorOptions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </datalist>
             </div>
 
             <button

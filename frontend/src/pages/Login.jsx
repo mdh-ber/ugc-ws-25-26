@@ -35,6 +35,8 @@ function Login() {
       // Save auth data for the whole app (Layout uses these)
       sessionStorage.setItem("token", res.data.token);
       sessionStorage.setItem("user", JSON.stringify(res.data.user));
+      sessionStorage.setItem("userId", res.data.user.id);
+      console.log("login id : ",res.data.user.id);
       sessionStorage.setItem("role", res.data.user.role);
 
       // OPTIONAL: If you want managers/admin to land on analytics automatically
@@ -48,6 +50,7 @@ function Login() {
 
       // Normal users (content creators)
       nav("/dashboard");
+      // nav()
     } catch (e) {
       const message =
         e?.response?.data?.message ||

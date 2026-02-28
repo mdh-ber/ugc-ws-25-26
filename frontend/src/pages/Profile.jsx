@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { getProfile, updateProfile } from "../services/profileService";
 // import { useState } from "react";
-const USER_ID = "65d4f1e2b1c2d3e4f5a67890";   
+// const USER_ID = "65d4f1e2b1c2d3e4f5a67890";   
+// const USER_ID = JSON.parse(sessionStorage.getItem("user"))?.id;
 function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [avatar, setAvatar] = useState(null);
@@ -26,7 +27,7 @@ function Profile() {
     const fetchData = async () => {
       try {
         // const data = await getProfile();
-        const data = await getProfile(USER_ID);
+        const data = await getProfile();
 
         setProfile({
           firstName: data.firstName || "",
@@ -121,7 +122,7 @@ const handleSave = async () => {
 
     // await updateProfile(formData);
     // await updateProfile(formData, USER_ID);
-    const updated = await updateProfile(formData, USER_ID);
+    const updated = await updateProfile(formData);
 
     //  UPDATE AVATAR FROM BACKEND (Base64 string)
     if (updated.profilePic) {
