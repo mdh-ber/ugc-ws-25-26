@@ -11,6 +11,8 @@ const unwrapDefault = (mod) =>
 
 const Feedback = require("./models/feedback.model");
 const Guideline = require("./models/guideline.model");
+const User = require("./models/user.model");
+const authController = require("./controllers/authController");
 const Notification = require("./models/Notification");
 const MilestoneType = unwrapDefault(require("./models/MilestoneType"));
 const UserMilestone = unwrapDefault(require("./models/UserMilestone"));
@@ -34,6 +36,8 @@ const CampaignMetric = require("./models/CampaignMetric");
 
 const PORT = process.env.PORT || 5000;
 const Visit = require("./models/visit");
+const jwt = require("jsonwebtoken");
+const UserProfile = require("./models/userProfile.model");
 
 // ---------------- helpers ----------------
 function setCors(res) {
@@ -150,6 +154,53 @@ const server = http.createServer(async (req, res) => {
     // ===========================
     // AUTH
     // ===========================
+ if (req.method === "POST" && path === "/api/visits/track"){
+  const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
+  const userAgent = req.headers['user-agent'] || "unknown";
+  const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
+  await Visit.create({ ipHash, userAgent });
+  return sendJson(res, 200, { message: "Visit tracked" });
+ }
+  if (req.method === "GET" && path === "/api/visits/stats"){
+    const totalVisits = await Visit.countDocuments();
+    const uniqueIps = await Visit.distinct("ipHash");
+    return sendJson(res, 200, { totalVisits, uniqueVisits: uniqueIps.length });
+  }
+    // ===========================
+// AUTH LOGIN (ADMIN + USER)
+// ===========================
+if (req.method === "POST" && path === "/api/auth/login") {
+
+  // const body = await readJsonBody(req);
+
+  // const email = (body.email || "")
+  //   .trim()
+  //   .toLowerCase();
+
+  // const password = body.password || "";
+
+  // ✅ HARDCODED ADMIN LOGIN
+  // if (
+  //   email === "admin@mdh.com" &&
+  //   password === "admin123"
+  // ) {
+  //   return sendJson(res, 200, {
+  //     token: "demo-token-123",
+  //     user: {
+  //       email,
+  //       role: "admin",
+  //     },
+  //   });
+  // }
+
+  // ✅ OTHERWISE → NORMAL USER LOGIN (MongoDB)
+  return authController.login(req, res, readJsonBody, sendJson);
+}  // ===========================
+    // AUTH REGISTER
+    // ===========================
+    if (req.method === "POST" && path === "/api/auth/register") {
+  return authController.register(req, res, readJsonBody, sendJson);
+}
     if (req.method === "POST" && path === "/api/visits/track"){
       const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
       const userAgent = req.headers['user-agent'] || "unknown";
@@ -1198,6 +1249,68 @@ if (segments[0] === "api" && segments[1] === "milestone-types") {
       return sendJson(res, 400, {
         message: "title, metric, computeMethod are required",
       });
+    }
+    // ===========================
+    // USER PROFILE (MANUAL ROUTE)
+    // ===========================
+
+    if (req.method === "GET" && path === "/api/user-profile/me") {
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader)
+        return sendJson(res, 401, { message: "No token provided" });
+
+      try {
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const profile = await UserProfile.findOne({ userId: decoded.id });
+
+        if (!profile)
+          return sendJson(res, 404, { message: "Profile not found" });
+
+        return sendJson(res, 200, profile);
+      } catch (err) {
+        return sendJson(res, 401, { message: "Invalid token" });
+      }
+    }
+
+    if (req.method === "PUT" && path === "/api/user-profile/me") {
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader)
+        return sendJson(res, 401, { message: "No token provided" });
+
+      try {
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const body = await readJsonBody(req);
+
+        const update = { ...body };
+
+        if (typeof update.socialAccounts === "string") {
+          update.socialAccounts = update.socialAccounts
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        }
+
+        if (update.dob === "") update.dob = null;
+
+        const updated = await UserProfile.findOneAndUpdate(
+          { userId: decoded.id },
+          update,
+          { new: true }
+        );
+
+        if (!updated)
+          return sendJson(res, 404, { message: "Profile not found" });
+
+        return sendJson(res, 200, updated);
+      } catch (err) {
+        return sendJson(res, 401, { message: "Invalid token" });
+      }
     }
 
     const created = await MilestoneType.create({
