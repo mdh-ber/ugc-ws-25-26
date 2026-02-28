@@ -1,26 +1,36 @@
+const Post = require("./models/Post");
+const Comment = require("./models/Comment");
 const http = require("http");
 const url = require("url");
 const mongoose = require("mongoose");
 const crypto = require("crypto");
 require("dotenv").config();
+// ✅ Helper: supports both CommonJS + default-export modules
+const unwrapDefault = (mod) =>
+  mod && typeof mod === "object" && "default" in mod ? mod.default : mod;
 
 const Feedback = require("./models/feedback.model");
 const Guideline = require("./models/guideline.model");
 const User = require("./models/user.model");
 const authController = require("./controllers/authController");
+const Notification = require("./models/Notification");
+const MilestoneType = unwrapDefault(require("./models/MilestoneType"));
+const UserMilestone = unwrapDefault(require("./models/UserMilestone"));
 
 // ✅ IMPORTANT: these match your filenames in models folder
 const Training = require("./models/Training");
 const Event = require("./models/Event");
 const Reward = require("./models/reward");
+const postRoutes = require("./routes/postRoutes");
 
 const RefereeUu = require("./models/RefereeUu");
 const ReferralUu = require("./models/ReferralUu");
-const { Referral } = require("./models/Referral");
+const { Referral,ReferralCode } = require("./models/Referral");
+const Userprofile = require("./models/userprofile.model"); // Reference UserProfile for RefereeUu 
 
 // ✅ NEW (Sub-issue #155)
 const Campaign = require("./models/Campaign");
-
+const Certificate = require("./models/Certificate");
 // ✅ NEW (Sub-issue #158)
 const CampaignMetric = require("./models/CampaignMetric");
 
@@ -28,6 +38,7 @@ const PORT = process.env.PORT || 5000;
 const Visit = require("./models/visit");
 const jwt = require("jsonwebtoken");
 const UserProfile = require("./models/userProfile.model");
+
 // ---------------- helpers ----------------
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
@@ -132,12 +143,12 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  const parsed = url.parse(req.url, true);
+  // Modern URL Parsing to remove deprecation warning
+  const baseURL = `http://${req.headers.host || 'localhost'}`;
+  const parsed = new URL(req.url, baseURL);
   const path = parsed.pathname;
-  const query = parsed.query || {};
+  const query = Object.fromEntries(parsed.searchParams.entries());
   const segments = path.split("/").filter(Boolean); // no empty
-
-
 
   try {
     // ===========================
@@ -190,16 +201,200 @@ if (req.method === "POST" && path === "/api/auth/login") {
     if (req.method === "POST" && path === "/api/auth/register") {
   return authController.register(req, res, readJsonBody, sendJson);
 }
+    if (req.method === "POST" && path === "/api/visits/track"){
+      const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
+      const userAgent = req.headers['user-agent'] || "unknown";
+      const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
+      await Visit.create({ ipHash, userAgent });
+      return sendJson(res, 200, { message: "Visit tracked" });
+    }
+    
+    if (req.method === "GET" && path === "/api/visits/stats"){
+      const totalVisits = await Visit.countDocuments();
+      const uniqueIps = await Visit.distinct("ipHash");
+      return sendJson(res, 200, { totalVisits, uniqueVisits: uniqueIps.length });
+    }
+    
+    if (req.method === "POST" && path === "/api/auth/login") {
+      const body = await readJsonBody(req);
+      const email = (body.email || "").trim().toLowerCase();
+      const password = body.password || "";
 
+      if (email === "admin@mdh.com" && password === "admin123") {
+        return sendJson(res, 200, {
+          token: "demo-token-123",
+          user: { email, role: "admin" },
+        });
+      }
+      return sendJson(res, 401, { message: "Invalid email or password" });
+    }
+
+    //API VISIT TRACKING
+if (req.method === "POST" && path === "/api/visits/track"){
+  const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
+  const userAgent = req.headers['user-agent'] || "unknown";
+  const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
+  await Visit.create({ ipHash, userAgent });
+  return sendJson(res, 200, { message: "Visit tracked" });
+ }
+   // ✅ Visit Timeline (Daily)
+if (req.method === "GET" && path === "/api/visits/timeline") {
+  try {
+    const dailyData = await Visit.aggregate([
+      {
+        $addFields: {
+          ts: { $ifNull: ["$timestamp", "$createdAt"] },
+        },
+      },
+      { $match: { ts: { $type: "date" } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$ts" } },
+          totalVisits: { $sum: 1 },
+          uniqueIps: { $addToSet: "$ipHash" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id",
+          totalVisits: 1,
+          uniqueVisits: { $size: "$uniqueIps" },
+        },
+      },
+      { $sort: { date: 1 } },
+    ]);
+
+    return sendJson(res, 200, dailyData);
+  } catch (err) {
+    console.error("Timeline error:", err);
+    return sendJson(res, 500, { message: "Failed to fetch timeline" });
+  }
+}
     // ===========================
     // TRAININGS ✅ NEW
     // ===========================
-    if (req.method === "GET" && path === "/api/trainings") {
-      const items = await Training.find().sort({ createdAt: -1 }).lean();
-      return sendJson(res, 200, items);
+    const trainingController = require("./controllers/trainingController");
+    if (path.startsWith("/api/trainings")) {
+      const id = segments[2];
+      if (req.method === "GET") {
+        if (id) {
+          return trainingController.getTrainingById({ params: { id } }, res);
+        } else {
+          return trainingController.getTrainings(req, res);
+        }
+      } else if (req.method === "POST") {
+        return trainingController.createTraining(req, res);
+      } else if (req.method === "PUT") {
+        if (id) {
+          return trainingController.updateTraining(req, id, res);
+        } else {
+          return sendJson(res, 400, {
+            message: "Training ID is required for update",
+          });
+        }
+      } else if (req.method === "DELETE") {
+        const id = segments[2];
+        if (!id) {
+          return sendJson(res, 400, {
+            message: "Training ID is required for deletion",
+          });
+        }
+        return trainingController.deleteTraining({ params: { id } }, res);
+      }
     }
 
-    // ===========================
+
+// CERTIFICATES 
+// Base: /api/certificates
+// ===========================
+if (segments[0] === "api" && segments[1] === "certificates") {
+  // GET /api/certificates
+  if (req.method === "GET" && segments.length === 2) {
+    const items = await Certificate.find().sort({ createdAt: -1 }).lean();
+    return sendJson(res, 200, items);
+  }
+
+  // POST /api/certificates
+  if (req.method === "POST" && segments.length === 2) {
+    const body = await readJsonBody(req);
+
+    const title = String(body.title || "").trim();
+    const issueDate = String(body.issueDate || "").trim();
+    const issuer = String(body.issuer || "").trim();
+    const issuedTo = String(body.issuedTo || "").trim();
+    const type = String(body.type || "").trim();
+
+    if (!title || !issueDate || !issuer || !issuedTo || !type) {
+      return sendJson(res, 400, { message: "All fields are required." });
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(issueDate)) {
+      return sendJson(res, 400, { message: "Issue date must be YYYY-MM-DD" });
+    }
+
+    const created = await Certificate.create({
+      title,
+      issueDate,
+      issuer,
+      issuedTo,
+      type,
+    });
+
+    return sendJson(res, 201, created);
+  }
+
+  // PUT /api/certificates/:id  (EDIT)
+  if (req.method === "PUT" && segments.length === 3) {
+    const id = segments[2];
+    if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid id" });
+
+    const body = await readJsonBody(req);
+
+    const updates = {};
+
+    if (body.title !== undefined) updates.title = String(body.title).trim();
+    if (body.issueDate !== undefined) updates.issueDate = String(body.issueDate).trim();
+    if (body.issuer !== undefined) updates.issuer = String(body.issuer).trim();
+    if (body.issuedTo !== undefined) updates.issuedTo = String(body.issuedTo).trim();
+    if (body.type !== undefined) updates.type = String(body.type).trim();
+
+    // validation
+    if (updates.title !== undefined && !updates.title) return sendJson(res, 400, { message: "Title is required." });
+    if (updates.issuer !== undefined && !updates.issuer) return sendJson(res, 400, { message: "Issuer is required." });
+    if (updates.issuedTo !== undefined && !updates.issuedTo) return sendJson(res, 400, { message: "IssuedTo is required." });
+    if (updates.type !== undefined && !updates.type) return sendJson(res, 400, { message: "Type is required." });
+
+    if (updates.issueDate !== undefined) {
+      if (!updates.issueDate) return sendJson(res, 400, { message: "Issue date is required." });
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(updates.issueDate)) {
+        return sendJson(res, 400, { message: "Issue date must be YYYY-MM-DD" });
+      }
+    }
+
+    const updated = await Certificate.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    }).lean();
+
+    if (!updated) return sendJson(res, 404, { message: "Certificate not found" });
+
+    return sendJson(res, 200, { message: "Certificate updated", certificate: updated });
+  }
+
+  // DELETE /api/certificates/:id
+  if (req.method === "DELETE" && segments.length === 3) {
+    const id = segments[2];
+    if (!isValidObjectId(id)) return sendJson(res, 400, { message: "Invalid id" });
+
+    const deleted = await Certificate.findByIdAndDelete(id).lean();
+    if (!deleted) return sendJson(res, 404, { message: "Certificate not found" });
+
+    return sendJson(res, 200, { message: "Certificate deleted", certificate: deleted });
+  }
+
+  return sendJson(res, 404, { message: "Route not found" });
+}  // ===========================
     // EVENTS ✅ NEW
     // ===========================
     if (req.method === "GET" && path === "/api/events") {
@@ -337,29 +532,36 @@ if (req.method === "POST" && path === "/api/auth/login") {
       }
 
       // POST /api/campaigns
-      if (req.method === "POST" && segments.length === 2) {
-        const body = await readJsonBody(req);
+if (req.method === "POST" && segments.length === 2) {
+  const body = await readJsonBody(req);
 
-        if (!body.name) return sendJson(res, 400, { message: "name is required" });
-        if (!body.startDate) return sendJson(res, 400, { message: "startDate is required" });
-        if (!body.endDate) return sendJson(res, 400, { message: "endDate is required" });
-        if (!body.utmCampaign) return sendJson(res, 400, { message: "utmCampaign is required" });
+  if (!body.name) return sendJson(res, 400, { message: "name is required" });
+  if (!body.startDate) return sendJson(res, 400, { message: "startDate is required" });
+  if (!body.endDate) return sendJson(res, 400, { message: "endDate is required" });
+  if (!body.utmCampaign) return sendJson(res, 400, { message: "utmCampaign is required" });
 
-        const created = await Campaign.create({
-          name: String(body.name).trim(),
-          startDate: new Date(body.startDate),
-          endDate: new Date(body.endDate),
-          target: String(body.target || "").trim(),
-          platforms: Array.isArray(body.platforms) ? body.platforms : [],
-          creators: Array.isArray(body.creators) ? body.creators : [],
-          rewardsDelivered: Number(body.rewardsDelivered || 0),
-          totalAmount: Number(body.totalAmount || 0),
-          utmCampaign: String(body.utmCampaign).trim().toLowerCase(),
-          status: "active",
-        });
+  const created = await Campaign.create({
+    name: String(body.name).trim(),
+    description: String(body.description || "").trim(),
+    platform: String(body.platform || "Instagram").trim(),
+    targetAudience: String(body.targetAudience || "").trim(),
+    goals: String(body.goals || "").trim(),
 
-        return sendJson(res, 201, created);
-      }
+    // ✅ SAVE budget/spent
+    budget: Number(body.budget || 0),
+    spent: Number(body.spent || 0),
+
+    startDate: new Date(body.startDate),
+    endDate: new Date(body.endDate),
+
+    assignedCreators: Array.isArray(body.assignedCreators) ? body.assignedCreators : [],
+
+    utmCampaign: String(body.utmCampaign).trim().toLowerCase(),
+    status: "active",
+  });
+
+  return sendJson(res, 201, created);
+}
 
       // /api/campaigns/:id
       const id = segments[2];
@@ -374,32 +576,55 @@ if (req.method === "POST" && path === "/api/auth/login") {
       }
 
       // PUT /api/campaigns/:id
-      if (req.method === "PUT" && segments.length === 3) {
-        const body = await readJsonBody(req);
+if (req.method === "PUT" && segments.length === 3) {
+  const body = await readJsonBody(req);
 
-        const updates = {};
-        if (body.name !== undefined) updates.name = String(body.name).trim();
-        if (body.startDate !== undefined) updates.startDate = new Date(body.startDate);
-        if (body.endDate !== undefined) updates.endDate = new Date(body.endDate);
-        if (body.target !== undefined) updates.target = String(body.target).trim();
-        if (body.platforms !== undefined) updates.platforms = Array.isArray(body.platforms) ? body.platforms : [];
-        if (body.creators !== undefined) updates.creators = Array.isArray(body.creators) ? body.creators : [];
-        if (body.rewardsDelivered !== undefined) updates.rewardsDelivered = Number(body.rewardsDelivered || 0);
-        if (body.totalAmount !== undefined) updates.totalAmount = Number(body.totalAmount || 0);
-        if (body.utmCampaign !== undefined) updates.utmCampaign = String(body.utmCampaign).trim().toLowerCase();
+  const updates = {};
 
-        const updated = await Campaign.findByIdAndUpdate(id, updates, {
-          new: true,
-          runValidators: true,
-        }).lean();
+  if (body.name !== undefined) updates.name = String(body.name).trim();
+  if (body.description !== undefined) updates.description = String(body.description).trim();
 
-        if (!updated) return sendJson(res, 404, { message: "Campaign not found" });
+  if (body.platform !== undefined) updates.platform = String(body.platform).trim();
 
-        return sendJson(res, 200, {
-          message: "Campaign updated successfully",
-          campaign: updated,
-        });
-      }
+  if (body.targetAudience !== undefined)
+    updates.targetAudience = String(body.targetAudience).trim();
+
+  if (body.goals !== undefined) updates.goals = String(body.goals).trim();
+
+  // ✅ FIXED: budget & spent
+  if (body.budget !== undefined)
+    updates.budget = Number(body.budget);
+
+  if (body.spent !== undefined)
+    updates.spent = Number(body.spent);
+
+  if (body.startDate !== undefined)
+    updates.startDate = new Date(body.startDate);
+
+  if (body.endDate !== undefined)
+    updates.endDate = new Date(body.endDate);
+
+  if (body.assignedCreators !== undefined)
+    updates.assignedCreators = Array.isArray(body.assignedCreators)
+      ? body.assignedCreators
+      : [];
+
+  if (body.utmCampaign !== undefined)
+    updates.utmCampaign = String(body.utmCampaign).trim().toLowerCase();
+
+  const updated = await Campaign.findByIdAndUpdate(id, updates, {
+    new: true,
+    runValidators: true,
+  }).lean();
+
+  if (!updated)
+    return sendJson(res, 404, { message: "Campaign not found" });
+
+  return sendJson(res, 200, {
+    message: "Campaign updated successfully",
+    campaign: updated,
+  });
+}
 
       // DELETE /api/campaigns/:id (archive)
       if (req.method === "DELETE" && segments.length === 3) {
@@ -455,6 +680,7 @@ if (req.method === "POST" && path === "/api/auth/login") {
 
         const totals = rows[0] || { spend: 0, revenue: 0, clicks: 0, conversions: 0 };
         const profit = totals.revenue - totals.spend;
+        //formula
         const roiPct = totals.spend === 0 ? 0 : (profit / totals.spend) * 100;
 
         return sendJson(res, 200, {
@@ -538,7 +764,19 @@ if (req.method === "POST" && path === "/api/auth/login") {
     if (segments[0] === "api" && segments[1] === "referrals") {
       // GET /api/referrals
       if (req.method === "GET" && segments.length === 2) {
-        const referrals = await Referral.find().sort({ createdAt: -1 }).lean();
+        const referrals = await Referral.find()
+          .populate({
+            path: "referralCodeId",
+            populate: {
+              path: "userId",
+              model: "UserProfile",
+              
+            },
+          })
+          .populate("refereeUUID") // Populate RefereeUu details
+          .populate("referrerUUID") // Populate ReferralUu details
+          .lean()
+          .sort({ createdAt: -1 });
         return sendJson(res, 200, referrals);
       }
 
@@ -560,7 +798,18 @@ if (req.method === "POST" && path === "/api/auth/login") {
 
       // GET /api/referrals/:id
       if (req.method === "GET" && segments.length === 3) {
-        const doc = await Referral.findById(id).lean();
+        const doc = await Referral.findById(id)
+          .populate({
+            path: "referralCodeId",
+            populate: {
+              path: "userId",
+              model: "UserProfile",
+              
+            },
+          })
+          .populate('refereeUUID') // Populate RefereeUu details
+          .populate('referrerUUID') // Populate ReferralUu details
+          .lean();
         if (!doc) return sendJson(res, 404, { message: "Referral not found" });
         return sendJson(res, 200, doc);
       }
@@ -591,6 +840,69 @@ if (req.method === "POST" && path === "/api/auth/login") {
         return sendJson(res, 200, {
           message: "Referral deleted successfully",
           referral: deleted,
+        });
+      }
+    }
+
+    // =========================================================
+    // REFERRAL CODE CRUD (your ReferralCodeList uses /api/referral-codes)
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "referral-codes") {
+      // GET /api/referral-codes
+      if (req.method === "GET" && segments.length === 2) {
+        const referralCodes = await ReferralCode.find().sort({ createdAt: -1 }).lean();
+        return sendJson(res, 200, referralCodes);
+      }
+
+      // POST /api/referral-codes
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
+        const created = await ReferralCode.create(body);
+        return sendJson(res, 201, {
+          message: "Referral Code added successfully",
+          referralCode: created,
+        });
+      }
+
+      // /api/referral-codes/:id
+      const id = segments[2];
+      if (!id) return sendJson(res, 404, { message: "Route not found" });
+      if (!isValidObjectId(id))
+        return sendJson(res, 400, { message: "Invalid id" });
+
+      // GET /api/referral-codes/:id
+      if (req.method === "GET" && segments.length === 3) {
+        const doc = await ReferralCode.findById(id).lean();
+        if (!doc) return sendJson(res, 404, { message: "Referral Code not found" });
+        return sendJson(res, 200, doc);
+      }
+
+      // PUT /api/referral-codes/:id
+      if (req.method === "PUT" && segments.length === 3) {
+        const body = await readJsonBody(req);
+        const updated = await ReferralCode.findByIdAndUpdate(id, body, {
+          new: true,
+          runValidators: true,
+        }).lean();
+
+        if (!updated)
+          return sendJson(res, 404, { message: "Referral Code not found" });
+
+        return sendJson(res, 200, {
+          message: "Referral Code updated successfully",
+          referralCode: updated,
+        });
+      }
+
+      // DELETE /api/referral-codes/:id
+      if (req.method === "DELETE" && segments.length === 3) {
+        const deleted = await ReferralCode.findByIdAndDelete(id).lean();
+        if (!deleted)
+          return sendJson(res, 404, { message: "Referral Code not found" });
+
+        return sendJson(res, 200, {
+          message: "Referral Code deleted successfully",
+          referralCode: deleted,
         });
       }
     }
@@ -740,6 +1052,203 @@ if (req.method === "POST" && path === "/api/auth/login") {
       }
 
       return sendJson(res, 404, { message: "Route not found" });
+    }   
+    // =========================================================
+// NOTIFICATIONS API
+// Base: /api/notifications
+// =========================================================
+if (segments[0] === "api" && segments[1] === "notifications") {
+  const id = segments[2] || null;
+
+  if (req.method === "GET" && segments.length === 2) {
+    const userId = query.userId || null;
+
+    const notifications = await Notification.find({
+      $or: [{ userId: null }, { userId }],
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return sendJson(res, 200, notifications);
+  }
+
+  if (req.method === "POST" && segments.length === 2) {
+    const body = await readJsonBody(req);
+
+    if (!body.title || !body.message) {
+      return sendJson(res, 400, { message: "title and message are required" });
+    }
+
+    const created = await Notification.create({
+      userId: body.userId || null,
+      title: String(body.title).trim(),
+      message: String(body.message).trim(),
+      type: body.type || "info",
+      isRead: false,
+    });
+
+    return sendJson(res, 201, created);
+  }
+
+  if (req.method === "PATCH" && segments.length === 3 && id) {
+    if (!isValidObjectId(id)) {
+      return sendJson(res, 400, { message: "Invalid id" });
+    }
+
+    const updated = await Notification.findByIdAndUpdate(
+      id,
+      { isRead: true },
+      { new: true }
+    ).lean();
+
+    if (!updated) return sendJson(res, 404, { message: "Notification not found" });
+    return sendJson(res, 200, updated);
+  }
+
+  if (req.method === "DELETE" && segments.length === 3 && id) {
+    if (!isValidObjectId(id)) {
+      return sendJson(res, 400, { message: "Invalid id" });
+    }
+
+    const deleted = await Notification.findByIdAndDelete(id).lean();
+    if (!deleted) return sendJson(res, 404, { message: "Notification not found" });
+    return sendJson(res, 200, { message: "Deleted successfully" });
+  }
+
+  return sendJson(res, 404, { message: "Route not found" });
+} 
+
+    // =========================================================
+    // COMMUNITY FEED / POSTS
+    // Base: /api/posts
+    // =========================================================
+    if (segments[0] === "api" && segments[1] === "posts") {
+      
+      // GET /api/posts (Fetch feed with Pagination)
+      if (req.method === "GET" && segments.length === 2) {
+        const sort = query.sort || "newest";
+        const page = parseInt(query.page) || 1;
+        const limit = 5; // Load 5 posts at a time
+        const skip = (page - 1) * limit;
+
+        let sortQuery = { createdAt: -1 };
+        if (sort === "popular") sortQuery = { likes: -1, createdAt: -1 };
+
+        const posts = await Post.find().sort(sortQuery).skip(skip).limit(limit);
+        const totalPosts = await Post.countDocuments();
+        const hasMore = totalPosts > skip + posts.length; // Check if there are more posts left
+
+        return sendJson(res, 200, { success: true, posts, hasMore });
+      }
+
+      // POST /api/posts (Create a post)
+      if (req.method === "POST" && segments.length === 2) {
+        const body = await readJsonBody(req);
+        
+        // Using a dummy user ID for now
+        const newPost = await Post.create({
+          user: "650000000000000000000000", 
+          caption: body.caption,
+          mediaType: body.mediaType || "none",
+          mediaUrl: body.mediaUrl || null, // Ensure we save the mock URL!
+          hashtags: body.hashtags || [],
+        });
+        return sendJson(res, 201, { success: true, post: newPost });
+      }
+
+      const postId = segments[2];
+      if (!postId) return sendJson(res, 404, { message: "Route not found" });
+      if (!isValidObjectId(postId)) return sendJson(res, 400, { message: "Invalid post id" });
+
+      // ✅ NEW: DELETE /api/posts/:id (Delete a post)
+      if (req.method === "DELETE" && segments.length === 3) {
+        const deletedPost = await Post.findByIdAndDelete(postId);
+        if (!deletedPost) return sendJson(res, 404, { message: "Post not found" });
+        
+        // Cleanup: Delete all comments associated with this post
+        await Comment.deleteMany({ post: postId });
+        
+        return sendJson(res, 200, { success: true, message: "Post deleted successfully" });
+      }
+
+      // POST /api/posts/:id/like
+      if (req.method === "POST" && segments.length === 4 && segments[3] === "like") {
+        const post = await Post.findById(postId);
+        if (!post) return sendJson(res, 404, { message: "Post not found" });
+
+        const userId = "650000000000000000000000"; // Dummy user ID
+        const hasLiked = post.likes.includes(userId);
+
+        if (hasLiked) {
+          post.likes = post.likes.filter((id) => id.toString() !== userId);
+        } else {
+          post.likes.push(userId);
+        }
+        await post.save();
+        return sendJson(res, 200, { success: true, likes: post.likes.length, hasLiked: !hasLiked });
+      }
+
+      // POST /api/posts/:id/comment
+      if (req.method === "POST" && segments.length === 4 && segments[3] === "comment") {
+        const body = await readJsonBody(req);
+        const newComment = await Comment.create({
+          post: postId,
+          user: "650000000000000000000000", // Dummy user ID
+          text: body.text
+        });
+        return sendJson(res, 201, { success: true, comment: newComment });
+      }
+
+      // GET /api/posts/:id/comment
+      if (req.method === "GET" && segments.length === 4 && segments[3] === "comment") {
+        const comments = await Comment.find({ post: postId }).sort({ createdAt: -1 });
+        return sendJson(res, 200, { success: true, comments });
+      }
+
+      // POST /api/posts/:id/report
+      if (req.method === "POST" && segments.length === 4 && segments[3] === "report") {
+        await Post.findByIdAndUpdate(postId, { $inc: { reportCount: 1 } });
+        return sendJson(res, 200, { success: true, message: "Post reported" });
+      }
+
+      return sendJson(res, 404, { message: "Route not found" });
+    }
+    // ===========================
+// HEALTH 
+// ===========================
+if (req.method === "GET" && path === "/health") {
+  return sendJson(res, 200, { status: "OK" });
+}
+// =========================================================
+// MILESTONE TYPES API
+// Base: /api/milestone-types
+// =========================================================
+if (segments[0] === "api" && segments[1] === "milestone-types") {
+
+  // =========================
+  // GET /api/milestone-types
+  // Returns all milestone types
+  // =========================
+  if (req.method === "GET" && segments.length === 2) {
+    const items = await MilestoneType.find()
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return sendJson(res, 200, items);
+  }
+
+  // =========================
+  //  POST /api/milestone-types
+  // Creates a new milestone type
+  // =========================
+  if (req.method === "POST" && segments.length === 2) {
+    const body = await readJsonBody(req);
+
+    // Validation
+    if (!body.title || !body.metric || !body.computeMethod) {
+      return sendJson(res, 400, {
+        message: "title, metric, computeMethod are required",
+      });
     }
     // ===========================
     // USER PROFILE (MANUAL ROUTE)
@@ -804,7 +1313,83 @@ if (req.method === "POST" && path === "/api/auth/login") {
       }
     }
 
+    const created = await MilestoneType.create({
+      title: String(body.title).trim(),
+      description: String(body.description || "").trim(),
+      category: String(body.category || "general").trim(),
+      metric: String(body.metric).trim(),
+      computeMethod: String(body.computeMethod).trim(),
+      goal: Number(body.goal || 0),
+      rewardPoints: Number(body.rewardPoints || 0),
+      isActive: body.isActive !== undefined ? !!body.isActive : true,
+      period: String(body.period || "lifetime").trim(),
+      scope: String(body.scope || "global").trim(),
+      scopeValue: body.scopeValue ?? null,
+      slots: Number(body.slots || 1),
+      version: Number(body.version || 1),
+      updatedBy: body.updatedBy ?? null,
+    });
+
+    return sendJson(res, 201, created);
+  }
+
+  return sendJson(res, 404, { message: "Route not found" });
+}
+
+
+// =========================================================
+// USER MILESTONES API
+// Base: /api/user-milestones
+// =========================================================
+if (segments[0] === "api" && segments[1] === "user-milestones") {
+  const creatorId = segments[2];
+
+  // =========================
+  // GET /api/user-milestones/:creatorId
+  // Returns milestones for a specific user
+  // =========================
+  if (req.method === "GET" && segments.length === 3 && creatorId) {
+    const items = await UserMilestone.find({ creatorId })
+      .populate("milestoneTypeId")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return sendJson(res, 200, items);
+  }
+
+  // No POST here yet
+  // (User milestones are not being created via API yet)
+
+  return sendJson(res, 404, { message: "Route not found" });
+}
+// =========================================================
+// LEADERBOARDS API (DEMO DATA)
+// Base: /api/leaderboards
+// =========================================================
+if (segments[0] === "api" && segments[1] === "leaderboards") {
+
+  // GET /api/leaderboards/best-creators-month
+  if (req.method === "GET" && segments[2] === "best-creators-month") {
+    return sendJson(res, 200, [
+      { creatorId: "u1", name: "Creator A", points: 1000, clicks: 120, leads: 12 },
+      { creatorId: "u2", name: "Creator B", points: 850, clicks: 95, leads: 8 },
+      { creatorId: "u3", name: "Creator C", points: 700, clicks: 70, leads: 5 },
+    ]);
+  }
+
+  // GET /api/leaderboards/best-creator-by-city?cities=Berlin,Düsseldorf
+  if (req.method === "GET" && segments[2] === "best-creator-by-city") {
+    return sendJson(res, 200, {
+      Berlin: { creatorId: "u10", name: "Berlin Winner", points: 800, clicks: 50, leads: 6 },
+      Düsseldorf: { creatorId: "u20", name: "Düsseldorf Winner", points: 750, clicks: 45, leads: 5 },
+    });
+  }
+
+  return sendJson(res, 404, { message: "Route not found" });
+}
+    // FINAL CATCH-ALL 404 (This MUST be at the end, not above the posts block!)
     return sendJson(res, 404, { message: "Route not found" });
+
   } catch (err) {
     console.error(err);
     return sendJson(res, 500, { message: "Server error" });

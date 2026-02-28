@@ -1,48 +1,59 @@
 // src/services/creatorPerformanceService.js
+import axios from "axios";
 
-// Later: replace mock with axios.get("/api/mdh/creator-performance", { params })
-// For now: mock response so frontend can be completed.
+/**
+ * Webpack/CRA-safe env var (NO import.meta).
+ * Set in frontend/.env as:
+ * REACT_APP_API_URL=http://localhost:5000
+ */
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
-export async function getCreatorPerformance({ from, to, bucket = "daily", creatorId = null }) {
-  // simulate network delay
-  await new Promise((r) => setTimeout(r, 300));
+function getToken() {
+  return sessionStorage.getItem("token") || localStorage.getItem("token") || "";
+}
 
-  return {
-    range: { from, to, bucket, creatorId },
+/**
+ * GET /api/mdh/creator-performance
+ * params:
+ *  - from (YYYY-MM-DD)
+ *  - to (YYYY-MM-DD)
+ *  - bucket (auto | hourly | daily | weekly | monthly)
+ *  - creatorId (optional)
+ *  - platforms (optional) comma-separated e.g. "instagram,youtube"
+ */
+export async function getCreatorPerformance({
+  from,
+  to,
+  bucket = "auto",
+  creatorId = null,
+  platforms = [], // array of strings
+}) {
+  if (!from || !to) {
+    throw new Error("from and to are required (YYYY-MM-DD)");
+  }
 
-    clicks: [
-      { date: "2026-02-01", count: 10, cumulative: 10 },
-      { date: "2026-02-02", count: 5, cumulative: 15 },
-      { date: "2026-02-03", count: 0, cumulative: 15 },
-      { date: "2026-02-04", count: 12, cumulative: 27 },
-    ],
+  const token = getToken();
 
-    leads: [
-      { date: "2026-02-01", count: 2, cumulative: 2 },
-      { date: "2026-02-02", count: 1, cumulative: 3 },
-      { date: "2026-02-03", count: 0, cumulative: 3 },
-      { date: "2026-02-04", count: 3, cumulative: 6 },
-    ],
-
-    platforms: [
-      {
-        platform: "instagram",
-        series: [
-          { date: "2026-02-01", count: 4, cumulative: 4 },
-          { date: "2026-02-02", count: 2, cumulative: 6 },
-          { date: "2026-02-03", count: 0, cumulative: 6 },
-          { date: "2026-02-04", count: 5, cumulative: 11 },
-        ],
+  try {
+    const res = await axios.get(`${API_BASE}/api/mdh/creator-performance`, {
+      params: {
+        from,
+        to,
+        bucket,
+        ...(creatorId ? { creatorId } : {}),
+        ...(platforms?.length ? { platforms: platforms.join(",") } : {}),
       },
-      {
-        platform: "youtube",
-        series: [
-          { date: "2026-02-01", count: 6, cumulative: 6 },
-          { date: "2026-02-02", count: 3, cumulative: 9 },
-          { date: "2026-02-03", count: 0, cumulative: 9 },
-          { date: "2026-02-04", count: 7, cumulative: 16 },
-        ],
-      },
-    ],
-  };
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    return res.data;
+  } catch (err) {
+    const msg =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      err?.message ||
+      "Failed to fetch creator performance data";
+    const status = err?.response?.status;
+    throw new Error(status ? `${msg} (HTTP ${status})` : msg);
+  }
 }
