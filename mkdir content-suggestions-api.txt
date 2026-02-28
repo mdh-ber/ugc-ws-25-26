@@ -1,0 +1,15 @@
+ug suggestion/
+├── models/
+│   ├── Caption.js
+│   └── Hashtag.js
+├── routes/
+│   └── suggestions.js
+├── controllers/
+│   └── suggestionController.js
+├── scripts/
+│   └── seedData.js (if you created this folder)
+├── database.js
+├── server.js
+├── package.json
+├── package-lock.json
+└── .env
