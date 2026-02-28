@@ -52,18 +52,16 @@ function Trainings() {
     url: "",
   });
 
-<<<<<<< Updated upstream
+//// Updated upstream
 
-=======
-<<<<<<<<< Temporary merge branch 1
+// Temporary merge branch 1
   // FETCH DATA 
-=========
   const params = new URLSearchParams(location.search);
   const isMarketingManager = params.get("mode") == "manager";
 
   // --- FETCH DATA ---
->>>>>>>>> Temporary merge branch 2
->>>>>>> Stashed changes
+/// Temporary merge branch 2
+/// Stashed changes
   useEffect(() => {
     // const storedUser = localStorage.getItem("userInfo");
     // if (storedUser) setUser(JSON.parse(storedUser));

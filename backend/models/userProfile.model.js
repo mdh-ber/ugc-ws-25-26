@@ -1,14 +1,9 @@
-<<<<<<< Updated upstream
-import mongoose from "mongoose";
 
-=======
-<<<<<<< Updated upstream
+import mongoose from "mongoose";
 const mongoose = require("mongoose");
-=======
 // import mongoose from "mongoose";
 
->>>>>>> Stashed changes
->>>>>>> Stashed changes
+
 const userProfileSchema = new mongoose.Schema(
   {
     userId: {
@@ -43,12 +38,7 @@ const userProfileSchema = new mongoose.Schema(
 const UserProfile =
   mongoose.models.UserProfile ||
   mongoose.model("UserProfile", userProfileSchema);
-<<<<<<< Updated upstream
 
-<<<<<<< Updated upstream
 export default UserProfile;
-=======
 module.exports = UserProfile;
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
+

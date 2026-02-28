@@ -13,15 +13,10 @@ const Guideline = require("./models/guideline.model");
 // ✅ IMPORTANT: these match your filenames in models folder
 const Training = require("./models/Training");
 const Event = require("./models/Event");
-<<<<<<< Updated upstream
 
-=======
-<<<<<<<<< Temporary merge branch 1
-=========
 const Reward = require("./models/reward");
 const postRoutes = require("./routes/postRoutes");
->>>>>>>>> Temporary merge branch 2
->>>>>>> Stashed changes
+
 
 const RefereeUu = require("./models/RefereeUu");
 const ReferralUu = require("./models/ReferralUu");
@@ -764,9 +759,7 @@ if (req.method === "PUT" && segments.length === 3) {
         });
       }
     }
-<<<<<<< Updated upstream
 
-=======
 // =========================================================
 // CLICK ANALYTICS (Marketing Manager Task)
 // =========================================================
@@ -846,7 +839,7 @@ if (segments[0] === "api" && segments[1] === "suggestions") {
     return sendJson(res, 200, { creatorId, suggestions });
   }
 }
->>>>>>> Stashed changes
+
     // =========================================================
     // UU ROUTES (NO EXPRESS)
     // Base: /api/uu/...
