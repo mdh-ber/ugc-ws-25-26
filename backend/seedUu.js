@@ -1,8 +1,7 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-const RefereeUu = require("./models/RefereeUu");
-const ReferralUu = require("./models/ReferralUu");
+const RefereeReferralUu = require("./models/Referee_Referral_UU");
 const { Referral } = require("./models/Referral");
 
 function toYYYYMMDD(d) {
@@ -13,25 +12,25 @@ async function seed() {
   await mongoose.connect(process.env.MONGO_URI);
   console.log("✅ MongoDB Connected");
 
-  await RefereeUu.deleteMany({});
-  await ReferralUu.deleteMany({});
-  await Referral.deleteMany({});
+  // clear unified UU docs
+  await RefereeReferralUu.deleteMany({});
+
+  // OPTIONAL: keep your referral list data, so don't delete referrals
+  // await Referral.deleteMany({});
 
   const today = new Date();
-  const d1 = new Date(today); d1.setDate(today.getDate() - 2);
-  const d2 = new Date(today); d2.setDate(today.getDate() - 1);
+  const d1 = new Date(today);
+  d1.setDate(today.getDate() - 2);
+  const d2 = new Date(today);
+  d2.setDate(today.getDate() - 1);
 
   const day1 = toYYYYMMDD(d1);
   const day2 = toYYYYMMDD(d2);
 
-  // Seed RefereeUu
-  await RefereeUu.insertMany([
-    { refereeId: "ref1", date: day1, uu: 2 },
-    { refereeId: "ref1", date: day2, uu: 1 },
-    { refereeId: "ref2", date: day2, uu: 1 },
-  ]);
+  // ✅ referralCodeId is ObjectId in your schema
+  const dummyReferralCodeIdA = new mongoose.Types.ObjectId();
+  const dummyReferralCodeIdB = new mongoose.Types.ObjectId();
 
-  // Create real Referral docs (so we can show names via lookup)
   const refA = await Referral.create({
     firstName: "John",
     surName: "Doe",
@@ -42,6 +41,11 @@ async function seed() {
     referralDate: new Date(),
     enrollmentStatus: "Pending",
     rewardStatus: "Pending",
+
+    // required fields in your schema
+    phoneNumber: "9999999999",
+    email: "john.doe@example.com",
+    referralCodeId: dummyReferralCodeIdA,
   });
 
   const refB = await Referral.create({
@@ -54,16 +58,26 @@ async function seed() {
     referralDate: new Date(),
     enrollmentStatus: "Enrolled",
     rewardStatus: "Approved",
+
+    // required fields
+    phoneNumber: "8888888888",
+    email: "jane.smith@example.com",
+    referralCodeId: dummyReferralCodeIdB,
   });
 
-  // Seed ReferralUu using Referral._id as referralId
-  await ReferralUu.insertMany([
-    { referralId: String(refA._id), date: day1, uu: 1 },
-    { referralId: String(refA._id), date: day2, uu: 2 },
-    { referralId: String(refB._id), date: day2, uu: 1 },
+  await RefereeReferralUu.insertMany([
+    // Referee UU
+    { entityType: "referee", entityId: "ref1", date: day1, uu: 2 },
+    { entityType: "referee", entityId: "ref1", date: day2, uu: 1 },
+    { entityType: "referee", entityId: "ref2", date: day2, uu: 1 },
+
+    // Referral UU (store Referral._id as entityId)
+    { entityType: "referral", entityId: String(refA._id), date: day1, uu: 1 },
+    { entityType: "referral", entityId: String(refA._id), date: day2, uu: 2 },
+    { entityType: "referral", entityId: String(refB._id), date: day2, uu: 1 },
   ]);
 
-  console.log("✨ Seeded RefereeUu + ReferralUu + Referral");
+  console.log("✨ Seeded RefereeReferralUu + Referral profiles successfully");
   process.exit(0);
 }
 

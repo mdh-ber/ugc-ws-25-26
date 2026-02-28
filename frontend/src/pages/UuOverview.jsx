@@ -32,7 +32,6 @@ export default function UuOverview() {
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  // ---------- Load Overview ----------
   const loadOverview = async () => {
     try {
       setLoadingOverview(true);
@@ -51,7 +50,6 @@ export default function UuOverview() {
     }
   };
 
-  // ---------- Load Members ----------
   const loadMembers = async () => {
     try {
       setLoadingMembers(true);
@@ -80,7 +78,6 @@ export default function UuOverview() {
     }
   };
 
-  // ---------- Load Details ----------
   const loadDetails = async (id) => {
     if (!id) return;
 
@@ -106,13 +103,11 @@ export default function UuOverview() {
     setSelectedMemberId("");
     loadOverview();
     loadMembers();
-    
   }, [tab, days]);
 
   useEffect(() => {
     if (selectedMemberId) loadDetails(selectedMemberId);
-    
-  }, [selectedMemberId]);
+  }, [selectedMemberId, tab, days]);
 
   const summary = useMemo(() => {
     return details?.summary || { totalUu: 0, avgDailyUu: 0, peakUu: 0 };
@@ -122,9 +117,11 @@ export default function UuOverview() {
     <div className="p-6">
       <div className="bg-white rounded-xl shadow p-6">
         <div className="flex items-start justify-between">
-          <h1 className="text-xl font-bold text-gray-900">
-            Unique Users Overview
-          </h1>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">
+              Unique Users Overview
+            </h1>
+          </div>
 
           <select
             value={days}
@@ -167,7 +164,6 @@ export default function UuOverview() {
           >
             Referral
           </button>
-
           <button
             onClick={() => setTab("referee")}
             className={`px-4 py-2 rounded-md text-sm ${
@@ -229,7 +225,7 @@ export default function UuOverview() {
                   >
                     <div className="font-medium text-gray-900">{m.name}</div>
                     <div className="text-xs text-gray-500">
-                      Total UU: {m.totalUu}
+                      Total UU: {m.totalUu || 0}
                     </div>
                   </button>
                 ))}

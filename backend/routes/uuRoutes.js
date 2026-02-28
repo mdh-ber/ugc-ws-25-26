@@ -1,25 +1,31 @@
-const express = require("express");
-const router = express.Router();
+if (segments[0] === "api" && segments[1] === "uu") {
+  const fakeReq = { method: req.method, query, params: {} };
 
-const {
-  getRefereeMembers,
-  getReferralMembers,
-  getRefereeOverview,
-  getRefereeDetails,
-  getReferralOverview,
-  getReferralDetails,
-} = require("../controllers/uuController");
+  if (req.method === "GET" && path === "/api/uu/referee/overview") {
+    return uuController.getRefereeOverview(fakeReq, res);
+  }
 
-// Members (dynamic)
-router.get("/referee/members", getRefereeMembers);
-router.get("/referral/members", getReferralMembers);
+  if (req.method === "GET" && path === "/api/uu/referee/members") {
+    return uuController.getRefereeMembers(fakeReq, res);
+  }
 
-// Overview
-router.get("/referee/overview", getRefereeOverview);
-router.get("/referral/overview", getReferralOverview);
+  if (req.method === "GET" && segments[2] === "referee" && segments[3]) {
+    fakeReq.params.refereeId = segments[3];
+    return uuController.getRefereeDetails(fakeReq, res);
+  }
 
-// Details
-router.get("/referee/:refereeId", getRefereeDetails);
-router.get("/referral/:referralId", getReferralDetails);
+  if (req.method === "GET" && path === "/api/uu/referral/overview") {
+    return uuController.getReferralOverview(fakeReq, res);
+  }
 
-module.exports = router;
+  if (req.method === "GET" && path === "/api/uu/referral/members") {
+    return uuController.getReferralMembers(fakeReq, res);
+  }
+
+  if (req.method === "GET" && segments[2] === "referral" && segments[3]) {
+    fakeReq.params.referralId = segments[3];
+    return uuController.getReferralDetails(fakeReq, res);
+  }
+
+  return sendJson(res, 404, { message: "Route not found" });
+}

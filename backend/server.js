@@ -15,16 +15,13 @@ const Event = require("./models/Event");
 const Reward = require("./models/reward");
 const postRoutes = require("./routes/postRoutes");
 
-const RefereeUu = require("./models/RefereeUu");
-const ReferralUu = require("./models/ReferralUu");
+const uuController = require("./controllers/uuController");
 const { Referral,ReferralCode } = require("./models/Referral");
 const Userprofile = require("./models/userprofile.model"); // Reference UserProfile for RefereeUu 
 
-// ✅ NEW (Sub-issue #155)
-const Campaign = require("./models/Campaign");
+
 const Certificate = require("./models/Certificate");
-// ✅ NEW (Sub-issue #158)
-const CampaignMetric = require("./models/CampaignMetric");
+const { Campaign, CampaignMetric } = require("./models/Campaign");
 
 const PORT = process.env.PORT || 5000;
 const Visit = require("./models/visit");
@@ -126,6 +123,7 @@ function safeNumber(n, fallback = 0) {
 // ---------------- server ----------------
 const server = http.createServer(async (req, res) => {
   setCors(res);
+  res.sendJson = (status, data) => sendJson(res, status, data);
 
   // Preflight
   if (req.method === "OPTIONS") {
@@ -851,151 +849,41 @@ if (req.method === "PUT" && segments.length === 3) {
     }
 
     // =========================================================
-    // UU ROUTES (NO EXPRESS)
-    // Base: /api/uu/...
-    // =========================================================
-    if (segments[0] === "api" && segments[1] === "uu") {
-      const group = segments[2]; // "referee" | "referral"
-      const action = segments[3]; // "overview" | "members" | ":id"
+// ✅ UU ROUTES (NO EXPRESS) - Unified Model
+// Base: /api/uu/...
+// =========================================================
+if (segments[0] === "api" && segments[1] === "uu") {
+  req.query = query;
+  req.params = {};
 
-      const { from, to } = parseRange(query);
+  if (req.method === "GET" && path === "/api/uu/referee/overview") {
+    return uuController.getRefereeOverview(req, res);
+  }
 
-      // ---------- REFEREE ----------
-      if (group === "referee") {
-        if (req.method === "GET" && action === "overview") {
-          const data = await RefereeUu.aggregate([
-            { $match: { date: { $gte: from, $lte: to } } },
-            { $group: { _id: "$date", uu: { $sum: "$uu" } } },
-            { $sort: { _id: 1 } },
-            { $project: { _id: 0, date: "$_id", uu: 1 } },
-          ]);
-          return sendJson(res, 200, { series: data, from, to });
-        }
+  if (req.method === "GET" && path === "/api/uu/referee/members") {
+    return uuController.getRefereeMembers(req, res);
+  }
 
-        if (req.method === "GET" && action === "members") {
-          const members = await RefereeUu.aggregate([
-            { $match: { date: { $gte: from, $lte: to } } },
-            { $group: { _id: "$refereeId", totalUu: { $sum: "$uu" } } },
-            { $sort: { totalUu: -1 } },
-            {
-              $project: {
-                _id: 0,
-                id: "$_id",
-                name: "$_id",
-                totalUu: 1,
-              },
-            },
-          ]);
-          return sendJson(res, 200, {
-            count: members.length,
-            members,
-            from,
-            to,
-          });
-        }
+  if (req.method === "GET" && segments[2] === "referee" && segments[3]) {
+    req.params.refereeId = segments[3];
+    return uuController.getRefereeDetails(req, res);
+  }
 
-        if (req.method === "GET" && segments.length === 4 && action) {
-          const refereeId = action;
+  if (req.method === "GET" && path === "/api/uu/referral/overview") {
+    return uuController.getReferralOverview(req, res);
+  }
 
-          const docs = await RefereeUu.find({
-            refereeId,
-            date: { $gte: from, $lte: to },
-          })
-            .sort({ date: 1 })
-            .lean();
+  if (req.method === "GET" && path === "/api/uu/referral/members") {
+    return uuController.getReferralMembers(req, res);
+  }
 
-          const series = docs.map((d) => ({ date: d.date, uu: d.uu }));
-          const summary = buildSummary(series);
+  if (req.method === "GET" && segments[2] === "referral" && segments[3]) {
+    req.params.referralId = segments[3];
+    return uuController.getReferralDetails(req, res);
+  }
 
-          return sendJson(res, 200, {
-            id: refereeId,
-            summary,
-            series,
-            from,
-            to,
-          });
-        }
-      }
-
-      if (group === "referral") {
-        if (req.method === "GET" && action === "overview") {
-          const data = await ReferralUu.aggregate([
-            { $match: { date: { $gte: from, $lte: to } } },
-            { $group: { _id: "$date", uu: { $sum: "$uu" } } },
-            { $sort: { _id: 1 } },
-            { $project: { _id: 0, date: "$_id", uu: 1 } },
-          ]);
-          return sendJson(res, 200, { series: data, from, to });
-        }
-
-        if (req.method === "GET" && action === "members") {
-          const base = await ReferralUu.aggregate([
-            { $match: { date: { $gte: from, $lte: to } } },
-            { $group: { _id: "$referralId", totalUu: { $sum: "$uu" } } },
-            { $sort: { totalUu: -1 } },
-          ]);
-
-          const ids = base.map((x) => x._id);
-          const validIds = ids.filter((id) => isValidObjectId(id));
-
-          const profiles = validIds.length
-            ? await Referral.find({ _id: { $in: validIds } })
-                .select("firstName surName")
-                .lean()
-            : [];
-
-          const profileMap = new Map(
-            profiles.map((p) => [
-              String(p._id),
-              `${p.firstName} ${p.surName}`,
-            ])
-          );
-
-          const members = base.map((x) => ({
-            id: x._id,
-            totalUu: x.totalUu,
-            name: profileMap.get(String(x._id)) || x._id,
-          }));
-
-          return sendJson(res, 200, {
-            count: members.length,
-            members,
-            from,
-            to,
-          });
-        }
-
-        if (req.method === "GET" && segments.length === 4 && action) {
-          const referralId = action;
-
-          const docs = await ReferralUu.find({
-            referralId,
-            date: { $gte: from, $lte: to },
-          })
-            .sort({ date: 1 })
-            .lean();
-
-          const series = docs.map((d) => ({ date: d.date, uu: d.uu }));
-          const summary = buildSummary(series);
-
-          let profile = null;
-          if (isValidObjectId(referralId)) {
-            profile = await Referral.findById(referralId).lean();
-          }
-
-          return sendJson(res, 200, {
-            id: referralId,
-            profile,
-            summary,
-            series,
-            from,
-            to,
-          });
-        }
-      }
-
-      return sendJson(res, 404, { message: "Route not found" });
-    }    
+  return sendJson(res, 404, { message: "Route not found" });
+}    
 
     // =========================================================
     // COMMUNITY FEED / POSTS

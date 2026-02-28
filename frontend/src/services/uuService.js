@@ -1,33 +1,33 @@
 import api from "./api";
 
-// NOTE: pass params object like { days: 7 } from UI
-
-export const getRefereeOverview = async (params) => {
-  const res = await api.get("/uu/referee/overview", { params });
+// ----------- REFEREE -----------
+export const getRefereeOverview = async ({ days = 7 } = {}) => {
+  const res = await api.get(`/uu/referee/overview?days=${days}`);
   return res.data;
 };
 
-export const getRefereeMembers = async (params) => {
-  const res = await api.get("/uu/referee/members", { params });
+export const getRefereeMembers = async ({ days = 7 } = {}) => {
+  const res = await api.get(`/uu/referee/members?days=${days}`);
   return res.data;
 };
 
-export const getRefereeDetails = async (refereeId, params) => {
-  const res = await api.get(`/uu/referee/${refereeId}`, { params });
+export const getRefereeDetails = async (refereeId, { days = 7 } = {}) => {
+  const res = await api.get(`/uu/referee/${refereeId}?days=${days}`);
   return res.data;
 };
 
-export const getReferralOverview = async (params) => {
-  const res = await api.get("/uu/referral/overview", { params });
+// ----------- REFERRAL -----------
+export const getReferralOverview = async ({ days = 7 } = {}) => {
+  const res = await api.get(`/uu/referral/overview?days=${days}`);
   return res.data;
 };
 
-export const getReferralMembers = async (params) => {
-  const res = await api.get("/uu/referral/members", { params });
+export const getReferralMembers = async ({ days = 7 } = {}) => {
+  const res = await api.get(`/uu/referral/members?days=${days}`);
   return res.data;
 };
 
-export const getReferralDetails = async (referralId, params) => {
-  const res = await api.get(`/uu/referral/${referralId}`, { params });
+export const getReferralDetails = async (referralId, { days = 7 } = {}) => {
+  const res = await api.get(`/uu/referral/${referralId}?days=${days}`);
   return res.data;
 };
