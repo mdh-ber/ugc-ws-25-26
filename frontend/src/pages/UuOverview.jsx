@@ -1,13 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  getRefereeOverview,
-  getRefereeMembers,
-  getRefereeDetails,
-  getReferralOverview,
-  getReferralMembers,
-  getReferralDetails,
-} from "../services/uuService";
-
+import { useEffect, useState, useMemo } from "react";
+import axios from "axios";
 import {
   LineChart,
   Line,

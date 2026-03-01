@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-
-const API_BASE = "http://localhost:5000/api";
+import { useState, useEffect } from "react";
+import api from "../services/api"; 
 
 const Guidelines = () => {
-  const [dos, setDos] = useState([]); // Mongo docs: [{ _id, text, type, ... }]
+  // --- STATE ---
+  const [dos, setDos] = useState([]);
   const [donts, setDonts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const [newGuideline, setNewGuideline] = useState("");
   const [type, setType] = useState("do");
@@ -15,87 +15,78 @@ const Guidelines = () => {
   const [editType, setEditType] = useState(null);
   const [editValue, setEditValue] = useState("");
 
-  const [saving, setSaving] = useState(false);
-
-  // -------- API calls --------
-  const fetchGuidelines = async () => {
-    const res = await axios.get(`${API_BASE}/guidelines`);
-
-    // Backend returns an array: [{ _id, text, type: "do"|"dont", ... }]
-    const list = Array.isArray(res.data) ? res.data : [];
-
-    setDos(list.filter((g) => g.type === "do"));
-    setDonts(list.filter((g) => g.type === "dont"));
-  };
-
-  const addGuidelineApi = async (type, text) => {
-    const res = await axios.post(`${API_BASE}/guidelines`, { type, text });
-    return res.data; // created Mongo document (has _id)
-  };
-
-  const updateGuidelineApi = async (id, text) => {
-    await axios.put(`${API_BASE}/guidelines/${id}`, { text });
-  };
-
-  const deleteGuidelineApi = async (id) => {
-    await axios.delete(`${API_BASE}/guidelines/${id}`);
-  };
-
-  // -------- load on mount --------
+  // --- FETCH DATA ON MOUNT ---
   useEffect(() => {
-    (async () => {
-      setLoading(true);
+    const fetchGuidelines = async () => {
       try {
-        await fetchGuidelines();
-      } catch (e) {
-        console.error(e);
-        alert("Failed to load guidelines.");
+        setLoading(true);
+        const { data } = await api.get("/guidelines");
+        // Filter guidelines into respective categories
+        setDos(data.filter((g) => g.type === "do"));
+        setDonts(data.filter((g) => g.type === "dont"));
+      } catch (error) {
+        console.error("Error fetching guidelines:", error);
       } finally {
         setLoading(false);
       }
-    })();
+    };
+
+    fetchGuidelines();
   }, []);
 
-  // -------- actions --------
+  // --- ACTIONS ---
   const handleAdd = async () => {
     if (!newGuideline.trim()) return;
-
     setSaving(true);
     try {
-      const created = await addGuidelineApi(type, newGuideline.trim());
-
-      // created has _id and type
-      if (created.type === "do") setDos((prev) => [...prev, created]);
-      else setDonts((prev) => [...prev, created]);
-
+      const { data: created } = await api.post("/guidelines", {
+        text: newGuideline.trim(),
+        type: type,
+      });
+      if (type === "do") setDos([...dos, created]);
+      else setDonts([...donts, created]);
       setNewGuideline("");
-    } catch (e) {
-      console.error(e);
-      alert("Failed to add guideline.");
+    } catch (err) {
+      console.error("Add failed:", err);
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id, listType) => {
-    setSaving(true);
+    if (!window.confirm("Delete this guideline?")) return;
     try {
-      await deleteGuidelineApi(id);
-
-      if (listType === "do") setDos((prev) => prev.filter((g) => g._id !== id));
-      else setDonts((prev) => prev.filter((g) => g._id !== id));
-    } catch (e) {
-      console.error(e);
-      alert("Failed to delete guideline.");
-    } finally {
-      setSaving(false);
+      await api.delete(`/guidelines/${id}`);
+      if (listType === "do") setDos(dos.filter((g) => g._id !== id));
+      else setDonts(donts.filter((g) => g._id !== id));
+    } catch (err) {
+      console.error("Delete failed:", err);
     }
   };
 
-  const handleEditStart = (id, listType, value) => {
-    setEditId(id);
-    setEditType(listType);
-    setEditValue(value);
+  const handleEditStart = (item) => {
+    setEditId(item._id);
+    setEditType(item.type);
+    setEditValue(item.text);
+  };
+
+  const handleEditSave = async () => {
+    if (!editValue.trim()) return;
+    setSaving(true);
+    try {
+      await api.put(`/guidelines/${editId}`, {
+        text: editValue.trim(),
+        type: editType,
+      });
+      const update = (list) => list.map((g) => (g._id === editId ? { ...g, text: editValue } : g));
+      if (editType === "do") setDos((prev) => update(prev));
+      else setDonts((prev) => update(prev));
+      resetEdit();
+    } catch (e) {
+      console.error("Update failed:", e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const resetEdit = () => {
@@ -104,183 +95,88 @@ const Guidelines = () => {
     setEditValue("");
   };
 
-  const handleEditSave = async () => {
-    if (!editValue.trim()) return;
-
-    setSaving(true);
-    try {
-      await updateGuidelineApi(editId, editValue.trim());
-
-      if (editType === "do") {
-        setDos((prev) =>
-          prev.map((g) => (g._id === editId ? { ...g, text: editValue.trim() } : g))
-        );
-      } else {
-        setDonts((prev) =>
-          prev.map((g) => (g._id === editId ? { ...g, text: editValue.trim() } : g))
-        );
-      }
-
-      resetEdit();
-    } catch (e) {
-      console.error(e);
-      alert("Failed to update guideline.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // -------- small UI helpers --------
-  const cardClass = "bg-white rounded-xl shadow-sm border border-gray-100";
-  const headerClass =
-    "px-4 py-3 border-b border-gray-100 flex items-center justify-between";
-  const titleClass = "text-sm font-semibold";
-  const btnPrimary =
-    "rounded-lg px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60";
-  const btnDanger =
-    "text-xs px-2 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white disabled:opacity-60";
-  const btnWarn =
-    "text-xs px-2 py-1 rounded-md bg-amber-500/90 hover:bg-amber-600 text-white disabled:opacity-60";
-
-  const Row = ({ item, onEdit, onDelete }) => (
-    <li className="flex items-start justify-between gap-3 py-2">
-      <span className="text-sm text-gray-800 leading-snug">{item.text}</span>
-      <div className="flex gap-2 shrink-0">
-        <button disabled={saving} onClick={onEdit} className={btnWarn}>
-          Edit
-        </button>
-        <button disabled={saving} onClick={onDelete} className={btnDanger}>
-          Delete
-        </button>
-      </div>
-    </li>
-  );
+  // --- STYLES ---
+  const btnPrimary = "rounded-lg px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50";
+  const btnDanger = "text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white";
+  const btnWarn = "text-xs px-2 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white";
 
   return (
-    <div className="p-4">
-      <div className="mb-3">
-        <h1 className="text-xl font-bold text-gray-900">Content Guidelines</h1>
-        <p className="text-sm text-gray-500">Data is loaded/saved from backend.</p>
+    <div className="p-6 max-w-4xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Content Guidelines</h1>
+        <p className="text-sm text-gray-500">Manage rules for content creation.</p>
       </div>
 
-      {/* Add */}
-      <div className={`${cardClass} p-4 mb-4`}>
-        <h2 className="text-sm font-semibold text-gray-800 mb-3">
-          Add new guideline
-        </h2>
-
-        <div className="flex flex-col md:flex-row gap-2">
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
-          >
-            <option value="do">Do&apos;s</option>
-            <option value="dont">Don&apos;ts</option>
-          </select>
-
-          <input
-            type="text"
-            value={newGuideline}
-            onChange={(e) => setNewGuideline(e.target.value)}
-            placeholder="Enter guideline..."
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          />
-
-          <button disabled={saving} onClick={handleAdd} className={btnPrimary}>
-            {saving ? "Saving..." : "Add"}
-          </button>
-        </div>
+      {/* INPUT */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row gap-3">
+        <select value={type} onChange={(e) => setType(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-gray-50">
+          <option value="do">Do's</option>
+          <option value="dont">Don'ts</option>
+        </select>
+        <input
+          type="text"
+          value={newGuideline}
+          onChange={(e) => setNewGuideline(e.target.value)}
+          placeholder="New rule..."
+          className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button disabled={saving} onClick={handleAdd} className={btnPrimary}>
+          {saving ? "Saving..." : "Add"}
+        </button>
       </div>
 
-      {/* Lists */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className={cardClass}>
-          <div className={headerClass}>
-            <h2 className={`${titleClass} text-green-700`}>Do&apos;s</h2>
+      {/* LISTS */}
+      {loading ? (
+        <div className="text-center py-10">Loading...</div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+            <h2 className="font-bold text-green-800 mb-3">✅ Do's</h2>
+            <ul className="space-y-2">
+              {dos.map((item) => (
+                <li key={item._id} className="flex justify-between items-start bg-white p-2 rounded shadow-sm">
+                  <span className="text-sm text-gray-700">{item.text}</span>
+                  <div className="flex gap-1">
+                    <button onClick={() => handleEditStart(item)} className={btnWarn}>Edit</button>
+                    <button onClick={() => handleDelete(item._id, "do")} className={btnDanger}>X</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="p-4">
-            {loading ? (
-              <p className="text-sm text-gray-500">Loading...</p>
-            ) : (
-              <ul className="divide-y divide-gray-100">
-                {dos.map((g) => (
-                  <Row
-                    key={g._id}
-                    item={g}
-                    onEdit={() => handleEditStart(g._id, "do", g.text)}
-                    onDelete={() => handleDelete(g._id, "do")}
-                  />
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-
-        <div className={cardClass}>
-          <div className={headerClass}>
-            <h2 className={`${titleClass} text-red-700`}>Don&apos;ts</h2>
-          </div>
-          <div className="p-4">
-            {loading ? (
-              <p className="text-sm text-gray-500">Loading...</p>
-            ) : (
-              <ul className="divide-y divide-gray-100">
-                {donts.map((g) => (
-                  <Row
-                    key={g._id}
-                    item={g}
-                    onEdit={() => handleEditStart(g._id, "dont", g.text)}
-                    onDelete={() => handleDelete(g._id, "dont")}
-                  />
-                ))}
-              </ul>
-            )}
+          <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+            <h2 className="font-bold text-red-800 mb-3">❌ Don'ts</h2>
+            <ul className="space-y-2">
+              {donts.map((item) => (
+                <li key={item._id} className="flex justify-between items-start bg-white p-2 rounded shadow-sm">
+                  <span className="text-sm text-gray-700">{item.text}</span>
+                  <div className="flex gap-1">
+                    <button onClick={() => handleEditStart(item)} className={btnWarn}>Edit</button>
+                    <button onClick={() => handleDelete(item._id, "dont")} className={btnDanger}>X</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Edit Modal */}
-      {editId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={resetEdit} />
-
-          <div className="relative z-10 w-[92%] max-w-md bg-white rounded-xl shadow-lg border border-gray-100">
-            <div className={headerClass}>
-              <h2 className="text-sm font-semibold text-gray-900">Edit guideline</h2>
-              <button
-                onClick={resetEdit}
-                className="text-gray-500 hover:text-gray-800 text-xl leading-none"
-                aria-label="Close"
-              >
-                ×
+      {/* MODAL */}
+      {editId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
+            <h3 className="font-bold mb-4">Edit Rule</h3>
+            <input
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={resetEdit} className="px-4 py-2 bg-gray-100 rounded-lg">Cancel</button>
+              <button onClick={handleEditSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                {saving ? "Saving..." : "Save"}
               </button>
-            </div>
-
-            <div className="p-4">
-              <input
-                type="text"
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-200"
-              />
-
-              <div className="flex justify-end gap-2 mt-4">
-                <button
-                  onClick={resetEdit}
-                  className="px-3 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800"
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleEditSave}
-                  className="px-3 py-2 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold disabled:opacity-60"
-                  disabled={saving}
-                >
-                  {saving ? "Saving..." : "Save"}
-                </button>
-              </div>
             </div>
           </div>
         </div>

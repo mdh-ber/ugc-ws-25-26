@@ -21,8 +21,7 @@ const Lead = require("./models/Lead");
 // ✅ IMPORTANT: these match your filenames in models folder
 const Training = require("./models/Training");
 const Event = require("./models/Event");
-const Reward = require("./models/reward");
-const postRoutes = require("./routes/postRoutes");
+
 
 const RefereeUu = require("./models/RefereeUu");
 const ReferralUu = require("./models/ReferralUu");
