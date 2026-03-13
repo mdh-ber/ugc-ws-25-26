@@ -19,9 +19,11 @@ import ContentCreation from "./pages/ContentCreation";
 import Trainings from "./pages/Trainings";
 import Guidelines from "./pages/Guidelines";
 import Reviews from "./pages/Reviews";
+import LeadsChartPage from "./pages/LeadsChartPage";
 import UuOverview from "./pages/UuOverview";
 import Rewards from "./pages/Rewards";
 import CertificatesPage from "./pages/CertificatesPage";
+import Suggestions from "./pages/Suggestions";
 import Milestones from "./pages/Milestones";
 import ReferralList from "./pages/ReferralList";
 import CreatorPerformanceDashboard from "./pages/CreatorPerformanceDashboard";
@@ -83,10 +85,12 @@ function App() {
               <Route path="/leads" element={<LeadTracking />} />
               <Route path="/guidelines" element={<Guidelines />} />
               <Route path="/reviews" element={<Reviews />} />
+              <Route path="/leads-chart" element={<LeadsChartPage />} />
               <Route path="/uu-overview" element={<UuOverview />} />
               <Route path="/referrals" element={<ReferralList />} />
               <Route path="/rewards" element={<Rewards />} />
               <Route path="/certificates" element={<CertificatesPage />} />
+              <Route path="/suggestions" element={<Suggestions />} />
               <Route path="/milestones" element={<Milestones />} />
               <Route path="/feed" element={<CommunityFeed />} />
 

@@ -1,4 +1,5 @@
 const Post = require("./models/Post");
+const Lead = require("./models/Lead");
 const Comment = require("./models/Comment");
 const http = require("http");
 const url = require("url");
@@ -16,14 +17,12 @@ const authController = require("./controllers/authController");
 const Notification = require("./models/Notification");
 const MilestoneType = unwrapDefault(require("./models/MilestoneType"));
 const UserMilestone = unwrapDefault(require("./models/UserMilestone"));
-const Lead = require("./models/Lead");
 
 // ✅ IMPORTANT: these match your filenames in models folder
 const Training = require("./models/Training");
 const Event = require("./models/Event");
 const Reward = require("./models/reward");
-const postRoutes = require("./routes/postRoutes");
-
+const leadRoutes = require("./routes/leadRoutes");
 const RefereeUu = require("./models/RefereeUu");
 const ReferralUu = require("./models/ReferralUu");
 const { Referral,ReferralCode } = require("./models/Referral");
@@ -403,114 +402,26 @@ if (req.method === "POST" && path === "/api/auth/login") {
       }
       return sendJson(res, 401, { message: "Invalid email or password" });
     }
-// =========================================================
-    // =========================================================
-    // LEADS (CLICK TRACKING) API
-    // =========================================================
-    if (segments[0] === "api" && segments[1] === "leads") {
-      
-      // POST /api/leads (click tracking)
-      if (req.method === "POST" && segments.length === 2) {
-        try {
-          const body = await readJsonBody(req);
-          
-          if (!body.platform) {
-            return sendJson(res, 400, { message: "Platform is required" });
-          }
 
-          const platformValue = String(body.platform).toLowerCase();
-
-          // Save to database
-          const created = await Lead.create({ 
-            platform: platformValue 
-          });
-
-          return sendJson(res, 201, created);
-        } catch (err) {
-          // check error type and message for better debugging
-          console.error("DEBUG - Lead Create Error:", err); 
-          return sendJson(res, 500, { message: "Server error", detail: err.message });
-        }
-      }
-
-      // GET /api/leads/monthly
-      if (req.method === "GET" && segments[2] === "monthly") {
-        try {
-          const stats = await Lead.aggregate([
-            {
-              $group: {
-                _id: {
-                  year: { $year: "$clickedAt" },
-                  month: { $month: "$clickedAt" }
-                },
-                count: { $sum: 1 }
-              }
-            },
-            { $sort: { "_id.year": -1, "_id.month": -1 } }
-          ]);
-          return sendJson(res, 200, stats);
-        } catch (err) {
-          console.error("DEBUG - Monthly Stats Error:", err);
-          return sendJson(res, 500, { message: "Internal Server Error" });
-        }
-      }
-    }
-    // GET /api/leads/monthly
-if (req.method === "GET" && segments[2] === "monthly") {
-  try {
-    const monthlyStats = await Lead.aggregate([
-      {
-        $group: {
-          _id: {
-            year: { $year: "$clickedAt" },
-            month: { $month: "$clickedAt" }
-          },
-          totalClicks: { $sum: 1 },
-          // sperate monthly
-          platforms: {
-            $push: "$platform" 
-          }
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          year: "$_id.year",
-          month: "$_id.month",
-          totalClicks: 1,
-      
-          details: {
-            $arrayToObject: {
-              $map: {
-                input: { $setUnion: "$platforms" },
-                as: "p",
-                in: {
-                  k: "$$p",
-                  v: {
-                    $size: {
-                      $filter: {
-                        input: "$platforms",
-                        cond: { $eq: ["$$this", "$$p"] }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      { $sort: { year: -1, month: -1 } }
-    ]);
-
-    return sendJson(res, 200, monthlyStats);
-  } catch (err) {
-    console.error("Monthly Stats Error:", err);
-    return sendJson(res, 500, { message: "Error generating report" });
-  }
+// ===========================
+// LEADS
+// ===========================
+if (req.method === "GET" && path.startsWith("/api/leads/track/")) {
+  const platform = decodeURIComponent(path.split("/").pop() || "").toLowerCase();
+  await Lead.create({ platform });
+  return sendJson(res, 200, { success: true, message: "Lead tracked successfully" });
 }
+
+if (req.method === "GET" && path === "/api/leads/stats") {
+  const stats = await Lead.aggregate([
+    { $group: { _id: "$platform", count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+  ]);
+  return sendJson(res, 200, stats);
+}
+
     //API VISIT TRACKING
-if (req.method === "POST" && path === "/api/visits/track"){
+{
   const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
   const userAgent = req.headers['user-agent'] || "unknown";
   const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");

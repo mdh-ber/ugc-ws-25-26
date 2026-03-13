@@ -14,6 +14,7 @@ import {
   Award,
   Target,
   LogOut,
+  Lightbulb,
   UserSearch,
   BarChart3,
   Megaphone,
@@ -93,8 +94,10 @@ function Layout() {
     { name: "Reviews", path: "/reviews", icon: NotebookPen },
     { name: "User-Overview", path: "/uu-overview", icon: FileText },
     { name: "Referral List", path: "/referrals", icon: UserSearch },
+    { name: "Leads Chart", path: "/leads-chart", icon: BarChart3 },
     { name: "Rewards", path: "/rewards", icon: Wallet },
     { name: "Certificates", path: "/certificates", icon: Award },
+    { name: "Suggestions", path: "/suggestions", icon: Lightbulb },
     { name: "Milestones", path: "/milestones", icon: Target },
     { name: "Leaderboard", path: "/leaderboard", icon: BarChart3 },
 
