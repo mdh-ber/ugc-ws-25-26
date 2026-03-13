@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
@@ -9,21 +9,17 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    passwordHash: {
+    password: {
       type: String,
       required: true,
     },
     role: {
       type: String,
-      enum: ["user", "admin"],
+      enum: ["user", "admin","manager","admission_officer"],
       default: "user",
     },
   },
   { timestamps: true }
 );
 
-const User =
-  mongoose.models.User ||
-  mongoose.model("User", userSchema);
-
-export default User;
+module.exports = mongoose.model("User", userSchema);

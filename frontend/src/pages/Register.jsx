@@ -92,6 +92,10 @@ function Register() {
       setError("Failed to read image file");
     }
   };
+  // primary email validation
+ const isValidMdhEmail = (email) => {
+  return /^[a-zA-Z0-9._%+-]+@stud\.mediadesign\.de$/.test(email);
+};
  
   const handleRegister = async () => {
     setError("");
@@ -100,6 +104,10 @@ function Register() {
       setError("Primary email is required");
       return;
     }
+    if (!isValidMdhEmail(profile.primaryEmail)) {
+    setError("Enter a valid email address");
+    return;
+  }
  
     if (!isPasswordValid) {
       setError("Password does not meet the required criteria");
@@ -122,12 +130,13 @@ function Register() {
       };
  
       const res = await axios.post(`${API_BASE}/auth/register`, payload);
- 
+      console.log(res);
+      alert(res.data.message || "Registration successful!");
       // auto-login (session-based)
       sessionStorage.setItem("token", res.data.token);
       sessionStorage.setItem("role", res.data.user.role);
- 
-      nav("/profile");
+      // sessionStorage.setItem("profile", JSON.stringify(res.data.user.profile));
+      nav("/Profile");
     } catch (err) {
       console.error(err);
       setError(err?.response?.data?.message || "Registration failed");
@@ -179,10 +188,10 @@ function Register() {
  
           {/* Form */}
           <div className="grid md:grid-cols-2 gap-4">
-            <Input label="First Name" name="firstName" value={profile.firstName} onChange={handleChange} />
+            <Input label="First Name *" name="firstName" value={profile.firstName} onChange={handleChange} />
             <Input label="Last Name" name="lastName" value={profile.lastName} onChange={handleChange} />
  
-            <Input label="Primary Email (MDH)" name="primaryEmail" value={profile.primaryEmail} onChange={handleChange} />
+            <Input label="Primary Email (MDH) *" name="primaryEmail" value={profile.primaryEmail} onChange={handleChange} />
             <Input label="Secondary Email" name="secondaryEmail" value={profile.secondaryEmail} onChange={handleChange} />
  
             <Select label="Gender" name="gender" value={profile.gender} onChange={handleChange} />
@@ -191,11 +200,11 @@ function Register() {
             <Input label="City" name="city" value={profile.city} onChange={handleChange} />
             <Input label="Mobile (Optional)" name="mobile" value={profile.mobile} onChange={handleChange} />
  
-            <Input label="Joined Date (UGC Campaign)" name="joinedDate" value={profile.joinedDate} onChange={handleChange} />
+            <Input label="Joined Date (UGC Campaign)*" name="joinedDate" value={profile.joinedDate} onChange={handleChange} />
             <Input label="Enrolled Course" name="course" value={profile.course} onChange={handleChange} />
  
-            <Input label="Which Intake" name="intake" value={profile.intake} onChange={handleChange} />
-            <Input label="Primary Language" name="primaryLanguage" value={profile.primaryLanguage} onChange={handleChange} />
+            <Input label="Which Intake *" name="intake" value={profile.intake} onChange={handleChange} />
+            <Input label="Primary Language " name="primaryLanguage" value={profile.primaryLanguage} onChange={handleChange} />
           </div>
  
           {/* Socials */}
