@@ -420,7 +420,8 @@ if (req.method === "GET" && path === "/api/leads/stats") {
   return sendJson(res, 200, stats);
 }
 
-    //API VISIT TRACKING {
+    //API VISIT TRACKING
+{
   const clientIp = req.ip || req.headers['x-forwarded-for'] || "unknown";
   const userAgent = req.headers['user-agent'] || "unknown";
   const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
