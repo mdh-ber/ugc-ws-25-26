@@ -30,8 +30,8 @@ function Navbar() {
         <Link to="/reviews" className="hover:text-primary">Reviews</Link>
         <Link to="/leads" className="hover:text-primary">Leads</Link>
         <Link to="/guidelines" className="hover:text-primary">Guidelines</Link>
-        <Link to="/suggestions" className="...same classes...">Suggestions</Link>
-
+        <Link to="/suggestions" className="hover:text-primary">Suggestions</Link>
+        
         {!token ? (
           <Link to="/login" className="bg-primary text-white px-4 py-2 rounded-lg">
             Login

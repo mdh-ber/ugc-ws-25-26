@@ -126,9 +126,7 @@ export default function LeadsChart() {
         // If your backend supports months, it can use months=...
         // If it only supports days, it can use days=months*30
         const days = timeSeriesMonths * 30;
-        const res = await api.get(
-          `/leads/monthly?months=${timeSeriesMonths}&days=${days}`
-        );
+        const res = await api.get("/leads/stats");
         const payload = res?.data;
 
         // If backend returns pivoted array: [{ date, Instagram: 3, YouTube: 1, ... }]

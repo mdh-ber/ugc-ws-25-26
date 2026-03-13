@@ -144,8 +144,7 @@ function Reviews() {
   );
 
   // If you want to plug backend later, just replace this `rows` with API data.
-  const rows = USE_SAMPLE_DATA ? sampleReviews : sampleReviews;
-
+  const rows = sampleReviews;
   const counts = useMemo(() => {
     const c = { All: rows.length, Pending: 0, "In Review": 0, Approved: 0, Rejected: 0 };
     for (const r of rows) {
