@@ -1,30 +1,41 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { getReferralOverview } from "../services/uuService";
 
 export default function ReferralOverview() {
   const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/uu/referral/overview")
-      .then((res) => {
-        console.log(res.data);
-        setData(res.data.series);
-      })
-      .catch((err) => {
+    const run = async () => {
+      try {
+        setLoading(true);
+        const res = await getReferralOverview({ days: 7 });
+        setData(res?.series || []);
+      } catch (err) {
         console.error("API error", err);
-      });
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
   }, []);
 
   return (
-    <div>
-      <h1>Referral Overview</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Referral Overview</h1>
 
-      {data.map((item, index) => (
-        <p key={index}>
-          {item.date} : {item.uu}
-        </p>
-      ))}
+      {loading && <p>Loading...</p>}
+
+      {!loading && data.length === 0 && <p>No data yet...</p>}
+
+      {!loading &&
+        data.map((item, index) => (
+          <p key={index}>
+            {item.date} : {item.uu}
+          </p>
+        ))}
     </div>
   );
 }

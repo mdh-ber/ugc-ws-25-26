@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const TrainingSchema = new mongoose.Schema({
   title: {
@@ -148,8 +148,6 @@ const TrainingProgressSchema = new mongoose.Schema({
   }
 });
 */
-module.exports = {
-  Training: mongoose.model('Training', TrainingSchema),
-//  TrainingSchedule: mongoose.model('TrainingSchedule', TrainingScheduleSchema),
-//  TrainingProgress: mongoose.model('TrainingProgress', TrainingProgressSchema)
-};  
+const trainingSchema = new mongoose.Schema({}, { timestamps: true, strict: false });
+
+module.exports = mongoose.models.Training || mongoose.model("Training", trainingSchema);

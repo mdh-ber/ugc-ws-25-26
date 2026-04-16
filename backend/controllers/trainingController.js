@@ -1,103 +1,75 @@
+// backend/controllers/trainingController.js
 const Training = require("../models/Training");
+const { sendJson,readJsonBody } = require("../utils/responseHelpers");
 
-exports.getTrainings = async (req, res) => {
-  try {  
-   
-    const trainings = await Training.Training.find();  
-    res.json(trainings);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-exports.addTrainings = async (req, res) => {
+// Controller function to handle GET /api/trainings
+async function getTrainings(req, res) {
   try {
-    const training = await Training.Training.create(req.body);
-    res.status(201).json({ message: "Training added successfully", training });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    const items = await Training.find().sort({ createdAt: -1 }).lean();
+    return sendJson(res, 200, items);
+  } catch (error) {
+    console.error("Error fetching trainings:", error);
+    return sendJson(res, 500, { message: error.message || "Server error" });
   }
-};
+}
 
-exports.getTrainingById = async (req, res) => {
+// Controller function to handle POST /api/trainings
+async function createTraining(req, res) {
   try {
-    const training = await Training.Training.findById(req.params.id);
-    if (!training) {
-      return res.status(404).json({ message: "Training not found" });
-    }
-    res.json(training);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    const body = await readJsonBody(req);
+    const training = await Training.create(body);
+    return sendJson(res, 201, training);
+  } catch (error) {
+    console.error("Error creating training:", error);
+    return sendJson(res, 500, { message: error.message || "Server error" });
   }
-};
+}
 
-exports.updateTraining = async (req, res) => {
+// Controller function to handle GET /api/trainings/:id
+async function getTrainingById(req, res) {
   try {
-    const training = await Training.Training.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!training) {
-      return res.status(404).json({ message: "Training not found" });
-    }
-    res.json({ message: "Training updated successfully", training });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    
+    const training = await Training.findById(req.params.id);
+    if (!training) return sendJson(res, 404, { message: "Training not found" });
+    return sendJson(res, 200, training);
+  } catch (error) {
+    console.error("Error fetching training by ID:", error);
+    return sendJson(res, 500, { message: error.message || "Server error" });
   }
-};
+}
 
-exports.deleteTraining = async (req, res) => {
+// Controller function to handle PUT /api/trainings/:id
+async function updateTraining(req, id, res) {
   try {
-    const training = await Training.Training.findByIdAndDelete(req.params.id);
-    if (!training) {
-      return res.status(404).json({ message: "Training not found" });
-    }
-    res.json({ message: "Training deleted successfully", training });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    const body = await readJsonBody(req);
+    const updated = await Training.findByIdAndUpdate(id, body, {
+      new: true,
+    });
+    if (!updated) return sendJson(res, 404, { message: "Training not found" });
+    return sendJson(res, 200, updated);
+  } catch (error) {
+    console.error("Error updating training:", error);
+    return sendJson(res, 500, { message: error.message || "Server error" });
   }
-};  
-/*
-exports.getTrainingSchedules = async (req, res) => {
-  try {  
-   
-    const trainings = await Training.TrainingSchedule.find();  
-    res.json(trainings);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+}
 
-exports.getTrainingScheduleById = async (req, res) => {
-  try {  
-   
-    const training = await Training.TrainingSchedule.findById(req.params.id);  
-    res.json(training);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-exports.addTrainingSchedules = async (req, res) => {
+// Controller function to handle DELETE /api/trainings/:id
+async function deleteTraining(req, res) {
   try {
-    const training = await Training.TrainingSchedule.create(req.body);
-    res.status(201).json({ message: "Training added successfully", training });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    const id = req.params.id;
+    const deleted = await Training.findByIdAndDelete(id);
+    if (!deleted) return sendJson(res, 404, { message: "Training not found" });
+    return sendJson(res, 200, { message: "Training deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting training:", error);
+    return sendJson(res, 500, { message: error.message || "Server error" });
   }
-};
+}
 
-exports.updateTrainingSchedules = async (req, res) => {
-  try {
-    const training = await Training.TrainingSchedule.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json({ message: "Training updated successfully", training });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+module.exports = {
+  getTrainings,
+  createTraining,
+  getTrainingById,
+  updateTraining,
+  deleteTraining,
 };
-
-exports.deleteTrainingSchedules = async (req, res) => {
-  try {
-    const training = await Training.TrainingSchedule.findByIdAndDelete(req.params.id);
-    res.json({ message: "Training deleted successfully", training });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-*/

@@ -1,16 +1,15 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000/api";
 
+const api = axios.create({ baseURL: API_BASE_URL });
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
+// Attach token on every request
+api.interceptors.request.use((config) => {
+  const token =
+    sessionStorage.getItem("token") || localStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
-
-// Always attach userid automatically
-// api.interceptors.request.use((config) => {
-//   config.headers.userid = USER_ID;
-//   return config;
-// });
 
 export default api;

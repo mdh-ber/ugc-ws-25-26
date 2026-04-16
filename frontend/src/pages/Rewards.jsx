@@ -1,101 +1,129 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+
+const DEFAULT_CATEGORIES = ["Trainings", "Reviews", "Events", "Referrals"];
 
 const Rewards = () => {
-  const totalPoints = 1250;
-  const moneyValue = totalPoints * 0.5; // example conversion
+  const [rewards, setRewards] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchRewards = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const res = await axios.get("/api/rewards");
+        setRewards(res.data);
+      } catch (e) {
+        setError(e?.response?.data?.message || e?.message || "Request failed");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRewards();
+  }, []);
+
+  const totalPoints = typeof rewards?.totalPoints === "number" ? rewards.totalPoints : 0;
+
+  const conversionRate =
+    typeof rewards?.conversionRate === "number" ? rewards.conversionRate : null;
+
+  const moneyValueFromBackend =
+    typeof rewards?.moneyValue === "number" ? rewards.moneyValue : null;
+
+  const moneyValue = useMemo(() => {
+    if (moneyValueFromBackend !== null) return Number(moneyValueFromBackend.toFixed(2));
+    if (conversionRate !== null) return Number((totalPoints * conversionRate).toFixed(2));
+    return 0;
+  }, [moneyValueFromBackend, conversionRate, totalPoints]);
+
+  const breakdownMap = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(rewards?.breakdown)) {
+      rewards.breakdown.forEach((item) => {
+        const title = String(item?.title || "").trim();
+        const points = typeof item?.points === "number" ? item.points : 0;
+        if (title) map.set(title.toLowerCase(), { title, points, id: item?.id });
+      });
+    }
+    return map;
+  }, [rewards]);
+
+  const breakdownCards = useMemo(() => {
+    return DEFAULT_CATEGORIES.map((title) => {
+      const found = breakdownMap.get(title.toLowerCase());
+      return {
+        id: found?.id || title.toLowerCase(),
+        title,
+        points: found?.points ?? 0,
+      };
+    });
+  }, [breakdownMap]);
+
+  const canRedeem = Boolean(rewards?.canRedeem);
 
   return (
     <div style={{ padding: "20px" }}>
       <h2 style={{ marginBottom: "20px" }}>Rewards Earned</h2>
 
-      {/* Total Points Card */}
-      <div style={{
-        background: "#fff",
-        padding: "20px",
-        borderRadius: "10px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-        marginBottom: "20px"
-      }}>
+      {loading && <p>Loading rewards...</p>}
+      {error && <div style={{ color: "red", marginBottom: 12 }}>{error}</div>}
+
+      <div
+        style={{
+          background: "#fff",
+          padding: "20px",
+          borderRadius: "10px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          marginBottom: "20px",
+        }}
+      >
         <h3>Total Points</h3>
         <h1 style={{ color: "#2563eb" }}>{totalPoints}</h1>
         <p>Equivalent Value: €{moneyValue}</p>
 
-        <button style={{
-          marginTop: "10px",
-          padding: "10px 20px",
-          background: "#2563eb",
-          color: "#fff",
-          border: "none",
-          borderRadius: "6px",
-          cursor: "pointer"
-        }}>
+        <button
+          disabled={!canRedeem}
+          onClick={() => {
+            if (rewards?.redeemUrl) window.location.href = rewards.redeemUrl;
+          }}
+          style={{
+            marginTop: "10px",
+            padding: "10px 20px",
+            background: canRedeem ? "#2563eb" : "#9ca3af",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            cursor: canRedeem ? "pointer" : "not-allowed",
+          }}
+        >
           Redeem Now
         </button>
       </div>
 
-      {/* Breakdown Section */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-        gap: "15px",
-        marginBottom: "20px"
-      }}>
-        {[
-          { title: "Trainings", points: 400 },
-          { title: "Reviews", points: 250 },
-          { title: "Events", points: 300 },
-          { title: "Referrals", points: 300 }
-        ].map((item, index) => (
-          <div key={index} style={{
-            background: "#fff",
-            padding: "15px",
-            borderRadius: "8px",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.08)"
-          }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "15px",
+          marginBottom: "20px",
+        }}
+      >
+        {breakdownCards.map((item) => (
+          <div
+            key={item.id}
+            style={{
+              background: "#fff",
+              padding: "15px",
+              borderRadius: "8px",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+            }}
+          >
             <h4>{item.title}</h4>
             <p>{item.points} Points</p>
           </div>
         ))}
-      </div>
-
-      {/* Transaction History */}
-      <div style={{
-        background: "#fff",
-        padding: "20px",
-        borderRadius: "10px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-      }}>
-        <h3>Transaction History</h3>
-        <table width="100%" style={{ marginTop: "10px" }}>
-          <thead>
-            <tr>
-              <th align="left">Date</th>
-              <th align="left">Activity</th>
-              <th align="left">Points</th>
-              <th align="left">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>12 Feb 2026</td>
-              <td>Training Completion</td>
-              <td>+200</td>
-              <td>Credited</td>
-            </tr>
-            <tr>
-              <td>10 Feb 2026</td>
-              <td>Event Participation</td>
-              <td>+150</td>
-              <td>Credited</td>
-            </tr>
-            <tr>
-              <td>5 Feb 2026</td>
-              <td>Redeemed</td>
-              <td>-300</td>
-              <td>Transferred</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
   );

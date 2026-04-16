@@ -1,12 +1,12 @@
 import api from "./api";
-export const getProfile = async (userId) => {
-  const res = await api.get(`/profiles/${userId}`);
+
+export const getProfile = async () => {
+  const res = await api.get("/user-profile/me");
   return res.data;
 };
 
-export const updateProfile = async (formData, userId) => {
-  const res = await api.put(`/profiles/${userId}`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+export const updateProfile = async (data) => {
+  const res = await api.put("/user-profile/me", data);
   return res.data;
 };
+
